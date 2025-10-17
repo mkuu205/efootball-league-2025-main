@@ -1,0 +1,698 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin - eFootball League 2025</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark sticky-top">
+        <div class="container">
+            <div class="logo-container">
+                <div class="logo">EFL</div>
+                <span class="navbar-brand mb-0 h1">eFootball League 2025 - Admin</span>
+            </div>
+            
+            <!-- Sync Status -->
+            <div class="navbar-text ms-3">
+                <span id="sync-status" class="badge bg-success">
+                    <i class="fas fa-cloud me-1"></i>Online
+                </span>
+            </div>
+
+            <div class="navbar-nav ms-auto">
+                <button class="btn btn-outline-info btn-sm me-2" onclick="dataSync.manualSync()">
+                    <i class="fas fa-sync-alt me-1"></i> Sync Now
+                </button>
+                <a class="nav-link" href="index.html">
+                    <i class="fas fa-arrow-left me-1"></i> Back to Site
+                </a>
+                <button class="btn btn-outline-light btn-sm ms-2" id="logout-btn">
+                    <i class="fas fa-sign-out-alt me-1"></i> Logout
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container my-4">
+        <!-- Login Section -->
+        <div id="login-section" class="row justify-content-center">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header text-center">
+                        <img src="https://i.ibb.co/NgGdC1gX/efootball-profile.jpg" alt="eFootball Admin" class="ef-profile-image mb-3">
+                        <h4 class="mb-0">Admin Access</h4>
+                    </div>
+                    <div class="card-body">
+                        <form id="login-form">
+                            <div class="mb-3">
+                                <label for="admin-password" class="form-label">Admin Password</label>
+                                <input type="password" class="form-control" id="admin-password" 
+                                       placeholder="Enter admin password" required>
+                                <div class="form-text">
+                            
+                                </div>
+                            </div>
+                            <button type="submit" class="btn btn-primary w-100">
+                                <i class="fas fa-lock me-2"></i> Access Dashboard
+                            </button>
+                        </form>
+                    </div>
+                </div>
+                
+                <!-- Tournament Info Card -->
+                <div class="card mt-4">
+                    <div class="card-header text-center">
+                        <i class="fas fa-trophy me-2"></i> Tournament Control Center
+                    </div>
+                    <div class="card-body text-center">
+                        <p class="mb-3">Manage players, fixtures, and match results for the eFootball League 2025.</p>
+                        <div class="row text-center">
+                            <div class="col-4">
+                                <div class="fw-bold fs-4 text-warning" id="players-count">0</div>
+                                <small>Players</small>
+                            </div>
+                            <div class="col-4">
+                                <div class="fw-bold fs-4 text-warning" id="fixtures-count">0</div>
+                                <small>Fixtures</small>
+                            </div>
+                            <div class="col-4">
+                                <div class="fw-bold fs-4 text-warning" id="results-count">0</div>
+                                <small>Results</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Admin Dashboard -->
+        <div id="admin-dashboard" class="d-none">
+            <!-- Welcome Header -->
+            <div class="text-center mb-4 p-4 rounded" style="background: rgba(255,255,255,0.1);">
+                <div class="row align-items-center">
+                    <div class="col-md-2">
+                        <img src="https://i.ibb.co/NgGdC1gX/efootball-profile.jpg" alt="eFootball Admin" class="ef-profile-image">
+                    </div>
+                    <div class="col-md-8">
+                        <h2 class="mb-2 text-warning">Tournament Control Panel</h2>
+                        <p class="mb-0">Welcome back, Administrator! Manage all aspects of the eFootball League 2025.</p>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="fw-bold fs-3 text-warning" id="live-players">0</div>
+                        <small>Active Players</small>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="admin-section">
+                <h4 class="mb-4 text-center text-warning">
+                    <i class="fas fa-user-shield me-2"></i> Admin Dashboard
+                </h4>
+                
+                <ul class="nav nav-pills mb-4 justify-content-center" id="adminTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="players-tab" data-bs-toggle="pill" data-bs-target="#admin-players" type="button">
+                            <i class="fas fa-users me-2"></i> Manage Players
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="fixtures-admin-tab" data-bs-toggle="pill" data-bs-target="#admin-fixtures" type="button">
+                            <i class="fas fa-calendar me-2"></i> Manage Fixtures
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="results-tab" data-bs-toggle="pill" data-bs-target="#admin-results" type="button">
+                            <i class="fas fa-futbol me-2"></i> Input Results
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="sync-tab" data-bs-toggle="pill" data-bs-target="#admin-sync" type="button">
+                            <i class="fas fa-sync-alt me-2"></i> Sync & Backup
+                        </button>
+                    </li>
+                </ul>
+                
+                <div class="tab-content" id="adminTabsContent">
+                    <div class="tab-pane fade show active" id="admin-players" role="tabpanel">
+                        <div class="card">
+                            <div class="card-header">
+                                <i class="fas fa-user-plus me-2"></i> Add New Player
+                            </div>
+                            <div class="card-body">
+                                <form id="add-player-form">
+                                    <div class="row">
+                                        <div class="col-md-4 mb-3">
+                                            <label for="playerName" class="form-label">Player Name</label>
+                                            <input type="text" class="form-control" id="playerName" placeholder="Enter player name" required>
+                                        </div>
+                                        <div class="col-md-4 mb-3">
+                                            <label for="playerTeam" class="form-label">Team</label>
+                                            <select class="form-select" id="playerTeam" required>
+                                                <option value="" selected disabled>Select team</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-4 mb-3">
+                                            <label for="playerStrength" class="form-label">Strength Rating</label>
+                                            <input type="number" class="form-control" id="playerStrength" placeholder="e.g., 3000" min="0" max="4000" value="2500">
+                                            <div class="form-text">Player skill level (0-4000)</div>
+                                        </div>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="playerPhoto" class="form-label">Player Photo URL</label>
+                                        <input type="text" class="form-control" id="playerPhoto" placeholder="Enter image URL (optional)">
+                                        <div class="form-text">Leave empty for auto-generated avatar</div>
+                                    </div>
+                                    <button type="submit" class="btn btn-primary">
+                                        <i class="fas fa-plus me-2"></i> Add Player
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                        
+                        <div class="card mt-4">
+                            <div class="card-header d-flex justify-content-between align-items-center">
+                                <span><i class="fas fa-list me-2"></i> Current Players</span>
+                                <div>
+                                    <button class="btn btn-sm btn-outline-light me-2" id="export-data">
+                                        <i class="fas fa-download me-1"></i> Export Data
+                                    </button>
+                                    <span class="badge bg-primary fs-6" id="players-badge">0</span>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <div class="table-responsive">
+                                    <table class="table table-dark table-hover" id="players-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Player</th>
+                                                <th>Team</th>
+                                                <th>Strength</th>
+                                                <th>Matches</th>
+                                                <th>Points</th>
+                                                <th>Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <!-- Dynamically loaded -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="tab-pane fade" id="admin-fixtures" role="tabpanel">
+                        <div class="card">
+                            <div class="card-header">
+                                <i class="fas fa-calendar-plus me-2"></i> Schedule New Fixture
+                            </div>
+                            <div class="card-body">
+                                <form id="add-fixture-form">
+                                    <div class="row mb-3">
+                                        <div class="col-md-5">
+                                            <label for="homePlayerSelect" class="form-label">Home Player</label>
+                                            <select class="form-select" id="homePlayerSelect" required>
+                                                <option value="" selected disabled>Select player</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-2 text-center pt-4">
+                                            <div class="fw-bold">VS</div>
+                                        </div>
+                                        <div class="col-md-5">
+                                            <label for="awayPlayerSelect" class="form-label">Away Player</label>
+                                            <select class="form-select" id="awayPlayerSelect" required>
+                                                <option value="" selected disabled>Select player</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="row mb-3">
+                                        <div class="col-md-6">
+                                            <label for="fixtureDate" class="form-label">Match Date</label>
+                                            <input type="date" class="form-control" id="fixtureDate" required>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label for="fixtureTime" class="form-label">Match Time</label>
+                                            <input type="time" class="form-control" id="fixtureTime" required>
+                                        </div>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="fixtureVenue" class="form-label">Venue</label>
+                                        <input type="text" class="form-control" id="fixtureVenue" placeholder="Enter virtual stadium name" required>
+                                    </div>
+                                    <button type="submit" class="btn btn-primary">
+                                        <i class="fas fa-calendar-check me-2"></i> Schedule Fixture
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                        
+                        <!-- Add to Fixtures Management tab -->
+                        <div class="card mt-4">
+                            <div class="card-header">
+                                <i class="fas fa-cogs me-2"></i> Advanced Fixture Management
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <button class="btn btn-outline-warning w-100 mb-2" onclick="generateOptimizedFixtures()">
+                                            <i class="fas fa-magic me-1"></i> Generate Optimized Fixtures
+                                        </button>
+                                        <button class="btn btn-outline-info w-100 mb-2" onclick="showFixtureReport()">
+                                            <i class="fas fa-chart-bar me-1"></i> Fixture Report
+                                        </button>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <button class="btn btn-outline-primary w-100 mb-2" onclick="checkFixtureConflicts()">
+                                            <i class="fas fa-exclamation-triangle me-1"></i> Check Conflicts
+                                        </button>
+                                        <button class="btn btn-outline-success w-100" onclick="showRescheduleTool()">
+                                            <i class="fas fa-calendar-alt me-1"></i> Reschedule Tool
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="card mt-4">
+                            <div class="card-header d-flex justify-content-between align-items-center">
+                                <span><i class="fas fa-edit me-2"></i> Manage Fixtures</span>
+                                <span class="badge bg-primary fs-6" id="fixtures-badge">0</span>
+                            </div>
+                            <div class="card-body">
+                                <div class="table-responsive">
+                                    <table class="table table-dark table-hover" id="admin-fixtures-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Date</th>
+                                                <th>Time</th>
+                                                <th>Home Player</th>
+                                                <th>Away Player</th>
+                                                <th>Venue</th>
+                                                <th>Status</th>
+                                                <th>Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <!-- Dynamically loaded -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="tab-pane fade" id="admin-results" role="tabpanel">
+                        <div class="card">
+                            <div class="card-header">
+                                <i class="fas fa-edit me-2"></i> Record Match Result
+                            </div>
+                            <div class="card-body">
+                                <form id="add-result-form">
+                                    <div class="row mb-3">
+                                        <div class="col-md-5">
+                                            <label for="homePlayerResult" class="form-label">Home Player</label>
+                                            <select class="form-select" id="homePlayerResult" required>
+                                                <option value="" selected disabled>Select player</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-2 text-center">
+                                            <label class="form-label">Final Score</label>
+                                            <div class="d-flex align-items-center justify-content-center">
+                                                <input type="number" class="form-control text-center" id="homeScore" min="0" value="0" style="width: 60px;" required>
+                                                <span class="mx-2 fw-bold">-</span>
+                                                <input type="number" class="form-control text-center" id="awayScore" min="0" value="0" style="width: 60px;" required>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-5">
+                                            <label for="awayPlayerResult" class="form-label">Away Player</label>
+                                            <select class="form-select" id="awayPlayerResult" required>
+                                                <option value="" selected disabled>Select player</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="matchDateResult" class="form-label">Match Date</label>
+                                        <input type="date" class="form-control" id="matchDateResult" required>
+                                    </div>
+                                    <button type="submit" class="btn btn-primary">
+                                        <i class="fas fa-save me-2"></i> Save Result
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                        
+                        <div class="card mt-4">
+                            <div class="card-header d-flex justify-content-between align-items-center">
+                                <span><i class="fas fa-history me-2"></i> Match Results</span>
+                                <span class="badge bg-primary fs-6" id="results-badge">0</span>
+                            </div>
+                            <div class="card-body">
+                                <div class="table-responsive">
+                                    <table class="table table-dark table-hover" id="admin-results-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Date</th>
+                                                <th>Home Player</th>
+                                                <th>Score</th>
+                                                <th>Away Player</th>
+                                                <th>Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <!-- Dynamically loaded -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="tab-pane fade" id="admin-sync" role="tabpanel">
+                        <div class="card">
+                            <div class="card-header">
+                                <i class="fas fa-sync-alt me-2"></i> Real-time Sync Control
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <h5 class="text-warning mb-3">Sync Status</h5>
+                                        <div class="mb-3">
+                                            <div class="d-flex justify-content-between mb-2">
+                                                <span>Server Connection:</span>
+                                                <span id="server-status" class="badge bg-success">Online</span>
+                                            </div>
+                                            <div class="d-flex justify-content-between mb-2">
+                                                <span>Last Sync:</span>
+                                                <span id="last-sync-time">Never</span>
+                                            </div>
+                                            <div class="d-flex justify-content-between">
+                                                <span>Data Version:</span>
+                                                <span id="data-version">v1.0</span>
+                                            </div>
+                                        </div>
+                                        <button class="btn btn-success w-100 mb-3" onclick="dataSync.manualSync()">
+                                            <i class="fas fa-sync me-2"></i> Sync Now
+                                        </button>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <h5 class="text-warning mb-3">Backup & Restore</h5>
+                                        <div class="mb-3">
+                                            <button class="btn btn-outline-info w-100 mb-2" onclick="exportTournamentData()">
+                                                <i class="fas fa-file-export me-1"></i> Export Data
+                                            </button>
+                                            <input type="file" id="import-file" class="form-control" accept=".json">
+                                            <button class="btn btn-outline-warning w-100 mt-2" onclick="importTournamentData()">
+                                                <i class="fas fa-file-import me-1"></i> Import Data
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Add to the Sync & Backup tab -->
+                        <div class="card mt-4">
+                            <div class="card-header">
+                                <i class="fas fa-image me-2"></i> Export Images
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <button class="btn btn-outline-info w-100 mb-2" onclick="imageExporter.exportLeagueTable()">
+                                            <i class="fas fa-table me-1"></i> Export League Table
+                                        </button>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <button class="btn btn-outline-info w-100 mb-2" onclick="imageExporter.exportMatchDayFixtures()">
+                                            <i class="fas fa-calendar me-1"></i> Export Fixtures
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card mt-4">
+                            <div class="card-header">
+                                <i class="fas fa-database me-2"></i> Database Management
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <h6 class="text-warning">Server Actions</h6>
+                                        <div class="mb-3">
+                                            <button class="btn btn-outline-primary w-100 mb-2" onclick="pushToServer()">
+                                                <i class="fas fa-cloud-upload-alt me-1"></i> Push to Server
+                                            </button>
+                                            <button class="btn btn-outline-info w-100" onclick="pullFromServer()">
+                                                <i class="fas fa-cloud-download-alt me-1"></i> Pull from Server
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <h6 class="text-warning">Reset Options</h6>
+                                        <div class="mb-3">
+                                            <button class="btn btn-outline-danger w-100 mb-2" onclick="resetAllResults()">
+                                                <i class="fas fa-eraser me-1"></i> Clear Results
+                                            </button>
+                                            <button class="btn btn-outline-warning w-100 mb-2" onclick="resetTournament()">
+                                                <i class="fas fa-trash-alt me-1"></i> Reset Local Data
+                                            </button>
+                                            <button class="btn btn-outline-danger w-100" onclick="resetMongoDB()">
+                                                <i class="fas fa-database me-1"></i> Reset MongoDB
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="text-center">
+        <div class="container">
+            <p>eFootball League 2025 &copy; All rights reserved</p>
+            <p class="text-muted">Admin Panel - Restricted Access | Secure Tournament Management</p>
+        </div>
+    </footer>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- App Scripts -->
+    <script src="js/database.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/admin.js"></script>
+
+    <script>
+        // Sync and backup functions
+        async function pushToServer() {
+            try {
+                const players = getData(DB_KEYS.PLAYERS);
+                const fixtures = getData(DB_KEYS.FIXTURES);
+                const results = getData(DB_KEYS.RESULTS);
+                
+                // Push each player
+                for (const player of players) {
+                    await eflAPI.addPlayer(player);
+                }
+                
+                // Push each fixture
+                for (const fixture of fixtures) {
+                    await eflAPI.addFixture(fixture);
+                }
+                
+                // Push each result
+                for (const result of results) {
+                    await eflAPI.addResult(result);
+                }
+                
+                showNotification('Data pushed to server successfully!', 'success');
+            } catch (error) {
+                showNotification('Failed to push data: ' + error.message, 'error');
+            }
+        }
+
+        async function pullFromServer() {
+            try {
+                await dataSync.manualSync();
+                showNotification('Data pulled from server successfully!', 'success');
+            } catch (error) {
+                showNotification('Failed to pull data: ' + error.message, 'error');
+            }
+        }
+
+        function exportTournamentData() {
+            const players = getData(DB_KEYS.PLAYERS);
+            const fixtures = getData(DB_KEYS.FIXTURES);
+            const results = getData(DB_KEYS.RESULTS);
+            
+            const data = {
+                players,
+                fixtures,
+                results,
+                exportDate: new Date().toISOString(),
+                tournament: 'eFootball League 2025',
+                version: '1.0'
+            };
+            
+            const dataStr = JSON.stringify(data, null, 2);
+            const dataBlob = new Blob([dataStr], {type: 'application/json'});
+            
+            const url = URL.createObjectURL(dataBlob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `efootball_tournament_${new Date().toISOString().split('T')[0]}.json`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            
+            showNotification('Tournament data exported successfully!', 'success');
+        }
+
+        function importTournamentData() {
+            const fileInput = document.getElementById('import-file');
+            const file = fileInput.files[0];
+            
+            if (!file) {
+                showNotification('Please select a file to import!', 'error');
+                return;
+            }
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    
+                    if (confirm('This will replace all current tournament data. Continue?')) {
+                        if (data.players) saveData(DB_KEYS.PLAYERS, data.players);
+                        if (data.fixtures) saveData(DB_KEYS.FIXTURES, data.fixtures);
+                        if (data.results) saveData(DB_KEYS.RESULTS, data.results);
+                        
+                        showNotification('Tournament data imported successfully!', 'success');
+                        renderAdminPlayers();
+                        renderAdminFixtures();
+                        renderAdminResults();
+                        populatePlayerSelects();
+                        fileInput.value = '';
+                    }
+                } catch (error) {
+                    showNotification('Invalid tournament data file!', 'error');
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        function resetAllResults() {
+            if (confirm('This will clear all match results but keep players and fixtures. Continue?')) {
+                saveData(DB_KEYS.RESULTS, []);
+                
+                // Mark all fixtures as unplayed
+                const fixtures = getData(DB_KEYS.FIXTURES);
+                fixtures.forEach(fixture => {
+                    fixture.played = false;
+                });
+                saveData(DB_KEYS.FIXTURES, fixtures);
+                
+                showNotification('All results have been cleared!', 'success');
+                renderAdminResults();
+                renderAdminFixtures();
+            }
+        }
+
+        function resetTournament() {
+            if (confirm('⚠️ DANGER: This will reset the entire tournament and delete all LOCAL data! This cannot be undone. Continue?')) {
+                localStorage.removeItem(DB_KEYS.PLAYERS);
+                localStorage.removeItem(DB_KEYS.FIXTURES);
+                localStorage.removeItem(DB_KEYS.RESULTS);
+                
+                // Reinitialize with default players
+                initializeDatabase();
+                
+                showNotification('Local tournament data has been reset to default settings!', 'success');
+                renderAdminPlayers();
+                renderAdminFixtures();
+                renderAdminResults();
+                populatePlayerSelects();
+            }
+        }
+
+        // MongoDB Reset Function
+        async function resetMongoDB() {
+            if (confirm('⚠️ DANGER: This will reset the ENTIRE tournament in MongoDB database! This cannot be undone. Continue?')) {
+                try {
+                    showNotification('Resetting MongoDB database...', 'info');
+                    
+                    const response = await fetch('/api/initialize', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        }
+                    });
+
+                    const result = await response.json();
+                    
+                    if (result.success) {
+                        showNotification('MongoDB database reset successfully! Re-syncing data...', 'success');
+                        
+                        // Clear local storage first
+                        localStorage.removeItem(DB_KEYS.PLAYERS);
+                        localStorage.removeItem(DB_KEYS.FIXTURES);
+                        localStorage.removeItem(DB_KEYS.RESULTS);
+                        
+                        // Reinitialize database which will pull from MongoDB
+                        await initializeDatabase();
+                        
+                        // Refresh all admin displays
+                        renderAdminPlayers();
+                        renderAdminFixtures();
+                        renderAdminResults();
+                        populatePlayerSelects();
+                        
+                        showNotification('MongoDB reset complete! All data has been re-synced.', 'success');
+                    } else {
+                        showNotification('Failed to reset MongoDB: ' + result.error, 'error');
+                    }
+                } catch (error) {
+                    console.error('MongoDB reset failed:', error);
+                    showNotification('Failed to reset MongoDB. Server might be offline. Using local data only.', 'error');
+                }
+            }
+        }
+
+        // Update sync status display
+        function updateSyncDisplay() {
+            const lastSync = localStorage.getItem('efl_last_sync');
+            const dataVersion = localStorage.getItem('efl_data_version') || 'v1.0';
+            
+            if (lastSync) {
+                document.getElementById('last-sync-time').textContent = new Date(lastSync).toLocaleString();
+            }
+            document.getElementById('data-version').textContent = dataVersion;
+            
+            if (eflAPI.isOnline) {
+                document.getElementById('server-status').className = 'badge bg-success';
+                document.getElementById('server-status').textContent = 'Online';
+            } else {
+                document.getElementById('server-status').className = 'badge bg-danger';
+                document.getElementById('server-status').textContent = 'Offline';
+            }
+        }
+
+        // Initialize sync display
+        document.addEventListener('DOMContentLoaded', function() {
+            setInterval(updateSyncDisplay, 5000);
+            updateSyncDisplay();
+        });
+    </script>
+</body>
+</html>
