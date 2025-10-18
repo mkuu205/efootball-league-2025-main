@@ -39,12 +39,12 @@ function clearResetToken(email) {
     localStorage.setItem('efl_reset_tokens', JSON.stringify(resetTokens));
 }
 
-// Real email sending function using PHP backend
+// Real email sending function using Node.js API endpoint
 async function sendPasswordResetEmail(email, resetLink) {
     try {
         console.log('🔧 Attempting to send reset email to:', email);
-        
-        const response = await fetch('php/send-reset-email.php', {
+
+        const response = await fetch('/api/send-reset-email', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -61,25 +61,24 @@ async function sendPasswordResetEmail(email, resetLink) {
 
         const result = await response.json();
         console.log('📧 Email send result:', result);
-        
+
         if (result.success) {
             console.log('✅ Password reset email sent successfully');
+            showNotification('Password reset link has been sent to support@kishtechsite.online!', 'success');
             return true;
         } else {
             console.error('❌ Failed to send email:', result.message);
             // Fallback: Show the reset link for manual copying
             showNotification(`Email service temporarily unavailable. Please copy this reset link manually: ${resetLink}`, 'warning');
+            console.log('🔗 Manual reset link:', resetLink);
             return false;
         }
-        
+
     } catch (error) {
         console.error('❌ Email sending error:', error);
-        
         // Fallback: Show the reset link for manual copying
         const fallbackMessage = `Email service temporarily unavailable. Please copy this reset link manually: ${resetLink}`;
         showNotification(fallbackMessage, 'warning');
-        
-        // Also log to console for debugging
         console.log('🔗 Manual reset link:', resetLink);
         return false;
     }
