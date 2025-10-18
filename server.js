@@ -4,6 +4,7 @@ const path = require('path');
 const { MongoClient } = require('mongodb');
 
 const app = express();
+const HOST = '0.0.0.0';
 const PORT = process.env.PORT || 10000;
 
 // Middleware
