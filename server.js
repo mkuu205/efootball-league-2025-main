@@ -2,7 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const path = require('path');
 const bodyParser = require('body-parser');
-const sendResetEmail = require('./js/send-reset-email');
+const sendResetEmail = require('./api/send-reset-email');
 const { MongoClient } = require('mongodb');
 
 const app = express();
@@ -65,15 +65,119 @@ app.get('/api/health', (req, res) => {
   });
 });
 
-// Password reset API
-app.post('/send-reset-email', async (req, res) => {
-    const { to_email, reset_link } = req.body;
+// Password reset
+// Add this to your server.js after the other API routes
+const nodemailer = require('nodemailer');
+
+// Email configuration
+const emailConfig = {
+    host: process.env.EMAIL_HOST || "mail.kishtechsite.online",
+    port: process.env.EMAIL_PORT || 465,
+    secure: true,
+    auth: {
+        user: process.env.EMAIL_USER || "support@kishtechsite.online",
+        pass: process.env.EMAIL_PASS || "Brasho2425"
+    }
+};
+
+// Create transporter
+const transporter = nodemailer.createTransporter(emailConfig);
+
+// Verify email configuration
+transporter.verify(function(error, success) {
+    if (error) {
+        console.log('❌ Email configuration error:', error);
+    } else {
+        console.log('✅ Email server is ready to send messages');
+    }
+});
+
+// Email sending endpoint
+app.post('/api/send-reset-email', async (req, res) => {
     try {
-        await sendResetEmail(to_email, reset_link);
-        res.json({ success: true, message: 'Password reset email sent' });
-    } catch (err) {
-        console.error(err);
-        res.status(400).json({ success: false, message: err.message });
+        const { to_email, reset_link } = req.body;
+
+        console.log('📧 Received email request:', { to_email, reset_link });
+
+        // Validate input
+        if (!to_email || !reset_link) {
+            return res.status(400).json({
+                success: false,
+                message: 'Missing required fields: to_email and reset_link'
+            });
+        }
+
+        // Only allow admin email for security
+        const admin_email = 'support@kishtechsite.online';
+        if (to_email !== admin_email) {
+            return res.status(403).json({
+                success: false,
+                message: 'Only admin email can request password reset'
+            });
+        }
+
+        // Email content
+        const mailOptions = {
+            from: `"eFootball League 2025" <${emailConfig.auth.user}>`,
+            to: to_email,
+            subject: "eFootball League 2025 - Password Reset Request",
+            html: `
+            <div style="font-family: Arial, sans-serif; padding: 20px; background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%); color: white; border-radius: 10px;">
+                <div style="text-align: center; margin-bottom: 20px;">
+                    <h1 style="color: #ffd700; margin: 0;">⚽ eFootball League 2025</h1>
+                    <p style="margin: 10px 0; opacity: 0.9;">Tournament Management System</p>
+                </div>
+                
+                <div style="background: rgba(255, 255, 255, 0.1); padding: 20px; border-radius: 8px; margin: 20px 0;">
+                    <h2 style="color: #ffd700; margin-top: 0;">Password Reset Request</h2>
+                    <p>Hello Administrator,</p>
+                    <p>You requested to reset your admin password for the eFootball League 2025 system.</p>
+                    
+                    <div style="text-align: center; margin: 30px 0;">
+                        <a href="${reset_link}" style="display: inline-block; padding: 12px 30px; background: #2575fc; color: white; text-decoration: none; border-radius: 5px; font-weight: bold; font-size: 16px;">
+                            🔐 Reset Password
+                        </a>
+                    </div>
+                    
+                    <p>If the button doesn't work, copy and paste this link into your browser:</p>
+                    <div style="background: rgba(0, 0, 0, 0.3); padding: 10px; border-radius: 5px; word-break: break-all; margin: 10px 0;">
+                        <code style="color: #ffd700;">${reset_link}</code>
+                    </div>
+                    
+                    <div style="background: rgba(255, 215, 0, 0.2); padding: 15px; border-radius: 5px; margin: 20px 0;">
+                        <p style="margin: 0; color: #ffd700;"><strong>⚠️ Important:</strong> This reset link will expire in 1 hour for security reasons.</p>
+                    </div>
+                </div>
+                
+                <div style="text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid rgba(255, 255, 255, 0.3);">
+                    <p style="margin: 5px 0; opacity: 0.8; font-size: 14px;">
+                        eFootball League 2025 Tournament System<br>
+                        Automated Email - Do not reply to this message
+                    </p>
+                </div>
+            </div>
+            `
+        };
+
+        // Send email
+        const info = await transporter.sendMail(mailOptions);
+        
+        console.log('✅ Email sent successfully:', info.messageId);
+        
+        res.json({
+            success: true,
+            message: 'Password reset email sent successfully',
+            messageId: info.messageId
+        });
+
+    } catch (error) {
+        console.error('❌ Email sending failed:', error);
+        
+        res.status(500).json({
+            success: false,
+            message: 'Failed to send email: ' + error.message,
+            fallback_message: `Please use this reset link manually: ${req.body.reset_link}`
+        });
     }
 });
 
