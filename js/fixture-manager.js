@@ -24,13 +24,13 @@ class FixtureManager {
     }
 
     init() {
-        // Add fixture management UI to admin panel
+        console.log('Fixture Manager initialized');
         this.addFixtureManagementUI();
     }
 
     addFixtureManagementUI() {
-        // This will be called when admin panel loads
         // UI elements are added in admin.js
+        console.log('Fixture management UI ready');
     }
 
     // Generate optimized fixtures
@@ -209,8 +209,7 @@ class FixtureManager {
 
     getPlayerMatchesThisWeek(playerId, currentDayIndex) {
         // Simplified weekly match count
-        // In a real implementation, you'd track actual dates
-        const daysInWeek = 7 / this.minDaysBetweenMatches;
+        const daysInWeek = Math.floor(7 / this.minDaysBetweenMatches);
         return Math.floor(currentDayIndex / daysInWeek) * this.maxMatchesPerWeek;
     }
 
@@ -246,21 +245,22 @@ class FixtureManager {
     checkFixtureCongestion(playerId) {
         const fixtures = getData(DB_KEYS.FIXTURES);
         const playerFixtures = fixtures.filter(f => 
-            f.homePlayerId === playerId || f.awayPlayerId === playerId
+            (f.homePlayerId === playerId || f.awayPlayerId === playerId) && !f.played
         );
         
-        // Check last 7 days
-        const recentFixtures = playerFixtures.filter(f => {
+        // Check next 7 days
+        const nextWeek = new Date();
+        nextWeek.setDate(nextWeek.getDate() + 7);
+        
+        const upcomingFixtures = playerFixtures.filter(f => {
             const fixtureDate = new Date(f.date);
-            const weekAgo = new Date();
-            weekAgo.setDate(weekAgo.getDate() - 7);
-            return fixtureDate > weekAgo && !f.played;
+            return fixtureDate <= nextWeek;
         });
 
         return {
-            hasCongestion: recentFixtures.length > this.maxMatchesPerWeek,
-            matchesInLastWeek: recentFixtures.length,
-            recommendation: recentFixtures.length > this.maxMatchesPerWeek ? 
+            hasCongestion: upcomingFixtures.length > this.maxMatchesPerWeek,
+            matchesInNextWeek: upcomingFixtures.length,
+            recommendation: upcomingFixtures.length > this.maxMatchesPerWeek ? 
                 'Consider rescheduling some matches' : 'Schedule looks good'
         };
     }
@@ -297,12 +297,12 @@ class FixtureManager {
     }
 
     // Detect date conflicts
-    detectDateConflicts() {
-        const fixtures = getData(DB_KEYS.FIXTURES);
+    detectDateConflicts(fixtures = null) {
+        const fixturesToCheck = fixtures || getData(DB_KEYS.FIXTURES);
         const conflicts = [];
         const dateMap = new Map();
 
-        fixtures.forEach(fixture => {
+        fixturesToCheck.forEach(fixture => {
             const dateKey = fixture.date;
             if (!dateMap.has(dateKey)) {
                 dateMap.set(dateKey, []);
@@ -358,59 +358,6 @@ class FixtureManager {
         return conflicts;
     }
 
-    // Reschedule fixture with conflict resolution
-    rescheduleFixture(fixtureId, newDate, newTime, newVenue) {
-        const fixtures = getData(DB_KEYS.FIXTURES);
-        const fixtureIndex = fixtures.findIndex(f => f.id === fixtureId);
-        
-        if (fixtureIndex === -1) {
-            return { success: false, message: 'Fixture not found' };
-        }
-
-        const originalFixture = fixtures[fixtureIndex];
-        
-        // Check if new schedule creates conflicts
-        const tempFixtures = [...fixtures];
-        tempFixtures[fixtureIndex] = {
-            ...originalFixture,
-            date: newDate,
-            time: newTime,
-            venue: newVenue,
-            updatedAt: new Date()
-        };
-        
-        const conflicts = this.detectDateConflicts(tempFixtures);
-        const relevantConflicts = conflicts.filter(conflict => 
-            conflict.date === newDate && 
-            (conflict.playerId === originalFixture.homePlayerId || 
-             conflict.playerId === originalFixture.awayPlayerId ||
-             (conflict.venue === newVenue && conflict.time === newTime))
-        );
-        
-        if (relevantConflicts.length === 0) {
-            // No conflicts, apply changes
-            fixtures[fixtureIndex] = tempFixtures[fixtureIndex];
-            saveData(DB_KEYS.FIXTURES, fixtures);
-            
-            // Sync with MongoDB
-            if (typeof eflAPI !== 'undefined' && eflAPI.isOnline) {
-                eflAPI.updateFixture(fixtureId, fixtures[fixtureIndex]);
-            }
-            
-            return { 
-                success: true, 
-                message: 'Fixture rescheduled successfully',
-                fixture: fixtures[fixtureIndex]
-            };
-        } else {
-            return { 
-                success: false, 
-                message: 'Schedule conflict detected', 
-                conflicts: relevantConflicts 
-            };
-        }
-    }
-
     // Get next available fixture ID
     getNextFixtureId() {
         const fixtures = getData(DB_KEYS.FIXTURES);
@@ -454,11 +401,12 @@ class FixtureManager {
             }
         });
         
+        const venues = Object.keys(usage);
         return {
             total: usage,
             upcoming: upcomingUsage,
-            mostUsed: Object.keys(usage).reduce((a, b) => usage[a] > usage[b] ? a : b),
-            leastUsed: Object.keys(usage).reduce((a, b) => usage[a] < usage[b] ? a : b)
+            mostUsed: venues.length > 0 ? venues.reduce((a, b) => usage[a] > usage[b] ? a : b) : 'None',
+            leastUsed: venues.length > 0 ? venues.reduce((a, b) => usage[a] < usage[b] ? a : b) : 'None'
         };
     }
 
@@ -516,8 +464,8 @@ class FixtureManager {
                     type: 'CONGESTION',
                     player: player.name,
                     priority: 'HIGH',
-                    matchesInWeek: congestion.matchesInLastWeek,
-                    message: `${player.name} has ${congestion.matchesInLastWeek} matches in the last week - consider rescheduling`,
+                    matchesInWeek: congestion.matchesInNextWeek,
+                    message: `${player.name} has ${congestion.matchesInNextWeek} matches in the next week - consider rescheduling`,
                     suggestion: 'Spread matches more evenly across weeks'
                 });
             }
@@ -538,7 +486,8 @@ class FixtureManager {
         // Check venue usage
         const venueUsage = this.getVenueUsage(fixtures);
         const totalFixtures = fixtures.length;
-        const expectedPerVenue = totalFixtures / Object.keys(venueUsage.total).length;
+        const venueCount = Object.keys(venueUsage.total).length;
+        const expectedPerVenue = venueCount > 0 ? totalFixtures / venueCount : 0;
         
         Object.entries(venueUsage.total).forEach(([venue, count]) => {
             if (count > expectedPerVenue * 1.5) {
@@ -609,15 +558,15 @@ class FixtureManager {
             <div class="fixture-report">
                 <div class="row mb-4">
                     <div class="col-md-3">
-                        <div class="card text-center">
+                        <div class="card text-center bg-dark text-light">
                             <div class="card-body">
-                                <h3>${report.summary.totalFixtures}</h3>
+                                <h3 class="text-warning">${report.summary.totalFixtures}</h3>
                                 <p class="mb-0">Total Fixtures</p>
                             </div>
                         </div>
                     </div>
                     <div class="col-md-3">
-                        <div class="card text-center">
+                        <div class="card text-center bg-dark text-light">
                             <div class="card-body">
                                 <h3 class="text-success">${report.summary.playedFixtures}</h3>
                                 <p class="mb-0">Played</p>
@@ -625,7 +574,7 @@ class FixtureManager {
                         </div>
                     </div>
                     <div class="col-md-3">
-                        <div class="card text-center">
+                        <div class="card text-center bg-dark text-light">
                             <div class="card-body">
                                 <h3 class="text-warning">${report.summary.upcomingFixtures}</h3>
                                 <p class="mb-0">Upcoming</p>
@@ -633,9 +582,9 @@ class FixtureManager {
                         </div>
                     </div>
                     <div class="col-md-3">
-                        <div class="card text-center">
+                        <div class="card text-center bg-dark text-light">
                             <div class="card-body">
-                                <h3>${Math.round(report.summary.completionPercentage)}%</h3>
+                                <h3 class="text-info">${Math.round(report.summary.completionPercentage)}%</h3>
                                 <p class="mb-0">Completion</p>
                             </div>
                         </div>
@@ -643,9 +592,9 @@ class FixtureManager {
                 </div>
 
                 ${report.recommendations.length > 0 ? `
-                    <div class="card mb-4">
-                        <div class="card-header">
-                            <h5 class="mb-0">Recommendations</h5>
+                    <div class="card bg-dark text-light mb-4">
+                        <div class="card-header bg-warning text-dark">
+                            <h5 class="mb-0"><i class="fas fa-exclamation-triangle me-2"></i>Recommendations</h5>
                         </div>
                         <div class="card-body">
                             ${report.recommendations.map(rec => `
@@ -656,11 +605,11 @@ class FixtureManager {
                             `).join('')}
                         </div>
                     </div>
-                ` : ''}
+                ` : '<div class="alert alert-success">No issues found! Schedule looks good.</div>'}
 
-                <div class="card">
-                    <div class="card-header">
-                        <h5 class="mb-0">Player Schedule Analysis</h5>
+                <div class="card bg-dark text-light">
+                    <div class="card-header bg-primary">
+                        <h5 class="mb-0"><i class="fas fa-users me-2"></i>Player Schedule Analysis</h5>
                     </div>
                     <div class="card-body">
                         <div class="table-responsive">
@@ -688,7 +637,7 @@ class FixtureManager {
                                             </td>
                                             <td>
                                                 <span class="badge ${player.congestion.hasCongestion ? 'bg-danger' : 'bg-success'}">
-                                                    ${player.congestion.matchesInLastWeek}/week
+                                                    ${player.congestion.matchesInNextWeek}/week
                                                 </span>
                                             </td>
                                             <td>
@@ -719,15 +668,15 @@ class FixtureManager {
             modal.className = 'modal fade';
             modal.innerHTML = `
                 <div class="modal-dialog modal-xl">
-                    <div class="modal-content">
-                        <div class="modal-header">
+                    <div class="modal-content bg-dark text-light">
+                        <div class="modal-header bg-primary">
                             <h5 class="modal-title">${title}</h5>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                         </div>
                         <div class="modal-body">
                             ${content}
                         </div>
-                        <div class="modal-footer">
+                        <div class="modal-footer bg-secondary">
                             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
                             <button type="button" class="btn btn-primary" onclick="imageExporter.exportLeagueTable()">
                                 <i class="fas fa-image me-1"></i> Export Report
@@ -778,11 +727,122 @@ function checkFixtureConflicts() {
             message += `• ${conflict.message}\n`;
         });
         
-        alert(message);
-        fixtureManager.showFixtureReport();
+        // Show detailed modal instead of alert
+        fixtureManager.showModal('Scheduling Conflicts', `
+            <div class="alert alert-danger">
+                <h5><i class="fas fa-exclamation-triangle me-2"></i>Found ${conflicts.length} Scheduling Conflicts</h5>
+                <ul class="mb-0">
+                    ${conflicts.map(conflict => `<li>${conflict.message}</li>`).join('')}
+                </ul>
+            </div>
+            <p>Use the fixture report for detailed analysis and recommendations.</p>
+        `);
     }
 }
 
 function showRescheduleTool() {
-    showNotification('Reschedule tool will be available in the fixtures management section', 'info');
+    // Create a simple reschedule interface
+    const fixtures = getData(DB_KEYS.FIXTURES);
+    const players = getData(DB_KEYS.PLAYERS);
+    
+    const upcomingFixtures = fixtures.filter(f => !f.played);
+    
+    if (upcomingFixtures.length === 0) {
+        showNotification('No upcoming fixtures to reschedule!', 'warning');
+        return;
+    }
+    
+    let fixtureOptions = upcomingFixtures.map(f => {
+        const homePlayer = players.find(p => p.id === f.homePlayerId);
+        const awayPlayer = players.find(p => p.id === f.awayPlayerId);
+        return `<option value="${f.id}">${homePlayer.name} vs ${awayPlayer.name} (${f.date} ${f.time})</option>`;
+    }).join('');
+    
+    fixtureManager.showModal('Reschedule Fixture', `
+        <form id="reschedule-form">
+            <div class="mb-3">
+                <label class="form-label">Select Fixture to Reschedule:</label>
+                <select class="form-select bg-dark text-light" id="reschedule-fixture-select">
+                    ${fixtureOptions}
+                </select>
+            </div>
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <label class="form-label">New Date:</label>
+                    <input type="date" class="form-control bg-dark text-light" id="reschedule-date" value="${new Date().toISOString().split('T')[0]}">
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">New Time:</label>
+                    <input type="time" class="form-control bg-dark text-light" id="reschedule-time" value="15:00">
+                </div>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">New Venue:</label>
+                <input type="text" class="form-control bg-dark text-light" id="reschedule-venue" value="Virtual Stadium A">
+            </div>
+            <button type="button" class="btn btn-primary w-100" onclick="performReschedule()">
+                <i class="fas fa-calendar-alt me-2"></i> Reschedule Fixture
+            </button>
+        </form>
+    `);
+}
+
+function performReschedule() {
+    const fixtureId = parseInt(document.getElementById('reschedule-fixture-select').value);
+    const newDate = document.getElementById('reschedule-date').value;
+    const newTime = document.getElementById('reschedule-time').value;
+    const newVenue = document.getElementById('reschedule-venue').value;
+    
+    if (!fixtureId || !newDate || !newTime || !newVenue) {
+        showNotification('Please fill in all fields!', 'error');
+        return;
+    }
+    
+    const fixtures = getData(DB_KEYS.FIXTURES);
+    const fixtureIndex = fixtures.findIndex(f => f.id === fixtureId);
+    
+    if (fixtureIndex === -1) {
+        showNotification('Fixture not found!', 'error');
+        return;
+    }
+    
+    // Check for conflicts
+    const tempFixtures = [...fixtures];
+    tempFixtures[fixtureIndex] = {
+        ...tempFixtures[fixtureIndex],
+        date: newDate,
+        time: newTime,
+        venue: newVenue
+    };
+    
+    const conflicts = fixtureManager.detectDateConflicts(tempFixtures);
+    const relevantConflicts = conflicts.filter(conflict => 
+        conflict.date === newDate && 
+        (conflict.fixtures.includes(fixtureId))
+    );
+    
+    if (relevantConflicts.length > 0) {
+        showNotification('Schedule conflict detected! Please choose different date/time.', 'error');
+        return;
+    }
+    
+    // Apply changes
+    fixtures[fixtureIndex].date = newDate;
+    fixtures[fixtureIndex].time = newTime;
+    fixtures[fixtureIndex].venue = newVenue;
+    fixtures[fixtureIndex].updatedAt = new Date();
+    
+    saveData(DB_KEYS.FIXTURES, fixtures);
+    
+    // Update MongoDB if available
+    if (typeof eflAPI !== 'undefined' && eflAPI.isOnline) {
+        eflAPI.updateFixture(fixtureId, fixtures[fixtureIndex]);
+    }
+    
+    showNotification('Fixture rescheduled successfully!', 'success');
+    renderAdminFixtures();
+    
+    // Close modal
+    const modal = bootstrap.Modal.getInstance(document.getElementById('fixtureReportModal'));
+    if (modal) modal.hide();
 }

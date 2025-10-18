@@ -7,28 +7,52 @@ function populatePlayerSelects() {
         'homePlayerSelect',
         'awayPlayerSelect',
         'homePlayerResult',
-        'awayPlayerResult'
+        'awayPlayerResult',
+        'playerTeam'
     ];
     
     selects.forEach(selectId => {
         const select = document.getElementById(selectId);
         if (select) {
-            // Clear existing options
-            select.innerHTML = '<option value="" selected disabled>Select player</option>';
+            // Clear existing options but keep the first option
+            const firstOption = select.querySelector('option');
+            select.innerHTML = firstOption ? firstOption.outerHTML : '<option value="" selected disabled>Select player</option>';
             
             // Add player options
             players.forEach(player => {
-                const option = document.createElement('option');
-                option.value = player.id;
-                option.textContent = `${player.name} (${player.team} - ${player.strength})`;
-                select.appendChild(option);
+                // For team select, add team options
+                if (selectId === 'playerTeam') {
+                    const option = document.createElement('option');
+                    option.value = player.team;
+                    option.textContent = `${player.team}`;
+                    select.appendChild(option);
+                } else {
+                    // For player selects
+                    const option = document.createElement('option');
+                    option.value = player.id;
+                    option.textContent = `${player.name} (${player.team})`;
+                    select.appendChild(option);
+                }
             });
             
-            console.log(`Populated ${selectId} with ${players.length} players`);
+            console.log(`Populated ${selectId} with ${players.length} options`);
         } else {
             console.error(`Select element with id '${selectId}' not found`);
         }
     });
+
+    // Remove duplicate team options
+    const teamSelect = document.getElementById('playerTeam');
+    if (teamSelect) {
+        const teams = [...new Set(players.map(p => p.team))];
+        teamSelect.innerHTML = '<option value="" selected disabled>Select team</option>';
+        teams.forEach(team => {
+            const option = document.createElement('option');
+            option.value = team;
+            option.textContent = team;
+            teamSelect.appendChild(option);
+        });
+    }
 }
 
 function updateAdminStatistics() {
@@ -506,6 +530,15 @@ async function resetMongoDBResults() {
 function setupAdminEventListeners() {
     console.log('Setting up admin event listeners...');
 
+    // Check if Bootstrap is loaded
+    if (typeof bootstrap === 'undefined') {
+        console.error('Bootstrap not loaded!');
+        // Try to reload Bootstrap
+        const script = document.createElement('script');
+        script.src = 'https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js';
+        document.head.appendChild(script);
+    }
+
     // Admin form submissions
     const addPlayerForm = document.getElementById('add-player-form');
     if (addPlayerForm) {
@@ -515,6 +548,11 @@ function setupAdminEventListeners() {
             const team = document.getElementById('playerTeam').value;
             const photo = document.getElementById('playerPhoto').value;
             const strength = parseInt(document.getElementById('playerStrength').value) || 2500;
+            
+            if (!name || !team) {
+                showNotification('Please fill in all required fields!', 'error');
+                return;
+            }
             
             await addPlayer({ name, team, photo, strength });
             this.reset();
@@ -543,8 +581,18 @@ function setupAdminEventListeners() {
                 return;
             }
             
+            if (!homePlayerId || !awayPlayerId || !date || !time || !venue) {
+                showNotification('Please fill in all fields!', 'error');
+                return;
+            }
+            
             await addFixture({ homePlayerId, awayPlayerId, date, time, venue });
             this.reset();
+            
+            // Set default date to today
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('fixtureDate').value = today;
+            
             renderAdminFixtures();
             showNotification('Fixture added successfully!', 'success');
         });
@@ -574,8 +622,18 @@ function setupAdminEventListeners() {
                 return;
             }
             
+            if (isNaN(homeScore) || isNaN(awayScore)) {
+                showNotification('Please enter valid scores!', 'error');
+                return;
+            }
+            
             await addResult({ homePlayerId, awayPlayerId, homeScore, awayScore, date });
             this.reset();
+            
+            // Set default date to today
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('matchDateResult').value = today;
+            
             renderAdminResults();
             renderAdminFixtures();
             showNotification('Result added successfully!', 'success');
@@ -617,14 +675,15 @@ function setupAdminEventListeners() {
         console.error('Export data button not found');
     }
     
-    // Populate team options with updated teams
-    const teamSelect = document.getElementById('playerTeam');
-    if (teamSelect) {
-        teamSelect.innerHTML = '<option value="" selected disabled>Select team</option>' +
-            BALANCED_TEAMS.map(team => 
-                `<option value="${team.name}">${team.name} (Strength: ${team.strength})</option>`
-            ).join('');
-    }
+    // Set default dates
+    const today = new Date().toISOString().split('T')[0];
+    const fixtureDate = document.getElementById('fixtureDate');
+    const matchDateResult = document.getElementById('matchDateResult');
+    
+    if (fixtureDate) fixtureDate.value = today;
+    if (matchDateResult) matchDateResult.value = today;
+    
+    console.log('Admin event listeners setup complete');
 }
 
 // Initialize admin dashboard
@@ -637,20 +696,65 @@ document.addEventListener('DOMContentLoaded', function() {
         // Force re-initialization of database to ensure players exist
         initializeDatabase();
         
-        setupAdminEventListeners();
-        populatePlayerSelects();
-        renderAdminPlayers();
-        renderAdminFixtures();
-        renderAdminResults();
-        
-        // Set today's date as default for date inputs
-        const today = new Date().toISOString().split('T')[0];
-        const fixtureDate = document.getElementById('fixtureDate');
-        const matchDateResult = document.getElementById('matchDateResult');
-        
-        if (fixtureDate) fixtureDate.value = today;
-        if (matchDateResult) matchDateResult.value = today;
-        
-        console.log('Admin dashboard initialized successfully');
+        // Wait a bit for database to initialize
+        setTimeout(() => {
+            setupAdminEventListeners();
+            populatePlayerSelects();
+            renderAdminPlayers();
+            renderAdminFixtures();
+            renderAdminResults();
+            
+            console.log('Admin dashboard initialized successfully');
+        }, 500);
     }
 });
+
+// Advanced Fixture Management Integration
+function generateOptimizedFixtures() {
+    if (typeof fixtureManager !== 'undefined') {
+        fixtureManager.generateOptimizedFixtures();
+    } else {
+        showNotification('Fixture manager not loaded. Please refresh the page.', 'error');
+    }
+}
+
+function showFixtureReport() {
+    if (typeof fixtureManager !== 'undefined') {
+        fixtureManager.showFixtureReport();
+    } else {
+        showNotification('Fixture manager not loaded. Please refresh the page.', 'error');
+    }
+}
+
+function checkFixtureConflicts() {
+    if (typeof fixtureManager !== 'undefined') {
+        fixtureManager.checkFixtureConflicts();
+    } else {
+        showNotification('Fixture manager not loaded. Please refresh the page.', 'error');
+    }
+}
+
+function showRescheduleTool() {
+    if (typeof fixtureManager !== 'undefined') {
+        fixtureManager.showRescheduleTool();
+    } else {
+        showNotification('Fixture manager not loaded. Please refresh the page.', 'error');
+    }
+}
+
+// Image Export Integration
+function exportLeagueTableImage() {
+    if (typeof imageExporter !== 'undefined') {
+        imageExporter.exportLeagueTable();
+    } else {
+        showNotification('Image exporter not loaded. Please refresh the page.', 'error');
+    }
+}
+
+function exportFixturesImage() {
+    if (typeof imageExporter !== 'undefined') {
+        imageExporter.exportMatchDayFixtures();
+    } else {
+        showNotification('Image exporter not loaded. Please refresh the page.', 'error');
+    }
+}

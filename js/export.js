@@ -14,24 +14,47 @@ class ImageExporter {
         this.addExportButtons();
     }
 
-    loadHtml2Canvas() {
-        if (typeof html2canvas === 'undefined') {
+    async loadHtml2Canvas() {
+        return new Promise((resolve) => {
+            if (typeof html2canvas !== 'undefined') {
+                this.html2canvasLoaded = true;
+                console.log('✅ html2canvas already loaded');
+                resolve(true);
+                return;
+            }
+
+            // Check if script is already loading
+            if (document.querySelector('script[src*="html2canvas"]')) {
+                const checkInterval = setInterval(() => {
+                    if (typeof html2canvas !== 'undefined') {
+                        this.html2canvasLoaded = true;
+                        clearInterval(checkInterval);
+                        console.log('✅ html2canvas loaded from existing script');
+                        resolve(true);
+                    }
+                }, 100);
+                return;
+            }
+
             const script = document.createElement('script');
             script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
             script.integrity = 'sha512-B4xkE1alR2K0kYlJqJY1J6G2o2/K0oIXkXRK1pKbIuD8MRiN4VxVW1gX6DfDzFpVcK1f0D2FHFJxJ5yr9vK4VQ==';
             script.crossOrigin = 'anonymous';
+            
             script.onload = () => {
                 console.log('✅ html2canvas loaded successfully');
                 this.html2canvasLoaded = true;
+                resolve(true);
             };
+            
             script.onerror = () => {
                 console.error('❌ Failed to load html2canvas');
                 this.html2canvasLoaded = false;
+                resolve(false);
             };
+            
             document.head.appendChild(script);
-        } else {
-            this.html2canvasLoaded = true;
-        }
+        });
     }
 
     addExportButtons() {
@@ -76,10 +99,13 @@ class ImageExporter {
     }
 
     // Check if export is ready
-    isReady() {
+    async isReady() {
         if (!this.html2canvasLoaded) {
-            showNotification('Export library is still loading. Please try again in a moment.', 'warning');
-            return false;
+            const loaded = await this.loadHtml2Canvas();
+            if (!loaded) {
+                showNotification('Export library failed to load. Please refresh the page.', 'error');
+                return false;
+            }
         }
         if (this.isGenerating) {
             showNotification('Please wait for current export to complete', 'warning');
@@ -90,7 +116,7 @@ class ImageExporter {
 
     // Export league table as image
     async exportLeagueTable() {
-        if (!this.isReady()) return;
+        if (!(await this.isReady())) return;
 
         const tableElement = document.getElementById('league-table');
         if (!tableElement) {
@@ -149,7 +175,7 @@ class ImageExporter {
 
             const canvas = await html2canvas(tempContainer, {
                 backgroundColor: null,
-                scale: 2, // Reduced scale for better performance
+                scale: 2,
                 useCORS: true,
                 allowTaint: false,
                 logging: false,
@@ -176,7 +202,7 @@ class ImageExporter {
 
     // Export match day fixtures as image
     async exportMatchDayFixtures() {
-        if (!this.isReady()) return;
+        if (!(await this.isReady())) return;
 
         const fixtures = getData(DB_KEYS.FIXTURES);
         const players = getData(DB_KEYS.PLAYERS);
@@ -388,36 +414,3 @@ const imageExporter = new ImageExporter();
 
 // Global access
 window.imageExporter = imageExporter;
-
-// Fallback functions for admin panel
-function fallbackExportLeagueTable() {
-    if (imageExporter.html2canvasLoaded) {
-        imageExporter.exportLeagueTable();
-    } else {
-        showNotification('Export library is still loading. Please try again in a moment.', 'warning');
-        // Retry after 2 seconds
-        setTimeout(() => {
-            if (imageExporter.html2canvasLoaded) {
-                imageExporter.exportLeagueTable();
-            } else {
-                showNotification('Export feature failed to load. Please refresh the page.', 'error');
-            }
-        }, 2000);
-    }
-}
-
-function fallbackExportFixtures() {
-    if (imageExporter.html2canvasLoaded) {
-        imageExporter.exportMatchDayFixtures();
-    } else {
-        showNotification('Export library is still loading. Please try again in a moment.', 'warning');
-        // Retry after 2 seconds
-        setTimeout(() => {
-            if (imageExporter.html2canvasLoaded) {
-                imageExporter.exportMatchDayFixtures();
-            } else {
-                showNotification('Export feature failed to load. Please refresh the page.', 'error');
-            }
-        }, 2000);
-    }
-}
