@@ -10,10 +10,7 @@ const PORT = process.env.PORT || 3001;
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
-app.use(express.static('.', {
-  index: 'index.html',
-  extensions: ['html', 'htm']
-}));
+app.use(express.static('.'));
 
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb+srv://efootballadmin:Brashokish2425@efootball-league.xykgya4.mongodb.net/efootball-league?retryWrites=true&w=majority&appName=efootball-league';
 
@@ -774,17 +771,25 @@ app.post('/api/reset-results', async (req, res) => {
   }
 });
 
-// Serve frontend (must be last)
-app.get('*', (req, res) => {
-  // Serve different files based on request
-  if (req.path === '/admin' || req.path === '/admin.html') {
-    res.sendFile(path.join(__dirname, 'admin.html'));
-  } else if (req.path.endsWith('.css') || req.path.endsWith('.js') || req.path.endsWith('.json')) {
-    // Let express.static handle these
-    res.sendFile(path.join(__dirname, req.path));
-  } else {
-    res.sendFile(path.join(__dirname, 'index.html'));
-  }
+// Specific page routes
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'index.html'));
+});
+
+app.get('/admin', (req, res) => {
+  res.sendFile(path.join(__dirname, 'admin.html'));
+});
+
+app.get('/admin.html', (req, res) => {
+  res.sendFile(path.join(__dirname, 'admin.html'));
+});
+
+// 404 handler for API routes
+app.use('/api/*', (req, res) => {
+  res.status(404).json({ 
+    success: false, 
+    error: 'API endpoint not found' 
+  });
 });
 
 // Error handling middleware
@@ -797,52 +802,10 @@ app.use((error, req, res, next) => {
   });
 });
 
-// 404 handler
-app.use((req, res) => {
-  res.status(404).json({ 
-    success: false, 
-    error: 'Endpoint not found',
-    path: req.path 
-  });
-});
-
 // Start server
 app.listen(PORT, '0.0.0.0', () => {
-  console.log('╔══════════════════════════════════════════════════╗');
-  console.log('║          🚀 eFootball League 2025 Server        ║');
-  console.log('╚══════════════════════════════════════════════════╝');
-  console.log('');
-  console.log('📡 Server Information:');
-  console.log(`   Port: ${PORT}`);
-  console.log(`   Local: http://localhost:${PORT}`);
-  console.log(`   Network: http://[YOUR-IP]:${PORT}`);
-  console.log('');
-  console.log('🔗 Available Endpoints:');
-  console.log(`   Frontend: http://localhost:${PORT}`);
-  console.log(`   Admin: http://localhost:${PORT}/admin.html`);
-  console.log(`   API Health: http://localhost:${PORT}/api/health`);
-  console.log(`   API Data: http://localhost:${PORT}/api/data`);
-  console.log('');
-  console.log('⚡ Features:');
-  console.log('   ✅ MongoDB Integration');
-  console.log('   ✅ Real-time Sync');
-  console.log('   ✅ Advanced Fixture Management');
-  console.log('   ✅ Image Export Support');
-  console.log('   ✅ PWA Ready');
-  console.log('');
-  console.log('⏹️  Press Ctrl+C to stop server');
-  console.log('');
-});
-
-// Graceful shutdown
-process.on('SIGINT', async () => {
-  console.log('\n🛑 Server shutting down gracefully...');
-  
-  if (cachedClient) {
-    await cachedClient.close();
-    console.log('✅ MongoDB connection closed');
-  }
-  
-  console.log('✅ Server stopped successfully');
-  process.exit(0);
+  console.log(`🚀 eFootball League 2025 server running on port ${PORT}`);
+  console.log(`📍 Local: http://localhost:${PORT}`);
+  console.log(`🌐 Network: http://0.0.0.0:${PORT}`);
+  console.log(`👑 Admin: http://localhost:${PORT}/admin`);
 });
