@@ -11,7 +11,18 @@ const PORT = process.env.PORT || 3000;
 // Middleware
 app.use(cors());
 app.use(express.json());
-app.use(express.static('.'));
+app.use(bodyParser.json());
+
+// Serve static files correctly for deployment
+app.use(express.static(__dirname, {
+  index: ['index.html'],
+  extensions: ['html']
+}));
+
+// Specific static file routes for better reliability
+app.use('/js', express.static(path.join(__dirname, 'js')));
+app.use('/css', express.static(path.join(__dirname, 'css')));
+app.use('/php', express.static(path.join(__dirname, 'php')));
 
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb+srv://efootballadmin:Brashokish2425@efootball-league.xykgya4.mongodb.net/efootball-league?retryWrites=true&w=majority&appName=efootball-league';
 
@@ -48,7 +59,9 @@ app.get('/api/health', (req, res) => {
   res.json({ 
     status: 'online', 
     message: 'eFootball League 2025 API is running!',
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV || 'development',
+    port: PORT
   });
 });
 
@@ -288,7 +301,7 @@ app.delete('/api/results', async (req, res) => {
   }
 });
 
-// Initialize database - WITH FIXED IMAGE URL
+// Initialize database
 app.post('/api/initialize', async (req, res) => {
   try {
     const { db } = await connectToDatabase();
@@ -298,7 +311,7 @@ app.post('/api/initialize', async (req, res) => {
     await db.collection('fixtures').deleteMany({});
     await db.collection('results').deleteMany({});
 
-    // Insert sample players WITH FIXED IMAGE URL
+    // Insert sample players
     const samplePlayers = [
       { 
         id: 1, 
@@ -374,12 +387,11 @@ app.post('/api/initialize', async (req, res) => {
 
     await db.collection('players').insertMany(samplePlayers);
     
-    // Generate SIMPLIFIED fixtures (only 14 instead of 84)
+    // Generate fixtures
     const fixtures = [];
     let fixtureId = 1;
     const startDate = new Date();
     
-    // Create a simple round-robin with only one match between each pair
     const matchPairs = [];
     
     for (let i = 0; i < samplePlayers.length; i++) {
@@ -388,10 +400,9 @@ app.post('/api/initialize', async (req, res) => {
       }
     }
     
-    // Create only 14 fixtures (one match between each pair)
     matchPairs.forEach(([player1, player2], index) => {
       const matchDate = new Date(startDate);
-      matchDate.setDate(matchDate.getDate() + index * 2); // Matches every 2 days
+      matchDate.setDate(matchDate.getDate() + index * 2);
       
       fixtures.push({
         id: fixtureId++,
@@ -419,14 +430,31 @@ app.post('/api/initialize', async (req, res) => {
   }
 });
 
-// Serve frontend (must be last)
+// Serve admin.html specifically
+app.get('/admin.html', (req, res) => {
+  res.sendFile(path.join(__dirname, 'admin.html'));
+});
+
+// Serve all other routes with index.html (for SPA routing)
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'index.html'));
 });
 
+// Error handling middleware
+app.use((err, req, res, next) => {
+  console.error('Server Error:', err);
+  res.status(500).json({ 
+    success: false, 
+    error: 'Internal server error',
+    message: process.env.NODE_ENV === 'production' ? 'Something went wrong!' : err.message
+  });
+});
+
 // Start server
-app.listen(PORT, () => {
+app.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 Server running on port ${PORT}`);
   console.log(`📱 Frontend: http://localhost:${PORT}`);
   console.log(`🔗 API: http://localhost:${PORT}/api/health`);
+  console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
+  console.log(`🏠 Host: 0.0.0.0`);
 });
