@@ -17,7 +17,9 @@ class AdvancedStatistics {
             const advancedStatsTab = document.querySelector('[data-tab="advanced-stats"]');
             if (advancedStatsTab) {
                 advancedStatsTab.addEventListener('click', () => {
-                    this.loadAdvancedStatsDashboard();
+                    setTimeout(() => {
+                        this.loadAdvancedStatsDashboard();
+                    }, 100);
                 });
             }
         });
@@ -62,7 +64,10 @@ class AdvancedStatistics {
                             </div>
                         </div>
                         <div id="player-stats-container">
-                            <!-- Player stats will be loaded here -->
+                            <div class="text-center text-muted p-5">
+                                <i class="fas fa-user fa-3x mb-3"></i>
+                                <p>Select a player to view detailed statistics</p>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -127,11 +132,14 @@ class AdvancedStatistics {
 
     // Populate player select dropdowns
     populatePlayerSelects() {
-        const players = getData(DB_KEYS.PLAYERS);
+        const players = getData('players');
         const playerSelect = document.getElementById('player-select');
         const compareSelect = document.getElementById('compare-player-select');
 
-        if (!playerSelect || !compareSelect) return;
+        if (!playerSelect || !compareSelect) {
+            console.error('Player select elements not found');
+            return;
+        }
 
         // Clear existing options
         playerSelect.innerHTML = '<option value="">Choose a player...</option>';
@@ -142,11 +150,13 @@ class AdvancedStatistics {
         const seenPlayerIds = new Set();
         
         players.forEach(player => {
-            if (!seenPlayerIds.has(player.id)) {
+            if (player && !seenPlayerIds.has(player.id)) {
                 seenPlayerIds.add(player.id);
                 uniquePlayers.push(player);
             }
         });
+
+        console.log('Populating player selects with:', uniquePlayers.length, 'players');
 
         // Add player options
         uniquePlayers.forEach(player => {
@@ -163,11 +173,14 @@ class AdvancedStatistics {
 
         // Add event listeners
         playerSelect.addEventListener('change', (e) => {
-            this.loadPlayerStats(parseInt(e.target.value));
+            const playerId = parseInt(e.target.value);
+            console.log('Player selected:', playerId);
+            this.loadPlayerStats(playerId);
             this.updateComparison();
         });
 
         compareSelect.addEventListener('change', () => {
+            console.log('Compare player selected');
             this.updateComparison();
         });
     }
@@ -184,19 +197,28 @@ class AdvancedStatistics {
             return;
         }
 
-        const player = getPlayerById(playerId);
-        if (!player) return;
+        const player = this.getPlayerById(playerId);
+        if (!player) {
+            console.error('Player not found:', playerId);
+            return;
+        }
 
         const stats = this.analyzePlayerPerformance(playerId);
         
         document.getElementById('player-stats-container').innerHTML = this.generatePlayerStatsHTML(player, stats);
     }
 
+    // Get player by ID (fixed version)
+    getPlayerById(playerId) {
+        const players = getData('players');
+        return players.find(p => p && p.id === playerId);
+    }
+
     // Analyze player performance comprehensively
     analyzePlayerPerformance(playerId) {
-        const results = getData(DB_KEYS.RESULTS);
+        const results = getData('results') || [];
         const playerResults = results.filter(r => 
-            r.homePlayerId === playerId || r.awayPlayerId === playerId
+            r && (r.homePlayerId === playerId || r.awayPlayerId === playerId)
         );
 
         return {
@@ -252,10 +274,14 @@ class AdvancedStatistics {
         // Calculate averages and percentages
         stats.avgGoalsPerMatch = (stats.goalsFor / stats.matches).toFixed(1);
         stats.winPercentage = ((stats.wins / stats.matches) * 100).toFixed(1);
-        stats.homeWinRate = stats.homeRecord.wins > 0 ? 
-            ((stats.homeRecord.wins / (stats.homeRecord.wins + stats.homeRecord.draws + stats.homeRecord.losses)) * 100).toFixed(1) : 0;
-        stats.awayWinRate = stats.awayRecord.wins > 0 ? 
-            ((stats.awayRecord.wins / (stats.awayRecord.wins + stats.awayRecord.draws + stats.awayRecord.losses)) * 100).toFixed(1) : 0;
+        
+        const totalHomeMatches = stats.homeRecord.wins + stats.homeRecord.draws + stats.homeRecord.losses;
+        const totalAwayMatches = stats.awayRecord.wins + stats.awayRecord.draws + stats.awayRecord.losses;
+        
+        stats.homeWinRate = totalHomeMatches > 0 ? 
+            ((stats.homeRecord.wins / totalHomeMatches) * 100).toFixed(1) : 0;
+        stats.awayWinRate = totalAwayMatches > 0 ? 
+            ((stats.awayRecord.wins / totalAwayMatches) * 100).toFixed(1) : 0;
 
         return stats;
     }
@@ -328,7 +354,7 @@ class AdvancedStatistics {
                 <div class="col-md-3 text-center">
                     <img src="${player.photo}" class="rounded-circle mb-3" 
                          style="width: 100px; height: 100px; object-fit: cover;"
-                         onerror="this.src='${player.defaultPhoto}'">
+                         onerror="this.src='${player.defaultPhoto || player.photo}'">
                     <h5 class="text-warning">${player.name}</h5>
                     <span class="badge" style="background-color: ${player.teamColor || '#6c757d'}; color: white;">
                         ${player.team}
@@ -434,6 +460,8 @@ class AdvancedStatistics {
         const player1Id = parseInt(document.getElementById('player-select').value);
         const player2Id = parseInt(document.getElementById('compare-player-select').value);
 
+        console.log('Updating comparison:', player1Id, player2Id);
+
         if (!player1Id || !player2Id) {
             document.getElementById('player-comparison-container').innerHTML = `
                 <div class="text-center text-muted p-5">
@@ -450,8 +478,13 @@ class AdvancedStatistics {
 
     // Generate player comparison HTML
     generatePlayerComparison(player1Id, player2Id) {
-        const player1 = getPlayerById(player1Id);
-        const player2 = getPlayerById(player2Id);
+        const player1 = this.getPlayerById(player1Id);
+        const player2 = this.getPlayerById(player2Id);
+        
+        if (!player1 || !player2) {
+            return '<div class="text-center text-danger p-4">Error: Player data not found</div>';
+        }
+
         const stats1 = this.analyzePlayerPerformance(player1Id);
         const stats2 = this.analyzePlayerPerformance(player2Id);
 
@@ -461,7 +494,7 @@ class AdvancedStatistics {
                     <div class="col-md-5">
                         <img src="${player1.photo}" 
                              class="rounded-circle mb-2" style="width: 80px; height: 80px; object-fit: cover;"
-                             onerror="this.src='${player1.defaultPhoto}'">
+                             onerror="this.src='${player1.defaultPhoto || player1.photo}'">
                         <h5 class="text-warning">${player1.name}</h5>
                         <small class="text-muted">${player1.team}</small>
                     </div>
@@ -471,7 +504,7 @@ class AdvancedStatistics {
                     <div class="col-md-5">
                         <img src="${player2.photo}" 
                              class="rounded-circle mb-2" style="width: 80px; height: 80px; object-fit: cover;"
-                             onerror="this.src='${player2.defaultPhoto}'">
+                             onerror="this.src='${player2.defaultPhoto || player2.photo}'">
                         <h5 class="text-info">${player2.name}</h5>
                         <small class="text-muted">${player2.team}</small>
                     </div>
@@ -536,10 +569,12 @@ class AdvancedStatistics {
 
     // Generate head-to-head record between two players
     generateHeadToHeadRecord(player1Id, player2Id) {
-        const results = getData(DB_KEYS.RESULTS);
+        const results = getData('results') || [];
         const headToHead = results.filter(result => 
-            (result.homePlayerId === player1Id && result.awayPlayerId === player2Id) ||
-            (result.homePlayerId === player2Id && result.awayPlayerId === player1Id)
+            result && (
+                (result.homePlayerId === player1Id && result.awayPlayerId === player2Id) ||
+                (result.homePlayerId === player2Id && result.awayPlayerId === player1Id)
+            )
         );
 
         if (headToHead.length === 0) {
@@ -558,8 +593,8 @@ class AdvancedStatistics {
             else draws++;
         });
 
-        const player1 = getPlayerById(player1Id);
-        const player2 = getPlayerById(player2Id);
+        const player1 = this.getPlayerById(player1Id);
+        const player2 = this.getPlayerById(player2Id);
 
         return `
             <div class="row text-center">
@@ -581,9 +616,9 @@ class AdvancedStatistics {
 
     // Analyze strength progression (placeholder for future enhancement)
     analyzeStrengthProgression(playerId) {
-        // This would track strength changes over time
+        const player = this.getPlayerById(playerId);
         return {
-            currentStrength: getPlayerById(playerId).strength,
+            currentStrength: player ? player.strength : 0,
             trend: 'stable', // rising, falling, stable
             progression: [] // historical strength data
         };
@@ -635,20 +670,20 @@ class AdvancedStatistics {
 
     // Get unique teams from players
     getUniqueTeams() {
-        const players = getData(DB_KEYS.PLAYERS);
-        const teams = [...new Set(players.map(p => p.team))];
+        const players = getData('players') || [];
+        const teams = [...new Set(players.map(p => p && p.team).filter(Boolean))];
         return teams;
     }
 
     // Analyze team performance
     analyzeTeamPerformance(teamName) {
-        const players = getData(DB_KEYS.PLAYERS).filter(p => p.team === teamName);
-        const results = getData(DB_KEYS.RESULTS);
+        const players = (getData('players') || []).filter(p => p && p.team === teamName);
+        const results = getData('results') || [];
         
         const teamResults = results.filter(result => {
-            const homePlayer = getPlayerById(result.homePlayerId);
-            const awayPlayer = getPlayerById(result.awayPlayerId);
-            return homePlayer.team === teamName || awayPlayer.team === teamName;
+            const homePlayer = this.getPlayerById(result.homePlayerId);
+            const awayPlayer = this.getPlayerById(result.awayPlayerId);
+            return (homePlayer && homePlayer.team === teamName) || (awayPlayer && awayPlayer.team === teamName);
         });
 
         return this.getTeamOverview(teamResults, teamName);
@@ -664,8 +699,8 @@ class AdvancedStatistics {
         };
 
         results.forEach(result => {
-            const homePlayer = getPlayerById(result.homePlayerId);
-            const isHomeTeam = homePlayer.team === teamName;
+            const homePlayer = this.getPlayerById(result.homePlayerId);
+            const isHomeTeam = homePlayer && homePlayer.team === teamName;
             const teamScore = isHomeTeam ? result.homeScore : result.awayScore;
             const opponentScore = isHomeTeam ? result.awayScore : result.homeScore;
 
@@ -722,8 +757,8 @@ class AdvancedStatistics {
         const container = document.getElementById('tournament-leaders-container');
         if (!container) return;
 
-        const players = getData(DB_KEYS.PLAYERS);
-        const results = getData(DB_KEYS.RESULTS);
+        const players = getData('players') || [];
+        const results = getData('results') || [];
 
         // Calculate top scorers
         const topScorers = this.getTopScorers(players, results);
@@ -817,8 +852,8 @@ class AdvancedStatistics {
         const container = document.getElementById('advanced-metrics-container');
         if (!container) return;
 
-        const players = getData(DB_KEYS.PLAYERS);
-        const results = getData(DB_KEYS.RESULTS);
+        const players = getData('players') || [];
+        const results = getData('results') || [];
 
         // Calculate various advanced metrics
         const totalGoals = results.reduce((acc, result) => acc + result.homeScore + result.awayScore, 0);
