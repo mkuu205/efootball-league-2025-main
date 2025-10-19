@@ -214,18 +214,42 @@ class AdvancedStatistics {
         return players.find(p => p && p.id === playerId);
     }
 
-    // Analyze player performance comprehensively
+    // Safe player data retrieval with fallback
+    getPlayerDataSafe(playerId) {
+        const player = this.getPlayerById(playerId);
+        if (!player) {
+            console.warn('Player not found:', playerId);
+            return {
+                id: playerId,
+                name: 'Unknown Player',
+                team: 'Unknown Team',
+                strength: 0,
+                photo: 'default-photo.jpg'
+            };
+        }
+        return player;
+    }
+
+    // Analyze player performance comprehensively - FIXED VERSION
     analyzePlayerPerformance(playerId) {
         const results = getData('results') || [];
         const playerResults = results.filter(r => 
             r && (r.homePlayerId === playerId || r.awayPlayerId === playerId)
         );
 
+        // Get basic stats and form analysis
+        const basicStats = this.getBasicStats(playerResults, playerId);
+        const formAnalysis = this.analyzeForm(playerResults, playerId);
+        const strengthAnalysis = this.analyzeStrengthProgression(playerId);
+        
+        // Calculate predictive analytics without recursion
+        const predictiveAnalytics = this.predictFuturePerformance(playerId, basicStats, formAnalysis);
+
         return {
-            basicStats: this.getBasicStats(playerResults, playerId),
-            formAnalysis: this.analyzeForm(playerResults, playerId),
-            strengthAnalysis: this.analyzeStrengthProgression(playerId),
-            predictiveAnalytics: this.predictFuturePerformance(playerId)
+            basicStats,
+            formAnalysis,
+            strengthAnalysis,
+            predictiveAnalytics
         };
     }
 
@@ -344,6 +368,7 @@ class AdvancedStatistics {
     }
 
     generatePlayerStatsHTML(player, stats) {
+        const playerData = this.getPlayerDataSafe(player.id);
         const formBadges = stats.formAnalysis.recentForm.map(result => {
             const badgeClass = result === 'W' ? 'bg-success' : result === 'D' ? 'bg-warning' : 'bg-danger';
             return `<span class="badge ${badgeClass} me-1">${result}</span>`;
@@ -352,15 +377,15 @@ class AdvancedStatistics {
         return `
             <div class="row">
                 <div class="col-md-3 text-center">
-                    <img src="${player.photo}" class="rounded-circle mb-3" 
+                    <img src="${playerData.photo}" class="rounded-circle mb-3" 
                          style="width: 100px; height: 100px; object-fit: cover;"
-                         onerror="this.src='${player.defaultPhoto || player.photo}'">
-                    <h5 class="text-warning">${player.name}</h5>
-                    <span class="badge" style="background-color: ${player.teamColor || '#6c757d'}; color: white;">
-                        ${player.team}
+                         onerror="this.src='${playerData.defaultPhoto || playerData.photo}'">
+                    <h5 class="text-warning">${playerData.name}</h5>
+                    <span class="badge" style="background-color: ${playerData.teamColor || '#6c757d'}; color: white;">
+                        ${playerData.team}
                     </span>
                     <div class="mt-2">
-                        <small class="text-muted">Strength: ${player.strength}</small>
+                        <small class="text-muted">Strength: ${playerData.strength}</small>
                     </div>
                 </div>
 
@@ -478,13 +503,9 @@ class AdvancedStatistics {
 
     // Generate player comparison HTML
     generatePlayerComparison(player1Id, player2Id) {
-        const player1 = this.getPlayerById(player1Id);
-        const player2 = this.getPlayerById(player2Id);
+        const player1 = this.getPlayerDataSafe(player1Id);
+        const player2 = this.getPlayerDataSafe(player2Id);
         
-        if (!player1 || !player2) {
-            return '<div class="text-center text-danger p-4">Error: Player data not found</div>';
-        }
-
         const stats1 = this.analyzePlayerPerformance(player1Id);
         const stats2 = this.analyzePlayerPerformance(player2Id);
 
@@ -593,8 +614,8 @@ class AdvancedStatistics {
             else draws++;
         });
 
-        const player1 = this.getPlayerById(player1Id);
-        const player2 = this.getPlayerById(player2Id);
+        const player1 = this.getPlayerDataSafe(player1Id);
+        const player2 = this.getPlayerDataSafe(player2Id);
 
         return `
             <div class="row text-center">
@@ -616,7 +637,7 @@ class AdvancedStatistics {
 
     // Analyze strength progression (placeholder for future enhancement)
     analyzeStrengthProgression(playerId) {
-        const player = this.getPlayerById(playerId);
+        const player = this.getPlayerDataSafe(playerId);
         return {
             currentStrength: player ? player.strength : 0,
             trend: 'stable', // rising, falling, stable
@@ -624,10 +645,24 @@ class AdvancedStatistics {
         };
     }
 
-    // Predict future performance (basic implementation)
-    predictFuturePerformance(playerId) {
-        const stats = this.analyzePlayerPerformance(playerId);
-        const formRating = stats.formAnalysis.formRating;
+    // Predict future performance (basic implementation) - FIXED VERSION
+    predictFuturePerformance(playerId, basicStats = null, formAnalysis = null) {
+        // If stats aren't provided, calculate them without recursion
+        if (!basicStats || !formAnalysis) {
+            const results = getData('results') || [];
+            const playerResults = results.filter(r => 
+                r && (r.homePlayerId === playerId || r.awayPlayerId === playerId)
+            );
+            
+            if (!basicStats) {
+                basicStats = this.getBasicStats(playerResults, playerId);
+            }
+            if (!formAnalysis) {
+                formAnalysis = this.analyzeForm(playerResults, playerId);
+            }
+        }
+        
+        const formRating = formAnalysis.formRating;
         
         let prediction = 'Stable';
         if (formRating >= 80) prediction = 'Excellent';
@@ -638,7 +673,7 @@ class AdvancedStatistics {
         return {
             formPrediction: prediction,
             nextMatchConfidence: Math.min(formRating + 10, 95),
-            recommendedStrategy: this.generateStrategyRecommendation(stats)
+            recommendedStrategy: this.generateStrategyRecommendation(basicStats)
         };
     }
 
