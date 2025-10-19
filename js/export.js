@@ -9,7 +9,7 @@ class ImageExporter {
     init() {
         // Load html2canvas library dynamically
         this.loadHtml2Canvas();
-        
+
         // Add export buttons to UI
         this.addExportButtons();
     }
@@ -37,22 +37,24 @@ class ImageExporter {
             }
 
             const script = document.createElement('script');
+            // ✅ Updated CDN link + correct integrity hash
             script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
-            script.integrity = 'sha512-B4xkE1alR2K0kYlJqJY1J6G2o2/K0oIXkXRK1pKbIuD8MRiN4VxVW1gX6DfDzFpVcK1f0D2FHFJxJ5yr9vK4VQ==';
+            script.integrity = 'sha512-BNaRQnYJYiPSqHHDb58B0yaPfCu+Wgds8Gp/gU33kqBtgNS4tSPHuGibyoeqMV/TJlSKda6FXzoEyYGjTe+vXA==';
             script.crossOrigin = 'anonymous';
-            
+            script.referrerPolicy = 'no-referrer';
+
             script.onload = () => {
                 console.log('✅ html2canvas loaded successfully');
                 this.html2canvasLoaded = true;
                 resolve(true);
             };
-            
+
             script.onerror = () => {
                 console.error('❌ Failed to load html2canvas');
                 this.html2canvasLoaded = false;
                 resolve(false);
             };
-            
+
             document.head.appendChild(script);
         });
     }
@@ -69,7 +71,7 @@ class ImageExporter {
     addButtons() {
         // Add export buttons to league table
         this.addLeagueTableExport();
-        
+
         // Add export buttons to fixtures
         this.addFixturesExport();
     }
@@ -125,11 +127,10 @@ class ImageExporter {
         }
 
         this.isGenerating = true;
-        
+
         try {
             showNotification('🔄 Generating league table image...', 'info');
-            
-            // Create a temporary container for better styling
+
             const tempContainer = document.createElement('div');
             tempContainer.style.cssText = `
                 position: fixed;
@@ -143,7 +144,6 @@ class ImageExporter {
                 font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             `;
 
-            // Add header with tournament info
             const header = document.createElement('div');
             header.innerHTML = `
                 <div style="text-align: center; margin-bottom: 25px; color: white;">
@@ -162,7 +162,6 @@ class ImageExporter {
                 </div>
             `;
 
-            // Clone and enhance the table
             const clonedTable = tableElement.cloneNode(true);
             this.styleTableForExport(clonedTable);
 
@@ -170,7 +169,6 @@ class ImageExporter {
             tempContainer.appendChild(clonedTable);
             document.body.appendChild(tempContainer);
 
-            // Wait a bit for styles to apply
             await new Promise(resolve => setTimeout(resolve, 500));
 
             const canvas = await html2canvas(tempContainer, {
@@ -185,13 +183,12 @@ class ImageExporter {
 
             document.body.removeChild(tempContainer);
 
-            // Convert to image and download
             const image = canvas.toDataURL('image/png', 1.0);
             const filename = `EFL_League_Table_${new Date().toISOString().split('T')[0]}.png`;
-            
+
             this.downloadImage(image, filename);
             showNotification('✅ League table exported successfully!', 'success');
-            
+
         } catch (error) {
             console.error('Export failed:', error);
             showNotification('❌ Failed to export league table: ' + error.message, 'error');
@@ -206,15 +203,14 @@ class ImageExporter {
 
         const fixtures = getData(DB_KEYS.FIXTURES);
         const players = getData(DB_KEYS.PLAYERS);
-        
-        // Get upcoming fixtures (next 7 days)
+
         const nextWeek = new Date();
         nextWeek.setDate(nextWeek.getDate() + 7);
-        
+
         const upcomingFixtures = fixtures.filter(f => {
             const fixtureDate = new Date(f.date);
             return !f.played && fixtureDate <= nextWeek;
-        }).slice(0, 6); // Limit to 6 matches
+        }).slice(0, 6);
 
         if (upcomingFixtures.length === 0) {
             showNotification('No upcoming fixtures found for the next 7 days!', 'warning');
@@ -240,7 +236,6 @@ class ImageExporter {
                 max-width: 600px;
             `;
 
-            // Header
             const header = document.createElement('div');
             header.innerHTML = `
                 <div style="text-align: center; margin-bottom: 20px;">
@@ -262,7 +257,6 @@ class ImageExporter {
             `;
             tempContainer.appendChild(header);
 
-            // Fixtures list
             const fixturesList = document.createElement('div');
             fixturesList.style.cssText = `
                 display: flex;
@@ -294,33 +288,27 @@ class ImageExporter {
                             ${fixture.time}
                         </div>
                     </div>
-                    
                     <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;">
                         <div style="display: flex; align-items: center; gap: 10px; flex: 1;">
                             <img src="${homePlayer.photo}" 
                                  style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover; border: 2px solid rgba(255, 255, 255, 0.3);"
-                                 onerror="this.src='${homePlayer.defaultPhoto || 'https://via.placeholder.com/40/1a1a2e/ffffff?text=?'}'">
+                                 onerror="this.src='https://via.placeholder.com/40/1a1a2e/ffffff?text=?'">
                             <div>
-                                <div style="font-weight: bold; font-size: 1em; margin-bottom: 2px;">${homePlayer.name}</div>
+                                <div style="font-weight: bold;">${homePlayer.name}</div>
                                 <div style="font-size: 0.8em; opacity: 0.8;">${homePlayer.team}</div>
                             </div>
                         </div>
-                        
-                        <div style="margin: 0 15px; font-weight: bold; font-size: 1.1em; color: #ff6b6b;">
-                            VS
-                        </div>
-                        
+                        <div style="margin: 0 15px; font-weight: bold; font-size: 1.1em; color: #ff6b6b;">VS</div>
                         <div style="display: flex; align-items: center; gap: 10px; flex: 1; justify-content: flex-end;">
                             <div style="text-align: right;">
-                                <div style="font-weight: bold; font-size: 1em; margin-bottom: 2px;">${awayPlayer.name}</div>
+                                <div style="font-weight: bold;">${awayPlayer.name}</div>
                                 <div style="font-size: 0.8em; opacity: 0.8;">${awayPlayer.team}</div>
                             </div>
                             <img src="${awayPlayer.photo}" 
                                  style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover; border: 2px solid rgba(255, 255, 255, 0.3);"
-                                 onerror="this.src='${awayPlayer.defaultPhoto || 'https://via.placeholder.com/40/1a1a2e/ffffff?text=?'}'">
+                                 onerror="this.src='https://via.placeholder.com/40/1a1a2e/ffffff?text=?'">
                         </div>
                     </div>
-                    
                     <div style="text-align: center; padding-top: 8px; border-top: 1px solid rgba(255, 255, 255, 0.1);">
                         <span style="opacity: 0.9; font-size: 0.85em;">
                             🏟️ ${fixture.venue}
@@ -334,7 +322,6 @@ class ImageExporter {
             tempContainer.appendChild(fixturesList);
             document.body.appendChild(tempContainer);
 
-            // Wait for layout to stabilize
             await new Promise(resolve => setTimeout(resolve, 500));
 
             const canvas = await html2canvas(tempContainer, {
@@ -349,7 +336,7 @@ class ImageExporter {
 
             const image = canvas.toDataURL('image/png', 1.0);
             const filename = `EFL_Fixtures_${new Date().toISOString().split('T')[0]}.png`;
-            
+
             this.downloadImage(image, filename);
             showNotification('✅ Fixtures exported successfully!', 'success');
 
@@ -368,8 +355,7 @@ class ImageExporter {
         tableElement.style.overflow = 'hidden';
         tableElement.style.color = 'white';
         tableElement.style.fontSize = '14px';
-        
-        // Style headers
+
         const headers = tableElement.querySelectorAll('th');
         headers.forEach(header => {
             header.style.background = 'rgba(0, 0, 0, 0.4)';
@@ -377,8 +363,7 @@ class ImageExporter {
             header.style.fontWeight = 'bold';
             header.style.padding = '12px 8px';
         });
-        
-        // Style cells
+
         const cells = tableElement.querySelectorAll('td');
         cells.forEach(cell => {
             cell.style.padding = '10px 8px';
@@ -388,11 +373,7 @@ class ImageExporter {
 
     // Format date for display
     formatDisplayDate(dateString) {
-        const options = { 
-            weekday: 'short', 
-            day: 'numeric', 
-            month: 'short' 
-        };
+        const options = { weekday: 'short', day: 'numeric', month: 'short' };
         return new Date(dateString).toLocaleDateString('en-US', options);
     }
 
@@ -402,7 +383,6 @@ class ImageExporter {
         link.href = dataUrl;
         link.download = filename;
         link.style.display = 'none';
-        
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
@@ -411,6 +391,4 @@ class ImageExporter {
 
 // Initialize exporter
 const imageExporter = new ImageExporter();
-
-// Global access
 window.imageExporter = imageExporter;
