@@ -1,45 +1,44 @@
-// api/send-reset-email.js
-const nodemailer = require('nodemailer');
+// send-reset-email.js
+// ✅ Uses Resend email API (works perfectly on Render, no SMTP needed)
 
-const transporter = nodemailer.createTransport({
-  service: 'gmail',
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS
-  },
-  tls: {
-    rejectUnauthorized: false
-  }
-});
+const { Resend } = require('resend');
 
-module.exports = async (req, res) => {
-  if (req.method !== 'POST') {
-    return res.status(405).json({ success: false, message: 'Method Not Allowed' });
-  }
+// Initialize with your API key from .env
+const resend = new Resend(process.env.RESEND_API_KEY);
 
-  const { to_email, reset_link } = req.body;
-
-  if (!to_email || !reset_link) {
-    return res.status(400).json({ success: false, message: 'Missing email or reset link' });
-  }
-
-  const mailOptions = {
-    from: `"eFootball League 2025" <${process.env.EMAIL_USER}>`,
-    to: to_email,
-    subject: 'Password Reset Request',
-    html: `
-      <h2>Password Reset</h2>
-      <p>Click the link below to reset your password:</p>
-      <a href="${reset_link}">${reset_link}</a>
-    `
-  };
-
+/**
+ * Sends a password reset email using Resend
+ * @param {string} to_email - Recipient's email address
+ * @param {string} reset_link - Link for resetting password
+ */
+module.exports = async function sendResetEmail(to_email, reset_link) {
   try {
-    await transporter.sendMail(mailOptions);
-    console.log(`✅ Reset email sent to ${to_email}`);
-    res.json({ success: true });
+    // Compose and send the email
+    const data = await resend.emails.send({
+      from: 'eFootball League <support@kishtechsite.online>',
+      to: to_email,
+      subject: 'Password Reset Request',
+      html: `
+        <div style="font-family: Arial, sans-serif; color: #333;">
+          <h2>Password Reset</h2>
+          <p>Hello,</p>
+          <p>You requested a password reset for your eFootball League account.</p>
+          <p>Click the link below to reset your password:</p>
+          <p>
+            <a href="${reset_link}" 
+               style="background-color:#007bff; color:#fff; padding:10px 15px; text-decoration:none; border-radius:5px;">
+               Reset Password
+            </a>
+          </p>
+          <p>If you didn’t request this, you can safely ignore this email.</p>
+          <br>
+          <p>⚽ eFootball League 2025 Team</p>
+        </div>
+      `,
+    });
+
+    console.log("✅ Reset email sent successfully:", data);
   } catch (error) {
-    console.error('❌ Email send error:', error.message);
-    res.status(500).json({ success: false, message: error.message });
+    console.error("❌ Failed to send reset email:", error);
   }
 };
