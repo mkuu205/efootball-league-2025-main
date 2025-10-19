@@ -1,9 +1,8 @@
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
-const bodyParser = require('body-parser');
-const sendResetEmail = require('./api/send-reset-email');
 const { MongoClient } = require('mongodb');
+const nodemailer = require('nodemailer');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -11,7 +10,6 @@ const PORT = process.env.PORT || 3000;
 // Middleware
 app.use(cors());
 app.use(express.json());
-app.use(bodyParser.json());
 
 // Serve static files correctly for deployment
 app.use(express.static(__dirname, {
@@ -35,10 +33,9 @@ async function connectToDatabase() {
   }
 
   try {
-    const client = await MongoClient.connect(MONGODB_URI, {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
-    });
+    // Fixed MongoDB connection - removed deprecated options
+    const client = new MongoClient(MONGODB_URI);
+    await client.connect();
 
     const db = client.db('efootball-league');
     cachedClient = client;
@@ -65,10 +62,6 @@ app.get('/api/health', (req, res) => {
   });
 });
 
-// Password reset
-// Add this to your server.js after the other API routes
-const nodemailer = require('nodemailer');
-
 // Email configuration
 const emailConfig = {
     host: process.env.EMAIL_HOST || "mail.kishtechsite.online",
@@ -80,8 +73,8 @@ const emailConfig = {
     }
 };
 
-// Create transporter
-const transporter = nodemailer.createTransporter(emailConfig);
+// Fixed typo: createTransporter → createTransport
+const transporter = nodemailer.createTransport(emailConfig);
 
 // Verify email configuration
 transporter.verify(function(error, success) {
@@ -554,11 +547,14 @@ app.use((err, req, res, next) => {
   });
 });
 
-// Start server
+// Start server with error handling
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 Server running on port ${PORT}`);
   console.log(`📱 Frontend: http://localhost:${PORT}`);
   console.log(`🔗 API: http://localhost:${PORT}/api/health`);
   console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
   console.log(`🏠 Host: 0.0.0.0`);
+}).on('error', (err) => {
+  console.error('❌ Server failed to start:', err);
+  process.exit(1);
 });
