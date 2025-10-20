@@ -502,6 +502,45 @@ async function resetMongoDBResults() {
     }
 }
 
+// Admin Notification Handler
+async function handleAdminNotificationSubmit() {
+    const title = document.getElementById('notification-title').value.trim();
+    const message = document.getElementById('notification-message').value.trim();
+    const type = document.getElementById('notification-type').value;
+    const priority = document.getElementById('notification-priority').value;
+    const target = document.querySelector('input[name="target-audience"]:checked').value;
+    
+    if (!title || !message) {
+        showNotification('Please fill in all fields!', 'error');
+        return;
+    }
+    
+    try {
+        // Send the notification using your tournamentUpdates system
+        if (typeof tournamentUpdates !== 'undefined') {
+            const notification = tournamentUpdates.sendAdminPushNotification(
+                title, 
+                message, 
+                type, 
+                priority, 
+                target
+            );
+            
+            // Reset form
+            document.getElementById('push-notification-form').reset();
+            
+            showNotification(`Notification sent to ${target === 'all' ? 'all users' : 'players only'}!`, 'success');
+            
+            return notification;
+        } else {
+            throw new Error('Notification system not available');
+        }
+    } catch (error) {
+        console.error('Error sending notification:', error);
+        showNotification('Failed to send notification: ' + error.message, 'error');
+    }
+}
+
 // Event Listeners for admin
 function setupAdminEventListeners() {
     console.log('Setting up admin event listeners...');
@@ -584,6 +623,18 @@ function setupAdminEventListeners() {
         console.error('Add result form not found');
     }
     
+    // Admin Notification Form
+    const pushNotificationForm = document.getElementById('push-notification-form');
+    if (pushNotificationForm) {
+        pushNotificationForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            handleAdminNotificationSubmit();
+        });
+        console.log('Push notification form listener added');
+    } else {
+        console.error('Push notification form not found');
+    }
+    
     // Export data
     const exportButton = document.getElementById('export-data');
     if (exportButton) {
@@ -625,11 +676,6 @@ function setupAdminEventListeners() {
                 `<option value="${team.name}">${team.name} (Strength: ${team.strength})</option>`
             ).join('');
     }
-
-    // Setup admin notifications
-    if (typeof tournamentUpdates !== 'undefined') {
-        tournamentUpdates.setupAdminNotificationForm();
-    }
 }
 
 // Initialize admin dashboard
@@ -648,6 +694,9 @@ document.addEventListener('DOMContentLoaded', function() {
         renderAdminFixtures();
         renderAdminResults();
         
+        // Initialize notification system
+        initializeAdminNotifications();
+        
         // Set today's date as default for date inputs
         const today = new Date().toISOString().split('T')[0];
         const fixtureDate = document.getElementById('fixtureDate');
@@ -665,7 +714,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     navLinks.forEach(link => {
         link.addEventListener('click', () => {
-            if (window.innerWidth < 992) { // Bootstrap lg breakpoint
+            if (window.innerWidth < 992) {
                 const bsCollapse = bootstrap.Collapse.getInstance(navbarCollapse);
                 if (bsCollapse) {
                     bsCollapse.hide();
@@ -674,3 +723,21 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 });
+
+// Initialize admin notifications
+function initializeAdminNotifications() {
+    if (typeof tournamentUpdates !== 'undefined') {
+        // Setup the notification form
+        tournamentUpdates.setupAdminNotificationForm();
+        
+        // Load initial notification history
+        tournamentUpdates.loadAdminNotificationHistory();
+        
+        // Update notification statistics
+        tournamentUpdates.updateAdminStatistics();
+        
+        console.log('Admin notifications initialized');
+    } else {
+        console.warn('Tournament updates system not available');
+    }
+                }
