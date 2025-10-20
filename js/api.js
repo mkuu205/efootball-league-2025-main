@@ -1,5 +1,6 @@
 // API Service for eFootball League - Render Version
-const API_BASE_URL = '/api';
+//const API_BASE_URL = '/api';
+const API_BASE_URL = 'https://efootball-league-2025-main.onrender.com/api';
 
 class EFLAPI {
     constructor() {
