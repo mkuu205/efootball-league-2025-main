@@ -54,7 +54,7 @@
                                 <input type="password" class="form-control" id="admin-password" 
                                        placeholder="Enter admin password" required>
                                 <div class="form-text">
-                        
+                                    Contact support if you've forgotten the password
                                 </div>
                             </div>
                             <button type="submit" class="btn btn-primary w-100">
@@ -447,58 +447,136 @@
                     <div class="tab-pane fade" id="admin-notifications" role="tabpanel">
                         <div class="card">
                             <div class="card-header">
-                                <i class="fas fa-bullhorn me-2"></i> Send Push Notifications
+                                <i class="fas fa-bullhorn me-2"></i> Send Push Notifications to All Users
                             </div>
                             <div class="card-body">
                                 <form id="push-notification-form">
                                     <div class="mb-3">
-                                        <label for="notification-title" class="form-label">Notification Title</label>
+                                        <label for="notification-title" class="form-label">Notification Title *</label>
                                         <input type="text" class="form-control" id="notification-title" 
                                                placeholder="Enter notification title" required>
                                     </div>
                                     <div class="mb-3">
-                                        <label for="notification-message" class="form-label">Notification Message</label>
+                                        <label for="notification-message" class="form-label">Notification Message *</label>
                                         <textarea class="form-control" id="notification-message" 
-                                                  rows="3" placeholder="Enter notification message" required></textarea>
+                                                  rows="4" placeholder="Enter notification message" required></textarea>
                                     </div>
-                                    <div class="mb-3">
-                                        <label for="notification-type" class="form-label">Notification Type</label>
-                                        <select class="form-select" id="notification-type">
-                                            <option value="info">Information</option>
-                                            <option value="warning">Warning</option>
-                                            <option value="success">Success</option>
-                                            <option value="urgent">Urgent</option>
-                                        </select>
+                                    <div class="row">
+                                        <div class="col-md-6 mb-3">
+                                            <label for="notification-type" class="form-label">Notification Type</label>
+                                            <select class="form-select" id="notification-type">
+                                                <option value="info">Information</option>
+                                                <option value="warning">Warning</option>
+                                                <option value="success">Success</option>
+                                                <option value="urgent">Urgent</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-6 mb-3">
+                                            <label for="notification-priority" class="form-label">Priority</label>
+                                            <select class="form-select" id="notification-priority">
+                                                <option value="low">Low</option>
+                                                <option value="medium" selected>Medium</option>
+                                                <option value="high">High</option>
+                                            </select>
+                                        </div>
                                     </div>
                                     <div class="mb-3">
                                         <label class="form-label">Target Audience</label>
                                         <div class="form-check">
-                                            <input class="form-check-input" type="checkbox" id="target-all" checked>
+                                            <input class="form-check-input" type="radio" name="target-audience" id="target-all" value="all" checked>
                                             <label class="form-check-label" for="target-all">
                                                 All Users
                                             </label>
                                         </div>
                                         <div class="form-check">
-                                            <input class="form-check-input" type="checkbox" id="target-players">
+                                            <input class="form-check-input" type="radio" name="target-audience" id="target-players" value="players">
                                             <label class="form-check-label" for="target-players">
                                                 Players Only
                                             </label>
                                         </div>
                                     </div>
-                                    <button type="submit" class="btn btn-primary">
-                                        <i class="fas fa-paper-plane me-2"></i> Send Notification
-                                    </button>
+                                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                                        <button type="button" class="btn btn-outline-secondary me-md-2" onclick="testNotification()">
+                                            <i class="fas fa-bell me-1"></i> Test Notification
+                                        </button>
+                                        <button type="submit" class="btn btn-primary">
+                                            <i class="fas fa-paper-plane me-2"></i> Send to All Users
+                                        </button>
+                                    </div>
                                 </form>
                             </div>
                         </div>
                         
+                        <!-- Notification Statistics -->
                         <div class="card mt-4">
                             <div class="card-header">
-                                <i class="fas fa-history me-2"></i> Notification History
+                                <i class="fas fa-chart-bar me-2"></i> Notification Statistics
                             </div>
                             <div class="card-body">
-                                <div id="notification-history">
-                                    <!-- Notification history will be loaded here -->
+                                <div class="row text-center">
+                                    <div class="col-md-3 col-6 mb-3">
+                                        <div class="p-3 rounded" style="background: rgba(106, 17, 203, 0.2);">
+                                            <div class="h4 text-warning mb-1" id="total-notifications-sent">0</div>
+                                            <small>Total Sent</small>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3 col-6 mb-3">
+                                        <div class="p-3 rounded" style="background: rgba(37, 117, 252, 0.2);">
+                                            <div class="h4 text-info mb-1" id="today-notifications">0</div>
+                                            <small>Sent Today</small>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3 col-6 mb-3">
+                                        <div class="p-3 rounded" style="background: rgba(40, 167, 69, 0.2);">
+                                            <div class="h4 text-success mb-1" id="active-users">0</div>
+                                            <small>Active Users</small>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3 col-6 mb-3">
+                                        <div class="p-3 rounded" style="background: rgba(255, 193, 7, 0.2);">
+                                            <div class="h4 text-warning mb-1" id="notification-rate">0%</div>
+                                            <small>Engagement Rate</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Notification History -->
+                        <div class="card mt-4">
+                            <div class="card-header d-flex justify-content-between align-items-center">
+                                <span><i class="fas fa-history me-2"></i> Notification History</span>
+                                <div>
+                                    <button class="btn btn-sm btn-outline-info me-2" onclick="exportNotificationHistory()">
+                                        <i class="fas fa-download me-1"></i> Export
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-warning" onclick="clearNotificationHistory()">
+                                        <i class="fas fa-trash me-1"></i> Clear
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <div class="table-responsive">
+                                    <table class="table table-dark table-hover" id="notification-history-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Date & Time</th>
+                                                <th>Title</th>
+                                                <th>Type</th>
+                                                <th>Target</th>
+                                                <th>Status</th>
+                                                <th>Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="notification-history-body">
+                                            <!-- Dynamically loaded -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <div id="notification-history-empty" class="text-center text-muted p-4 d-none">
+                                    <i class="fas fa-bell-slash fa-3x mb-3"></i>
+                                    <h5>No notifications sent yet</h5>
+                                    <p>Notifications you send will appear here</p>
                                 </div>
                             </div>
                         </div>
@@ -718,9 +796,9 @@
     <script src="js/database.js"></script>
     <script src="js/api.js"></script>
     <script src="js/auth.js"></script>
+    <script src="js/notifications.js"></script>
     <script src="js/admin.js"></script>
     <script src="js/bulk-operations.js"></script>
-    <script src="js/notifications.js"></script>
 
     <script>
         // Auto-close navbar on mobile when links are clicked
@@ -941,4 +1019,4 @@
         });
     </script>
 </body>
-</html>
+                                                    </html>
