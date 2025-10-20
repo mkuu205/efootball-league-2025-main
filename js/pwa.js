@@ -18,29 +18,76 @@ class PWAHelper {
         
         // Setup theme toggle
         this.setupThemeToggle();
+        
+        // Setup network detection
+        this.setupNetworkDetection();
+        
+        // Setup iOS install prompt
+        this.setupIOSInstallPrompt();
     }
 
     registerServiceWorker() {
         if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('/sw.js')
-                .then(registration => {
-                    console.log('✅ Service Worker registered: ', registration);
-                    
-                    // Check for updates
-                    registration.addEventListener('updatefound', () => {
-                        const newWorker = registration.installing;
-                        console.log('🔄 Service Worker update found!');
-                        
-                        newWorker.addEventListener('statechange', () => {
-                            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                                this.showUpdateNotification();
-                            }
-                        });
+            // Try different possible service worker filenames
+            const swPaths = [
+                '/service-worker.js',    // Most common
+                '/sw.js',               // Short version
+                '/js/service-worker.js', // If it's in js folder
+                '/service worker.js'     // If it has space (not recommended)
+            ];
+
+            const registerSW = async (path) => {
+                try {
+                    const registration = await navigator.serviceWorker.register(path, {
+                        scope: '/'
                     });
-                })
-                .catch(registrationError => {
-                    console.log('❌ Service Worker registration failed: ', registrationError);
-                });
+                    console.log('✅ Service Worker registered successfully: ', registration);
+                    return registration;
+                } catch (error) {
+                    console.log(`❌ Failed to register ${path}:`, error.message);
+                    return null;
+                }
+            };
+
+            // Try each path until one works
+            const tryRegister = async (index = 0) => {
+                if (index >= swPaths.length) {
+                    console.error('❌ All Service Worker registration attempts failed');
+                    this.showNotification('Service Worker registration failed. Some features may not work.', 'warning');
+                    return;
+                }
+
+                const registration = await registerSW(swPaths[index]);
+                if (!registration) {
+                    await tryRegister(index + 1);
+                } else {
+                    // Setup update listener only when registration succeeds
+                    this.setupUpdateListener(registration);
+                }
+            };
+
+            tryRegister();
+        } else {
+            console.log('❌ Service Worker not supported in this browser');
+        }
+    }
+
+    setupUpdateListener(registration) {
+        // Check for updates
+        registration.addEventListener('updatefound', () => {
+            const newWorker = registration.installing;
+            console.log('🔄 Service Worker update found!');
+            
+            newWorker.addEventListener('statechange', () => {
+                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                    this.showUpdateNotification();
+                }
+            });
+        });
+
+        // Check for controlling service worker
+        if (navigator.serviceWorker.controller) {
+            console.log('✅ Service Worker is controlling the page');
         }
     }
 
@@ -88,6 +135,7 @@ class PWAHelper {
                 z-index: 1000; 
                 box-shadow: 0 4px 15px rgba(40, 167, 69, 0.4);
                 font-weight: 600;
+                transition: all 0.3s ease;
             `;
             installBtn.innerHTML = `
                 <i class="fas fa-download me-2"></i>
@@ -163,6 +211,12 @@ class PWAHelper {
     }
 
     createThemeToggle(currentTheme) {
+        // Remove existing theme toggle if any
+        const existingToggle = document.querySelector('.theme-toggle');
+        if (existingToggle) {
+            existingToggle.remove();
+        }
+
         const themeToggle = document.createElement('button');
         themeToggle.className = 'btn btn-outline-light btn-sm theme-toggle';
         themeToggle.innerHTML = currentTheme === 'light' ? 
@@ -178,6 +232,10 @@ class PWAHelper {
             li.className = 'nav-item';
             li.appendChild(themeToggle);
             navbarNav.appendChild(li);
+        } else {
+            // Fallback: add to body
+            themeToggle.style.cssText = 'position: fixed; top: 20px; right: 20px; z-index: 1000;';
+            document.body.appendChild(themeToggle);
         }
     }
 
@@ -198,14 +256,23 @@ class PWAHelper {
                 '<i class="fas fa-moon me-1"></i>' : 
                 '<i class="fas fa-sun me-1"></i>';
             themeToggle.title = `Switch to ${theme === 'light' ? 'dark' : 'light'} theme`;
+            themeToggle.className = theme === 'light' ? 
+                'btn btn-outline-dark btn-sm theme-toggle' : 
+                'btn btn-outline-light btn-sm theme-toggle';
         }
         
         // Update meta theme-color
         const themeColor = theme === 'light' ? '#f8f9fa' : '#1a1a2e';
-        document.querySelector('meta[name="theme-color"]').setAttribute('content', themeColor);
+        let metaThemeColor = document.querySelector('meta[name="theme-color"]');
+        if (!metaThemeColor) {
+            metaThemeColor = document.createElement('meta');
+            metaThemeColor.name = 'theme-color';
+            document.head.appendChild(metaThemeColor);
+        }
+        metaThemeColor.setAttribute('content', themeColor);
     }
 
-    showNotification(message, type = 'info') {
+    showNotification(message, type = 'info', duration = 3000) {
         // Use existing notification system or create simple one
         if (typeof showNotification === 'function') {
             showNotification(message, type);
@@ -218,6 +285,7 @@ class PWAHelper {
                 right: 20px;
                 z-index: 1060;
                 min-width: 250px;
+                transition: all 0.3s ease;
             `;
             notification.innerHTML = `
                 ${message}
@@ -227,9 +295,15 @@ class PWAHelper {
             
             setTimeout(() => {
                 if (notification.parentNode) {
-                    notification.parentNode.removeChild(notification);
+                    notification.style.opacity = '0';
+                    notification.style.transform = 'translateX(100%)';
+                    setTimeout(() => {
+                        if (notification.parentNode) {
+                            notification.parentNode.removeChild(notification);
+                        }
+                    }, 300);
                 }
-            }, 3000);
+            }, duration);
         }
     }
 
@@ -255,14 +329,20 @@ class PWAHelper {
             const isInStandaloneMode = window.navigator.standalone;
             
             if (!isInStandaloneMode) {
-                this.showNotification('Tap the share button and "Add to Home Screen" to install', 'info', 10000);
+                setTimeout(() => {
+                    this.showNotification('Tap the share button and "Add to Home Screen" to install', 'info', 10000);
+                }, 3000);
             }
         }
     }
 }
 
-// Initialize PWA
-const pwaHelper = new PWAHelper();
+// Initialize PWA when DOM is loaded
+document.addEventListener('DOMContentLoaded', () => {
+    window.pwaHelper = new PWAHelper();
+});
 
-// Export for global access
-window.pwaHelper = pwaHelper;
+// Export for module use
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = PWAHelper;
+}
