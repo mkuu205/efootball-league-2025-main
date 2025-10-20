@@ -194,16 +194,28 @@ class AdvancedStatistics {
 
     // Analyze player performance comprehensively
     analyzePlayerPerformance(playerId) {
+        // --- compute components first (no recursion) ---
         const results = getData(DB_KEYS.RESULTS);
         const playerResults = results.filter(r => 
             r.homePlayerId === playerId || r.awayPlayerId === playerId
         );
 
+        const basicStats = this.getBasicStats(playerResults, playerId);
+        const formAnalysis = this.analyzeForm(playerResults, playerId);
+        const strengthAnalysis = this.analyzeStrengthProgression(playerId);
+
+        // pass precomputed data into predictive function to avoid recursion
+        const predictiveAnalytics = this.predictFuturePerformance(playerId, {
+            basicStats,
+            formAnalysis,
+            strengthAnalysis
+        });
+
         return {
-            basicStats: this.getBasicStats(playerResults, playerId),
-            formAnalysis: this.analyzeForm(playerResults, playerId),
-            strengthAnalysis: this.analyzeStrengthProgression(playerId),
-            predictiveAnalytics: this.predictFuturePerformance(playerId)
+            basicStats,
+            formAnalysis,
+            strengthAnalysis,
+            predictiveAnalytics
         };
     }
 
@@ -318,10 +330,15 @@ class AdvancedStatistics {
     }
 
     generatePlayerStatsHTML(player, stats) {
-        const formBadges = stats.formAnalysis.recentForm.map(result => {
+        const formBadges = (stats.formAnalysis.recentForm || []).map(result => {
             const badgeClass = result === 'W' ? 'bg-success' : result === 'D' ? 'bg-warning' : 'bg-danger';
             return `<span class="badge ${badgeClass} me-1">${result}</span>`;
         }).join('');
+
+        // Defensive guards for missing stats
+        const bs = stats.basicStats || {};
+        const fa = stats.formAnalysis || {};
+        const strength = stats.strengthAnalysis || {};
 
         return `
             <div class="row">
@@ -343,19 +360,19 @@ class AdvancedStatistics {
                     <div class="row">
                         <div class="col-4 mb-3">
                             <div class="text-center p-2 rounded" style="background: rgba(106, 17, 203, 0.2);">
-                                <div class="h5 text-warning mb-1">${stats.basicStats.matches}</div>
+                                <div class="h5 text-warning mb-1">${bs.matches || 0}</div>
                                 <small>Matches</small>
                             </div>
                         </div>
                         <div class="col-4 mb-3">
                             <div class="text-center p-2 rounded" style="background: rgba(40, 167, 69, 0.2);">
-                                <div class="h5 text-success mb-1">${stats.basicStats.wins}</div>
+                                <div class="h5 text-success mb-1">${bs.wins || 0}</div>
                                 <small>Wins</small>
                             </div>
                         </div>
                         <div class="col-4 mb-3">
                             <div class="text-center p-2 rounded" style="background: rgba(255, 193, 7, 0.2);">
-                                <div class="h5 text-warning mb-1">${stats.basicStats.draws}</div>
+                                <div class="h5 text-warning mb-1">${bs.draws || 0}</div>
                                 <small>Draws</small>
                             </div>
                         </div>
@@ -364,24 +381,24 @@ class AdvancedStatistics {
                     <div class="mb-3">
                         <div class="d-flex justify-content-between mb-1">
                             <span>Win Rate</span>
-                            <span class="text-warning">${stats.basicStats.winPercentage}%</span>
+                            <span class="text-warning">${bs.winPercentage || 0}%</span>
                         </div>
                         <div class="progress progress-custom">
-                            <div class="progress-bar bg-success" style="width: ${stats.basicStats.winPercentage}%"></div>
+                            <div class="progress-bar bg-success" style="width: ${bs.winPercentage || 0}%"></div>
                         </div>
                     </div>
 
                     <div class="mb-3">
                         <div class="d-flex justify-content-between mb-1">
                             <span>Goals Scored</span>
-                            <span class="text-warning">${stats.basicStats.goalsFor}</span>
+                            <span class="text-warning">${bs.goalsFor || 0}</span>
                         </div>
                     </div>
 
                     <div class="mb-3">
                         <div class="d-flex justify-content-between mb-1">
                             <span>Goals Conceded</span>
-                            <span class="text-warning">${stats.basicStats.goalsAgainst}</span>
+                            <span class="text-warning">${bs.goalsAgainst || 0}</span>
                         </div>
                     </div>
                 </div>
@@ -396,9 +413,9 @@ class AdvancedStatistics {
                     <div class="mb-3">
                         <div class="d-flex justify-content-between">
                             <span>Current Streak:</span>
-                            <span class="badge ${stats.formAnalysis.currentStreak.type === 'W' ? 'bg-success' : 
-                                stats.formAnalysis.currentStreak.type === 'D' ? 'bg-warning' : 'bg-danger'}">
-                                ${stats.formAnalysis.currentStreak.type} ${stats.formAnalysis.currentStreak.length}
+                            <span class="badge ${fa.currentStreak?.type === 'W' ? 'bg-success' : 
+                                fa.currentStreak?.type === 'D' ? 'bg-warning' : 'bg-danger'}">
+                                ${fa.currentStreak?.type || 'N/A'} ${fa.currentStreak?.length || 0}
                             </span>
                         </div>
                     </div>
@@ -406,17 +423,17 @@ class AdvancedStatistics {
                     <div class="mb-3">
                         <div class="d-flex justify-content-between">
                             <span>Form Rating:</span>
-                            <span class="text-warning">${stats.formAnalysis.formRating}/100</span>
+                            <span class="text-warning">${fa.formRating || 0}/100</span>
                         </div>
                         <div class="progress progress-custom">
-                            <div class="progress-bar bg-warning" style="width: ${stats.formAnalysis.formRating}%"></div>
+                            <div class="progress-bar bg-warning" style="width: ${fa.formRating || 0}%"></div>
                         </div>
                     </div>
 
                     <div class="mb-3">
                         <div class="d-flex justify-content-between">
                             <span>Points/Game:</span>
-                            <span class="text-warning">${stats.formAnalysis.pointsPerGame}</span>
+                            <span class="text-warning">${fa.pointsPerGame || 0}</span>
                         </div>
                     </div>
                 </div>
@@ -590,27 +607,48 @@ class AdvancedStatistics {
     }
 
     // Predict future performance (basic implementation)
-    predictFuturePerformance(playerId) {
-        const stats = this.analyzePlayerPerformance(playerId);
-        const formRating = stats.formAnalysis.formRating;
-        
+    // NOTE: accepts precomputedStats to avoid calling analyzePlayerPerformance again
+    predictFuturePerformance(playerId, precomputedStats = null) {
+        // Use precomputed stats if provided (prevents recursion)
+        let stats = precomputedStats;
+        if (!stats) {
+            // If not provided, compute only the parts needed safely (no further predict calls)
+            const results = getData(DB_KEYS.RESULTS);
+            const playerResults = results.filter(r => r.homePlayerId === playerId || r.awayPlayerId === playerId);
+            stats = {
+                basicStats: this.getBasicStats(playerResults, playerId),
+                formAnalysis: this.analyzeForm(playerResults, playerId),
+                strengthAnalysis: this.analyzeStrengthProgression(playerId)
+            };
+        }
+
+        // make sure formRating is a number
+        const formRating = Number(stats.formAnalysis?.formRating || 0);
+
         let prediction = 'Stable';
         if (formRating >= 80) prediction = 'Excellent';
         else if (formRating >= 60) prediction = 'Good';
         else if (formRating >= 40) prediction = 'Average';
         else prediction = 'Needs Improvement';
 
+        // Confidence based on formRating (bounded)
+        const nextMatchConfidence = Math.min(formRating + 10, 95);
+
         return {
             formPrediction: prediction,
-            nextMatchConfidence: Math.min(formRating + 10, 95),
+            nextMatchConfidence,
             recommendedStrategy: this.generateStrategyRecommendation(stats)
         };
     }
 
     generateStrategyRecommendation(stats) {
-        if (stats.basicStats.goalsFor > stats.basicStats.goalsAgainst * 1.5) {
+        const bs = stats.basicStats || {};
+        const goalsFor = Number(bs.goalsFor || 0);
+        const goalsAgainst = Number(bs.goalsAgainst || 0);
+
+        if (goalsFor > goalsAgainst * 1.5) {
             return "Maintain attacking strategy";
-        } else if (stats.basicStats.goalsAgainst > stats.basicStats.goalsFor) {
+        } else if (goalsAgainst > goalsFor) {
             return "Focus on defensive organization";
         } else {
             return "Balanced approach recommended";
