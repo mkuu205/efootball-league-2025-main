@@ -21,6 +21,14 @@ class TournamentUpdates {
         
         // Start monitoring for changes
         this.startChangeMonitoring();
+        
+        // Setup admin notification form if on admin page
+        if (window.location.pathname.includes('admin.html')) {
+            this.setupAdminNotificationForm();
+        } else {
+            // User context - setup notification polling
+            this.setupUserNotificationPolling();
+        }
     }
 
     setupEventListeners() {
@@ -33,11 +41,6 @@ class TournamentUpdates {
                 });
             }
         });
-
-        // Setup admin notification form if on admin page
-        if (window.location.pathname.includes('admin.html')) {
-            this.setupAdminNotificationForm();
-        }
     }
 
     // Load updates from localStorage
@@ -106,34 +109,35 @@ class TournamentUpdates {
             });
         }
         
-        this.loadNotificationHistoryDisplay();
+        this.loadAdminNotificationHistory();
+        this.updateAdminStatistics();
+        
+        console.log('Admin notification form setup complete');
     }
 
     handleAdminNotificationSubmit() {
-        const title = document.getElementById('notification-title').value;
-        const message = document.getElementById('notification-message').value;
+        const title = document.getElementById('notification-title').value.trim();
+        const message = document.getElementById('notification-message').value.trim();
         const type = document.getElementById('notification-type').value;
-        const targetAll = document.getElementById('target-all').checked;
-        const targetPlayers = document.getElementById('target-players').checked;
-        
-        let target = 'all';
-        if (targetPlayers && !targetAll) {
-            target = 'players';
-        }
+        const priority = document.getElementById('notification-priority').value;
+        const target = document.querySelector('input[name="target-audience"]:checked').value;
         
         if (!title || !message) {
             showNotification('Please fill in all fields!', 'error');
             return;
         }
         
-        this.sendAdminPushNotification(title, message, type, target);
+        this.sendAdminPushNotification(title, message, type, priority, target);
         
         // Reset form
         document.getElementById('push-notification-form').reset();
-        showNotification('Notification sent successfully!', 'success');
+        
+        showNotification(`Notification sent to ${target === 'all' ? 'all users' : 'players only'}!`, 'success');
+        
+        return true;
     }
 
-    sendAdminPushNotification(title, message, type = 'info', target = 'all') {
+    sendAdminPushNotification(title, message, type = 'info', priority = 'medium', target = 'all') {
         // Create the update
         const update = this.createUpdate(
             this.updateTypes.GENERAL_ANNOUNCEMENT,
@@ -142,95 +146,258 @@ class TournamentUpdates {
                 message: message,
                 isAdminPush: true,
                 notificationType: type,
-                target: target
+                target: target,
+                priority: priority,
+                adminSender: 'Tournament Admin',
+                timestamp: new Date().toISOString()
             },
-            type === 'urgent' ? 'high' : 'medium'
+            priority
         );
 
-        // Send push notification to all users
-        if (this.notificationManager.notificationPermission === 'granted') {
-            this.notificationManager.sendCustomNotification(title, message, {
-                icon: this.getNotificationIcon(type),
-                tag: `admin-push-${Date.now()}`,
-                requireInteraction: true
-            });
-        }
-
-        // Store in notification history
-        this.saveNotificationToHistory({
+        // Store in admin notification history
+        this.saveAdminNotificationToHistory({
             id: update.id,
             title: title,
             message: message,
             type: type,
+            priority: priority,
             target: target,
             timestamp: new Date(),
-            sentBy: 'admin'
+            status: 'sent',
+            readBy: 0,
+            totalUsers: this.getUserCount(target)
         });
+
+        // Send browser notification if permission granted
+        if (this.notificationManager.notificationPermission === 'granted') {
+            this.notificationManager.sendCustomNotification(title, message, {
+                icon: this.getNotificationIcon(type),
+                tag: `admin-push-${Date.now()}`,
+                requireInteraction: type === 'urgent',
+                badge: '/icons/badge-72x72.png'
+            });
+        }
+
+        // Broadcast to all connected users
+        this.broadcastNotificationToUsers(update, target);
+
+        // Update admin display
+        this.loadAdminNotificationHistory();
+        this.updateAdminStatistics();
 
         return update;
     }
 
-    getNotificationIcon(type) {
-        switch (type) {
-            case 'warning': return '/icons/warning.png';
-            case 'success': return '/icons/success.png';
-            case 'urgent': return '/icons/urgent.png';
-            default: return '/icons/info.png';
+    // Broadcast notification to users
+    broadcastNotificationToUsers(update, target) {
+        const userNotification = {
+            id: update.id,
+            title: update.data.title,
+            message: update.data.message,
+            type: update.data.notificationType,
+            priority: update.priority,
+            timestamp: update.timestamp,
+            read: false,
+            target: target
+        };
+        
+        // Store in a location accessible to users
+        this.storeNotificationForUsers(userNotification);
+        
+        console.log(`Broadcasting notification to ${target}:`, userNotification);
+    }
+
+    // Store notification for users to access
+    storeNotificationForUsers(notification) {
+        const userNotifications = JSON.parse(localStorage.getItem('efl_user_notifications') || '[]');
+        userNotifications.unshift(notification);
+        
+        // Keep only last 100 notifications
+        if (userNotifications.length > 100) {
+            userNotifications.splice(100);
+        }
+        
+        localStorage.setItem('efl_user_notifications', JSON.stringify(userNotifications));
+        
+        // Update user notification counts
+        this.updateUserNotificationBadges();
+    }
+
+    // Update notification badges for users
+    updateUserNotificationBadges() {
+        const userNotifications = JSON.parse(localStorage.getItem('efl_user_notifications') || '[]');
+        const unreadCount = userNotifications.filter(n => !n.read).length;
+        
+        // Update badge on index.html if available
+        if (typeof updateNotificationBadge === 'function') {
+            updateNotificationBadge(unreadCount);
         }
     }
 
-    saveNotificationToHistory(notification) {
-        const history = JSON.parse(localStorage.getItem('efl_notification_history') || '[]');
+    // Get user count for statistics
+    getUserCount(target) {
+        const players = getData(DB_KEYS.PLAYERS);
+        if (target === 'players') {
+            return players.length;
+        }
+        // For 'all' users, you might track actual user visits
+        return players.length + 10; // Example: players + spectators
+    }
+
+    // Save to admin notification history
+    saveAdminNotificationToHistory(notification) {
+        const history = JSON.parse(localStorage.getItem('efl_admin_notification_history') || '[]');
         history.unshift(notification);
         
-        // Keep only last 50 notifications
-        if (history.length > 50) {
-            history.pop();
+        // Keep only last 100 notifications
+        if (history.length > 100) {
+            history.splice(100);
         }
         
-        localStorage.setItem('efl_notification_history', JSON.stringify(history));
+        localStorage.setItem('efl_admin_notification_history', JSON.stringify(history));
     }
 
-    loadNotificationHistory() {
-        return JSON.parse(localStorage.getItem('efl_notification_history') || '[]');
-    }
-
-    loadNotificationHistoryDisplay() {
-        const container = document.getElementById('notification-history');
+    // Load admin notification history display
+    loadAdminNotificationHistory() {
+        const container = document.getElementById('notification-history-body');
+        const emptyState = document.getElementById('notification-history-empty');
+        
         if (!container) return;
         
-        const history = this.loadNotificationHistory();
+        const history = this.loadAdminNotificationHistoryData();
         
         if (history.length === 0) {
-            container.innerHTML = '<p class="text-muted text-center">No notifications sent yet</p>';
+            container.innerHTML = '';
+            if (emptyState) emptyState.classList.remove('d-none');
             return;
         }
         
+        if (emptyState) emptyState.classList.add('d-none');
+        
         container.innerHTML = history.map(notification => `
-            <div class="notification-history-item mb-3 p-3 rounded" style="background: rgba(255,255,255,0.05);">
-                <div class="d-flex justify-content-between align-items-start">
-                    <div class="flex-grow-1">
-                        <div class="d-flex align-items-center mb-2">
-                            <span class="badge ${this.getNotificationTypeBadge(notification.type)} me-2">
-                                ${notification.type.toUpperCase()}
-                            </span>
-                            <strong>${notification.title}</strong>
-                        </div>
-                        <p class="mb-1">${notification.message}</p>
-                        <small class="text-muted">
-                            <i class="fas fa-clock me-1"></i>
-                            ${new Date(notification.timestamp).toLocaleString()}
-                            • Target: ${notification.target}
-                        </small>
-                    </div>
-                    <button class="btn btn-sm btn-outline-light ms-2" 
+            <tr>
+                <td>
+                    <div>${new Date(notification.timestamp).toLocaleDateString()}</div>
+                    <small class="text-muted">${new Date(notification.timestamp).toLocaleTimeString()}</small>
+                </td>
+                <td>
+                    <div class="fw-bold">${notification.title}</div>
+                    <small class="text-muted">${notification.message.substring(0, 50)}${notification.message.length > 50 ? '...' : ''}</small>
+                </td>
+                <td>
+                    <span class="badge ${this.getNotificationTypeBadge(notification.type)}">
+                        ${notification.type.toUpperCase()}
+                    </span>
+                </td>
+                <td>
+                    <span class="badge bg-secondary">${notification.target}</span>
+                </td>
+                <td>
+                    <span class="badge bg-success">Sent</span>
+                    <div class="small text-muted">${notification.readBy}/${notification.totalUsers} read</div>
+                </td>
+                <td>
+                    <button class="btn btn-sm btn-outline-info me-1" 
                             onclick="tournamentUpdates.resendNotification('${notification.id}')"
-                            title="Resend notification">
+                            title="Resend">
                         <i class="fas fa-redo"></i>
                     </button>
-                </div>
-            </div>
+                    <button class="btn btn-sm btn-outline-warning" 
+                            onclick="tournamentUpdates.viewNotificationDetails('${notification.id}')"
+                            title="View Details">
+                        <i class="fas fa-eye"></i>
+                    </button>
+                </td>
+            </tr>
         `).join('');
+    }
+
+    // Load admin notification history data
+    loadAdminNotificationHistoryData() {
+        return JSON.parse(localStorage.getItem('efl_admin_notification_history') || '[]');
+    }
+
+    // Update admin statistics
+    updateAdminStatistics() {
+        const history = this.loadAdminNotificationHistoryData();
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        
+        const totalSent = history.length;
+        const sentToday = history.filter(n => new Date(n.timestamp) >= today).length;
+        const activeUsers = this.getUserCount('all');
+        
+        // Calculate engagement rate (simplified)
+        const totalRead = history.reduce((sum, n) => sum + n.readBy, 0);
+        const totalPossible = history.reduce((sum, n) => sum + n.totalUsers, 0);
+        const engagementRate = totalPossible > 0 ? Math.round((totalRead / totalPossible) * 100) : 0;
+        
+        // Update UI elements
+        const elements = {
+            'total-notifications-sent': totalSent,
+            'today-notifications': sentToday,
+            'active-users': activeUsers,
+            'notification-rate': engagementRate + '%'
+        };
+        
+        Object.entries(elements).forEach(([id, value]) => {
+            const element = document.getElementById(id);
+            if (element) element.textContent = value;
+        });
+    }
+
+    // Test notification functionality
+    testNotification() {
+        const title = document.getElementById('notification-title').value || 'Test Notification';
+        const message = document.getElementById('notification-message').value || 'This is a test notification from the admin panel.';
+        const type = document.getElementById('notification-type').value;
+        
+        if (this.notificationManager.notificationPermission === 'granted') {
+            this.notificationManager.sendCustomNotification(title, message, {
+                icon: this.getNotificationIcon(type),
+                tag: `test-${Date.now()}`,
+                requireInteraction: true
+            });
+            showNotification('Test notification sent!', 'success');
+        } else {
+            showNotification('Please enable notifications to test.', 'warning');
+        }
+    }
+
+    // View notification details
+    viewNotificationDetails(notificationId) {
+        const history = this.loadAdminNotificationHistoryData();
+        const notification = history.find(n => n.id === notificationId);
+        
+        if (notification) {
+            const modalContent = `
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>Notification Details</h6>
+                        <p><strong>Title:</strong> ${notification.title}</p>
+                        <p><strong>Message:</strong> ${notification.message}</p>
+                        <p><strong>Type:</strong> <span class="badge ${this.getNotificationTypeBadge(notification.type)}">${notification.type}</span></p>
+                        <p><strong>Priority:</strong> <span class="badge ${this.getPriorityBadgeClass(notification.priority)}">${notification.priority}</span></p>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>Delivery Information</h6>
+                        <p><strong>Target:</strong> ${notification.target}</p>
+                        <p><strong>Sent:</strong> ${new Date(notification.timestamp).toLocaleString()}</p>
+                        <p><strong>Status:</strong> <span class="badge bg-success">Delivered</span></p>
+                        <p><strong>Read by:</strong> ${notification.readBy} users</p>
+                        <p><strong>Total reach:</strong> ${notification.totalUsers} users</p>
+                    </div>
+                </div>
+                <div class="mt-3">
+                    <h6>Full Message</h6>
+                    <div class="alert alert-dark">
+                        ${notification.message}
+                    </div>
+                </div>
+            `;
+            
+            this.showModal('Notification Details', modalContent);
+        }
     }
 
     getNotificationTypeBadge(type) {
@@ -242,8 +409,27 @@ class TournamentUpdates {
         }
     }
 
+    getPriorityBadgeClass(priority) {
+        switch (priority) {
+            case 'high': return 'bg-danger';
+            case 'medium': return 'bg-warning';
+            case 'low': return 'bg-info';
+            default: return 'bg-secondary';
+        }
+    }
+
+    getNotificationIcon(type) {
+        switch (type) {
+            case 'warning': return '/icons/warning.png';
+            case 'success': return '/icons/success.png';
+            case 'urgent': return '/icons/urgent.png';
+            default: return '/icons/info.png';
+        }
+    }
+
+    // Resend notification
     resendNotification(notificationId) {
-        const history = this.loadNotificationHistory();
+        const history = this.loadAdminNotificationHistoryData();
         const notification = history.find(n => n.id === notificationId);
         
         if (notification) {
@@ -251,9 +437,75 @@ class TournamentUpdates {
                 notification.title,
                 notification.message,
                 notification.type,
+                notification.priority,
                 notification.target
             );
             showNotification('Notification resent!', 'success');
+        }
+    }
+
+    // Export notification history
+    exportNotificationHistory() {
+        const history = this.loadAdminNotificationHistoryData();
+        
+        const data = {
+            notifications: history,
+            exportDate: new Date().toISOString(),
+            totalNotifications: history.length,
+            tournament: 'eFootball League 2025'
+        };
+        
+        const dataStr = JSON.stringify(data, null, 2);
+        const dataBlob = new Blob([dataStr], {type: 'application/json'});
+        
+        const url = URL.createObjectURL(dataBlob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `efootball_notifications_${new Date().toISOString().split('T')[0]}.json`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        showNotification('Notification history exported successfully!', 'success');
+    }
+
+    // Clear notification history
+    clearNotificationHistory() {
+        if (confirm('Are you sure you want to clear all notification history? This cannot be undone.')) {
+            localStorage.removeItem('efl_admin_notification_history');
+            this.loadAdminNotificationHistory();
+            this.updateAdminStatistics();
+            showNotification('Notification history cleared!', 'success');
+        }
+    }
+
+    // Add user notification polling
+    setupUserNotificationPolling() {
+        // Check for new notifications every 30 seconds
+        setInterval(() => {
+            this.checkForNewNotifications();
+        }, 30000);
+        
+        // Initial check
+        this.checkForNewNotifications();
+    }
+
+    checkForNewNotifications() {
+        const userNotifications = JSON.parse(localStorage.getItem('efl_user_notifications') || '[]');
+        const unreadNotifications = userNotifications.filter(n => !n.read);
+        
+        // Update UI with new notifications
+        this.displayUserNotifications(unreadNotifications);
+        
+        // Update badge count
+        this.updateUserNotificationBadges();
+    }
+
+    displayUserNotifications(notifications) {
+        // This would update the user's notification center in index.html
+        // Implementation depends on your UI structure
+        if (typeof updateUserNotificationCenter === 'function') {
+            updateUserNotificationCenter(notifications);
         }
     }
 
@@ -611,15 +863,6 @@ class TournamentUpdates {
             case 'medium': return 'notification-medium';
             case 'low': return 'notification-low';
             default: return 'notification-low';
-        }
-    }
-
-    getPriorityBadgeClass(priority) {
-        switch (priority) {
-            case 'high': return 'bg-danger';
-            case 'medium': return 'bg-warning';
-            case 'low': return 'bg-info';
-            default: return 'bg-secondary';
         }
     }
 
@@ -1168,6 +1411,13 @@ class PushNotificationManager {
             }
         });
     }
+
+    // Show basic notification
+    showNotification(title, message) {
+        if (this.notificationPermission === 'granted') {
+            this.sendCustomNotification(title, message);
+        }
+    }
 }
 
 // Initialize tournament updates
@@ -1176,3 +1426,44 @@ const tournamentUpdates = new TournamentUpdates();
 // Global access
 window.tournamentUpdates = tournamentUpdates;
 window.PushNotificationManager = PushNotificationManager;
+
+// Global notification functions for admin.html
+function testNotification() {
+    if (typeof tournamentUpdates !== 'undefined') {
+        tournamentUpdates.testNotification();
+    } else {
+        showNotification('Notification system not available', 'error');
+    }
+}
+
+function exportNotificationHistory() {
+    if (typeof tournamentUpdates !== 'undefined') {
+        tournamentUpdates.exportNotificationHistory();
+    } else {
+        showNotification('Notification system not available', 'error');
+    }
+}
+
+function clearNotificationHistory() {
+    if (typeof tournamentUpdates !== 'undefined') {
+        tournamentUpdates.clearNotificationHistory();
+    } else {
+        showNotification('Notification system not available', 'error');
+    }
+}
+
+function viewNotificationDetails(notificationId) {
+    if (typeof tournamentUpdates !== 'undefined') {
+        tournamentUpdates.viewNotificationDetails(notificationId);
+    } else {
+        showNotification('Notification system not available', 'error');
+    }
+}
+
+function resendNotification(notificationId) {
+    if (typeof tournamentUpdates !== 'undefined') {
+        tournamentUpdates.resendNotification(notificationId);
+    } else {
+        showNotification('Notification system not available', 'error');
+    }
+}
