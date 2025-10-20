@@ -24,6 +24,7 @@ app.use(express.static(__dirname, {
 app.use('/js', express.static(path.join(__dirname, 'js')));
 app.use('/css', express.static(path.join(__dirname, 'css')));
 app.use('/php', express.static(path.join(__dirname, 'php')));
+app.use('/icons', express.static(path.join(__dirname, 'icons'))); 
 
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb+srv://efootballadmin:Brashokish2425@efootball-league.xykgya4.mongodb.net/efootball-league?retryWrites=true&w=majority&appName=efootball-league';
 
@@ -491,6 +492,15 @@ app.post('/api/initialize', async (req, res) => {
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }
+});
+
+// Serve PWA files
+app.get('/manifest.json', (req, res) => {
+  res.sendFile(path.join(__dirname, 'manifest.json'));
+});
+
+app.get('/service-worker.js', (req, res) => {
+  res.sendFile(path.join(__dirname, 'service-worker.js'));
 });
 
 // Serve admin.html specifically
