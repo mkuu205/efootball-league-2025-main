@@ -124,7 +124,7 @@ function showNotification(message, type = 'info') {
     div.id = 'toast-temp';
     div.style.cssText = `
         position: fixed;
-        bottom: 20px;
+        top: 20px;
         right: 20px;
         background: #212529;
         color: #f8f9fa;
@@ -144,7 +144,7 @@ function showNotification(message, type = 'info') {
 
     setTimeout(() => {
         div.style.opacity = '0';
-        div.style.transform = 'translateY(10px)';
+        div.style.transform = 'translateY(-10px)';
         setTimeout(() => div.remove(), 300);
     }, 4000);
 }
