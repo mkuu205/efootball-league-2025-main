@@ -20,11 +20,10 @@ const urlsToCache = [
     'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css'
 ];
 
-// URLs to never cache (icons, manifest)
+// URLs to never cache (manifest, icons)
 const neverCacheUrls = [
-    '/manifest.json',
-    '/icons/',
-    '/fixed-icons/'
+  '/manifest.json',
+  '/icons/'
 ];
 
 self.addEventListener('install', (event) => {
