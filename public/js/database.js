@@ -90,10 +90,10 @@ const DEFAULT_PLAYERS = [
         id: 8,
         name: 'Bora kesho',
         team: 'Man U',
-        photo: 'https://i.ibb.co/7NXyjhWR/Bora%20kesho.jpg',
+        photo: 'https://i.ibb.co/7NXyjhWR/Bora-20kesho.jpg',
         strength: 3177,
         teamColor: '#DA291C', // Manchester United red
-        defaultPhoto: 'https://i.ibb.co/7NXyjhWR/Bora%20kesho.jpg'
+        defaultPhoto: 'https://i.ibb.co/7NXyjhWR/Bora-20kesho.jpg'
     }
 ];
 
