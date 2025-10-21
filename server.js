@@ -14,17 +14,28 @@ const PORT = process.env.PORT || 3000;
 app.use(cors());
 app.use(express.json());
 
-// Serve static files correctly for deployment
-app.use(express.static(__dirname, {
-  index: ['index.html'],
-  extensions: ['html']
-}));
+// Serve static files from "public"
+// ----------------------
+app.use(express.static(path.join(__dirname, 'public')));
 
-// Specific static file routes for better reliability
-app.use('/js', express.static(path.join(__dirname, 'js')));
-app.use('/css', express.static(path.join(__dirname, 'css')));
-app.use('/php', express.static(path.join(__dirname, 'php')));
-app.use('/icons', express.static(path.join(__dirname, 'icons'))); 
+// Serve manifest and service worker for PWA
+app.get('/manifest.json', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'manifest.json'));
+});
+
+app.get('/service-worker.js', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'service-worker.js'));
+});
+
+// Serve admin.html specifically
+app.get('/admin.html', (req, res) => {
+  res.sendFile(path.join(__dirname, 'admin.html'));
+});
+
+// SPA fallback: serve index.html for all other routes
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, 'index.html'));
+});
 
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb+srv://efootballadmin:Brashokish2425@efootball-league.xykgya4.mongodb.net/efootball-league?retryWrites=true&w=majority&appName=efootball-league';
 
