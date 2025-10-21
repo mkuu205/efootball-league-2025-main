@@ -505,13 +505,13 @@ app.post('/api/initialize', async (req, res) => {
   }
 });
 
-// Serve PWA files
+// Serve PWA files from public/
 app.get('/manifest.json', (req, res) => {
-  res.sendFile(path.join(__dirname, 'manifest.json'));
+  res.sendFile(path.join(__dirname, 'public', 'manifest.json'));
 });
 
 app.get('/service-worker.js', (req, res) => {
-  res.sendFile(path.join(__dirname, 'service-worker.js'));
+  res.sendFile(path.join(__dirname, 'public', 'service-worker.js'));
 });
 
 // Serve admin.html specifically
@@ -519,7 +519,7 @@ app.get('/admin.html', (req, res) => {
   res.sendFile(path.join(__dirname, 'admin.html'));
 });
 
-// Serve all other routes with index.html (for SPA routing)
+// SPA fallback: serve index.html for all other routes
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'index.html'));
 });
