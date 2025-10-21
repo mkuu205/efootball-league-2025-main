@@ -125,37 +125,46 @@ function removeDuplicatePlayers() {
     return uniquePlayers;
 }
 
-// ✅ Initialize database with sample data
+// ✅ Initialize database with version control + duplicates cleanup
 function initializeDatabase() {
     console.log('⚙️ Initializing database...');
 
-    // Check if data already exists
     const existingPlayers = getData(DB_KEYS.PLAYERS);
+    const DB_VERSION_KEY = 'efl_db_version';
+    const CURRENT_VERSION = '1.1.0';
 
-    if (existingPlayers && existingPlayers.length > 0) {
-        console.log(`✅ Database already initialized with ${existingPlayers.length} players`);
-        // Clean any duplicates that might exist
-        removeDuplicatePlayers();
+    const savedVersion = localStorage.getItem(DB_VERSION_KEY);
+
+    // 🧩 Case 1: No players or version change → reset database
+    if (!existingPlayers || existingPlayers.length === 0 || savedVersion !== CURRENT_VERSION) {
+        console.log('⚙️ Setting up new player data...');
+
+        // Set default values for sample players
+        const samplePlayers = DEFAULT_PLAYERS.map(player => ({
+            ...player,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+        }));
+
+        // Save sample players
+        saveData(DB_KEYS.PLAYERS, samplePlayers);
+
+        // Generate sample fixtures
+        generateSampleFixtures();
+
+        // Initialize empty results
+        saveData(DB_KEYS.RESULTS, []);
+
+        // Save current version
+        localStorage.setItem(DB_VERSION_KEY, CURRENT_VERSION);
+
+        console.log(`✅ Database initialized with ${samplePlayers.length} players (version ${CURRENT_VERSION})`);
         return;
     }
 
-    // Set default values for sample players
-    const samplePlayers = DEFAULT_PLAYERS.map(player => ({
-        ...player,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-    }));
-
-    // Save sample players
-    saveData(DB_KEYS.PLAYERS, samplePlayers);
-
-    // Generate sample fixtures
-    generateSampleFixtures();
-
-    // Initialize empty results
-    saveData(DB_KEYS.RESULTS, []);
-
-    console.log(`✅ Database initialized successfully with ${samplePlayers.length} players`);
+    // 🧩 Case 2: Existing data → clean duplicates
+    console.log(`✅ Database already initialized with ${existingPlayers.length} players`);
+    removeDuplicatePlayers();
 }
 
 // Generate sample fixtures - FIXED: Better fixture generation
