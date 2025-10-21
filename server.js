@@ -491,6 +491,7 @@ app.post('/api/initialize', async (req, res) => {
 
 // ==================== PWA & SPA ====================
 app.get('/manifest.json', (req, res) => res.sendFile(path.join(__dirname, 'public', 'manifest.json')));
+app.use('/icons', express.static(path.join(__dirname, 'public/icons')));
 app.get('/service-worker.js', (req, res) => res.sendFile(path.join(__dirname, 'public', 'service-worker.js')));
 app.get('/admin.html', (req, res) => res.sendFile(path.join(__dirname, 'admin.html')));
 app.get('*', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
