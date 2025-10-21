@@ -244,6 +244,49 @@ function getResultById(resultId) {
     return results.find(r => r && r.id === resultId);
 }
 
+// ✅ ADD THIS FUNCTION to refresh all displays
+function refreshAllDisplays() {
+    console.log('🔄 Refreshing all displays...');
+    
+    // Refresh main app displays
+    if (typeof renderLeagueTable === 'function') {
+        renderLeagueTable();
+    }
+    if (typeof renderPlayers === 'function') {
+        renderPlayers();
+    }
+    if (typeof renderHomePage === 'function') {
+        renderHomePage();
+    }
+    if (typeof renderFixtures === 'function') {
+        renderFixtures();
+    }
+    if (typeof renderResults === 'function') {
+        renderResults();
+    }
+    
+    // Refresh admin displays if on admin page
+    if (typeof renderAdminPlayers === 'function') {
+        renderAdminPlayers();
+    }
+    if (typeof renderAdminFixtures === 'function') {
+        renderAdminFixtures();
+    }
+    if (typeof renderAdminResults === 'function') {
+        renderAdminResults();
+    }
+    if (typeof populatePlayerSelects === 'function') {
+        populatePlayerSelects();
+    }
+    
+    // Refresh advanced stats if available
+    if (typeof advancedStats !== 'undefined' && typeof advancedStats.loadAdvancedStatsDashboard === 'function') {
+        advancedStats.loadAdvancedStatsDashboard();
+    }
+    
+    console.log('✅ All displays refreshed');
+}
+
 // Player management functions - FIXED: Better duplicate prevention
 async function addPlayer(playerData) {
     try {
@@ -275,15 +318,20 @@ async function addPlayer(playerData) {
         players.push(newPlayer);
         saveData(DB_KEYS.PLAYERS, players);
         
+        // ✅ CRITICAL: Refresh ALL frontend displays
+        refreshAllDisplays();
+        
         // Sync with server if online
         if (typeof eflAPI !== 'undefined' && eflAPI.isOnline) {
             await eflAPI.addPlayer(newPlayer);
         }
         
         console.log('Player added:', newPlayer.name, '(ID:', newPlayer.id + ')');
+        showNotification('Player added successfully!', 'success');
         return newPlayer;
     } catch (error) {
         console.error('Error adding player:', error);
+        showNotification('Error adding player: ' + error.message, 'error');
         throw error;
     }
 }
@@ -298,17 +346,22 @@ async function updatePlayer(updatedPlayer) {
             players[index] = { ...players[index], ...updatedPlayer };
             saveData(DB_KEYS.PLAYERS, players);
             
+            // ✅ Refresh displays after update
+            refreshAllDisplays();
+            
             // Sync with server if online
             if (typeof eflAPI !== 'undefined' && eflAPI.isOnline) {
                 await eflAPI.updatePlayer(updatedPlayer.id, updatedPlayer);
             }
             
             console.log('Player updated:', updatedPlayer.name);
+            showNotification('Player updated successfully!', 'success');
             return updatedPlayer;
         }
         throw new Error('Player not found');
     } catch (error) {
         console.error('Error updating player:', error);
+        showNotification('Error updating player: ' + error.message, 'error');
         throw error;
     }
 }
@@ -328,15 +381,20 @@ async function deletePlayer(playerId) {
         results = results.filter(r => r.homePlayerId !== playerId && r.awayPlayerId !== playerId);
         saveData(DB_KEYS.RESULTS, results);
         
+        // ✅ Refresh displays after delete
+        refreshAllDisplays();
+        
         // Sync with server if online
         if (typeof eflAPI !== 'undefined' && eflAPI.isOnline) {
             await eflAPI.deletePlayer(playerId);
         }
         
         console.log('Player deleted:', playerId);
+        showNotification('Player deleted successfully!', 'success');
         return true;
     } catch (error) {
         console.error('Error deleting player:', error);
+        showNotification('Error deleting player: ' + error.message, 'error');
         throw error;
     }
 }
@@ -361,15 +419,20 @@ async function addFixture(fixtureData) {
         fixtures.push(newFixture);
         saveData(DB_KEYS.FIXTURES, fixtures);
         
+        // ✅ Refresh displays
+        refreshAllDisplays();
+        
         // Sync with server if online
         if (typeof eflAPI !== 'undefined' && eflAPI.isOnline) {
             await eflAPI.addFixture(newFixture);
         }
         
         console.log('Fixture added:', newFixture.id);
+        showNotification('Fixture added successfully!', 'success');
         return newFixture;
     } catch (error) {
         console.error('Error adding fixture:', error);
+        showNotification('Error adding fixture: ' + error.message, 'error');
         throw error;
     }
 }
@@ -384,17 +447,22 @@ async function updateFixture(updatedFixture) {
             fixtures[index] = { ...fixtures[index], ...updatedFixture };
             saveData(DB_KEYS.FIXTURES, fixtures);
             
+            // ✅ Refresh displays
+            refreshAllDisplays();
+            
             // Sync with server if online
             if (typeof eflAPI !== 'undefined' && eflAPI.isOnline) {
                 await eflAPI.updateFixture(updatedFixture.id, updatedFixture);
             }
             
             console.log('Fixture updated:', updatedFixture.id);
+            showNotification('Fixture updated successfully!', 'success');
             return updatedFixture;
         }
         throw new Error('Fixture not found');
     } catch (error) {
         console.error('Error updating fixture:', error);
+        showNotification('Error updating fixture: ' + error.message, 'error');
         throw error;
     }
 }
@@ -415,15 +483,20 @@ async function deleteFixture(fixtureId) {
             saveData(DB_KEYS.RESULTS, results);
         }
         
+        // ✅ Refresh displays
+        refreshAllDisplays();
+        
         // Sync with server if online
         if (typeof eflAPI !== 'undefined' && eflAPI.isOnline) {
             await eflAPI.deleteFixture(fixtureId);
         }
         
         console.log('Fixture deleted:', fixtureId);
+        showNotification('Fixture deleted successfully!', 'success');
         return true;
     } catch (error) {
         console.error('Error deleting fixture:', error);
+        showNotification('Error deleting fixture: ' + error.message, 'error');
         throw error;
     }
 }
@@ -460,15 +533,20 @@ async function addResult(resultData) {
             saveData(DB_KEYS.FIXTURES, fixtures);
         }
         
+        // ✅ Refresh displays
+        refreshAllDisplays();
+        
         // Sync with server if online
         if (typeof eflAPI !== 'undefined' && eflAPI.isOnline) {
             await eflAPI.addResult(newResult);
         }
         
         console.log('Result added:', newResult.id);
+        showNotification('Result added successfully!', 'success');
         return newResult;
     } catch (error) {
         console.error('Error adding result:', error);
+        showNotification('Error adding result: ' + error.message, 'error');
         throw error;
     }
 }
@@ -483,17 +561,22 @@ async function updateResult(updatedResult) {
             results[index] = { ...results[index], ...updatedResult };
             saveData(DB_KEYS.RESULTS, results);
             
+            // ✅ Refresh displays
+            refreshAllDisplays();
+            
             // Sync with server if online
             if (typeof eflAPI !== 'undefined' && eflAPI.isOnline) {
                 await eflAPI.updateResult(updatedResult.id, updatedResult);
             }
             
             console.log('Result updated:', updatedResult.id);
+            showNotification('Result updated successfully!', 'success');
             return updatedResult;
         }
         throw new Error('Result not found');
     } catch (error) {
         console.error('Error updating result:', error);
+        showNotification('Error updating result: ' + error.message, 'error');
         throw error;
     }
 }
@@ -521,15 +604,20 @@ async function deleteResult(resultId) {
             }
         }
         
+        // ✅ Refresh displays
+        refreshAllDisplays();
+        
         // Sync with server if online
         if (typeof eflAPI !== 'undefined' && eflAPI.isOnline) {
             await eflAPI.deleteResult(resultId);
         }
         
         console.log('Result deleted:', resultId);
+        showNotification('Result deleted successfully!', 'success');
         return true;
     } catch (error) {
         console.error('Error deleting result:', error);
+        showNotification('Error deleting result: ' + error.message, 'error');
         throw error;
     }
 }
@@ -725,6 +813,9 @@ function importData(jsonData) {
         // Clean duplicates after import
         removeDuplicatePlayers();
         
+        // Refresh all displays
+        refreshAllDisplays();
+        
         showNotification('Data imported successfully!', 'success');
         return true;
     } catch (error) {
@@ -740,15 +831,10 @@ function emergencyCleanup() {
         const initialPlayers = getData(DB_KEYS.PLAYERS);
         const cleanedPlayers = removeDuplicatePlayers();
         
-        showNotification(`Removed ${initialPlayers.length - cleanedPlayers.length} duplicate players!`, 'success');
+        // Refresh all displays
+        refreshAllDisplays();
         
-        // Refresh the display if we're on a page that shows players
-        if (typeof renderLeagueTable === 'function') {
-            renderLeagueTable();
-        }
-        if (typeof renderAdminPlayers === 'function') {
-            renderAdminPlayers();
-        }
+        showNotification(`Removed ${initialPlayers.length - cleanedPlayers.length} duplicate players!`, 'success');
     }
 }
 
@@ -787,6 +873,7 @@ window.updateSyncStatus = updateSyncStatus;
 window.initializeDatabase = initializeDatabase;
 window.removeDuplicatePlayers = removeDuplicatePlayers;
 window.emergencyCleanup = emergencyCleanup;
+window.refreshAllDisplays = refreshAllDisplays;
 window.DB_KEYS = DB_KEYS;
 window.BALANCED_TEAMS = BALANCED_TEAMS;
 window.DEFAULT_PLAYERS = DEFAULT_PLAYERS;
