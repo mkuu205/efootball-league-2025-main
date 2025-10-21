@@ -16,9 +16,6 @@ class PWAHelper {
         // Check if running as PWA
         this.checkPWAStatus();
         
-        // Setup theme toggle
-        this.setupThemeToggle();
-        
         // Setup network detection
         this.setupNetworkDetection();
         
@@ -128,14 +125,27 @@ class PWAHelper {
         if (!document.getElementById('install-button')) {
             const installBtn = document.createElement('button');
             installBtn.id = 'install-button';
-            installBtn.className = 'btn btn-success position-fixed';
+            installBtn.className = 'btn btn-success';
             installBtn.style.cssText = `
-                bottom: 20px; 
-                right: 20px; 
-                z-index: 1000; 
-                box-shadow: 0 4px 15px rgba(40, 167, 69, 0.4);
-                font-weight: 600;
-                transition: all 0.3s ease;
+                position: fixed !important;
+                bottom: 20px !important;
+                right: 20px !important;
+                z-index: 10000 !important;
+                background: linear-gradient(135deg, #28a745, #20c997) !important;
+                border: none !important;
+                color: white !important;
+                padding: 12px 20px !important;
+                border-radius: 50px !important;
+                font-weight: 600 !important;
+                box-shadow: 0 8px 25px rgba(40, 167, 69, 0.4) !important;
+                transition: all 0.3s ease !important;
+                animation: pulse 2s infinite !important;
+                min-height: auto !important;
+                display: flex !important;
+                align-items: center !important;
+                gap: 8px !important;
+                opacity: 1 !important;
+                visibility: visible !important;
             `;
             installBtn.innerHTML = `
                 <i class="fas fa-download me-2"></i>
@@ -188,88 +198,6 @@ class PWAHelper {
         if (confirm('A new version of the app is available. Reload to update?')) {
             window.location.reload();
         }
-    }
-
-    setupThemeToggle() {
-        // Check for saved theme or prefer-color-scheme
-        const savedTheme = localStorage.getItem('efl-theme') || 'dark';
-        const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-        
-        let theme = savedTheme === 'system' ? (systemPrefersDark ? 'dark' : 'light') : savedTheme;
-        
-        this.setTheme(theme);
-        
-        // Create theme toggle button
-        this.createThemeToggle(theme);
-        
-        // Listen for system theme changes
-        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
-            if (localStorage.getItem('efl-theme') === 'system') {
-                this.setTheme(e.matches ? 'dark' : 'light');
-            }
-        });
-    }
-
-    createThemeToggle(currentTheme) {
-        // Remove existing theme toggle if any
-        const existingToggle = document.querySelector('.theme-toggle');
-        if (existingToggle) {
-            existingToggle.remove();
-        }
-
-        const themeToggle = document.createElement('button');
-        themeToggle.className = 'btn btn-outline-light btn-sm theme-toggle';
-        themeToggle.innerHTML = currentTheme === 'light' ? 
-            '<i class="fas fa-moon me-1"></i>' : 
-            '<i class="fas fa-sun me-1"></i>';
-        themeToggle.title = `Switch to ${currentTheme === 'light' ? 'dark' : 'light'} theme`;
-        themeToggle.onclick = () => this.toggleTheme();
-        
-        // Add to navbar if it exists
-        const navbarNav = document.querySelector('.navbar-nav');
-        if (navbarNav) {
-            const li = document.createElement('li');
-            li.className = 'nav-item';
-            li.appendChild(themeToggle);
-            navbarNav.appendChild(li);
-        } else {
-            // Fallback: add to body
-            themeToggle.style.cssText = 'position: fixed; top: 20px; right: 20px; z-index: 1000;';
-            document.body.appendChild(themeToggle);
-        }
-    }
-
-    toggleTheme() {
-        const currentTheme = document.documentElement.getAttribute('data-theme') || 'dark';
-        const newTheme = currentTheme === 'light' ? 'dark' : 'light';
-        this.setTheme(newTheme);
-    }
-
-    setTheme(theme) {
-        document.documentElement.setAttribute('data-theme', theme);
-        localStorage.setItem('efl-theme', theme);
-        
-        // Update theme toggle button
-        const themeToggle = document.querySelector('.theme-toggle');
-        if (themeToggle) {
-            themeToggle.innerHTML = theme === 'light' ? 
-                '<i class="fas fa-moon me-1"></i>' : 
-                '<i class="fas fa-sun me-1"></i>';
-            themeToggle.title = `Switch to ${theme === 'light' ? 'dark' : 'light'} theme`;
-            themeToggle.className = theme === 'light' ? 
-                'btn btn-outline-dark btn-sm theme-toggle' : 
-                'btn btn-outline-light btn-sm theme-toggle';
-        }
-        
-        // Update meta theme-color
-        const themeColor = theme === 'light' ? '#f8f9fa' : '#1a1a2e';
-        let metaThemeColor = document.querySelector('meta[name="theme-color"]');
-        if (!metaThemeColor) {
-            metaThemeColor = document.createElement('meta');
-            metaThemeColor.name = 'theme-color';
-            document.head.appendChild(metaThemeColor);
-        }
-        metaThemeColor.setAttribute('content', themeColor);
     }
 
     showNotification(message, type = 'info', duration = 3000) {
@@ -335,11 +263,72 @@ class PWAHelper {
             }
         }
     }
+
+    // Remove any existing theme toggle elements
+    removeThemeToggle() {
+        const themeToggles = document.querySelectorAll('.theme-toggle');
+        themeToggles.forEach(toggle => {
+            toggle.remove();
+        });
+        
+        // Remove theme toggle from navbar
+        const navItems = document.querySelectorAll('.nav-item');
+        navItems.forEach(item => {
+            if (item.querySelector('.theme-toggle')) {
+                item.remove();
+            }
+        });
+    }
 }
 
 // Initialize PWA when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
-    window.pwaHelper = new PWAHelper();
+    const pwaHelper = new PWAHelper();
+    window.pwaHelper = pwaHelper;
+    
+    // Remove any theme toggle elements on startup
+    pwaHelper.removeThemeToggle();
+    
+    // Additional cleanup for theme toggle
+    const removeThemeElements = () => {
+        // Remove theme toggle buttons
+        const themeToggles = document.querySelectorAll('.theme-toggle');
+        themeToggles.forEach(toggle => toggle.remove());
+        
+        // Remove theme-related list items
+        const navItems = document.querySelectorAll('.nav-item');
+        navItems.forEach(item => {
+            if (item.textContent.includes('moon') || item.textContent.includes('sun')) {
+                item.remove();
+            }
+        });
+        
+        // Remove any theme toggle that might be created later
+        const observer = new MutationObserver((mutations) => {
+            mutations.forEach((mutation) => {
+                mutation.addedNodes.forEach((node) => {
+                    if (node.nodeType === 1) {
+                        if (node.classList && node.classList.contains('theme-toggle')) {
+                            node.remove();
+                        }
+                        if (node.querySelector && node.querySelector('.theme-toggle')) {
+                            node.querySelector('.theme-toggle').remove();
+                        }
+                    }
+                });
+            });
+        });
+        
+        observer.observe(document.body, {
+            childList: true,
+            subtree: true
+        });
+    };
+    
+    // Run cleanup immediately and after a short delay
+    removeThemeElements();
+    setTimeout(removeThemeElements, 100);
+    setTimeout(removeThemeElements, 1000);
 });
 
 // Export for module use
