@@ -14,28 +14,12 @@ const PORT = process.env.PORT || 3000;
 app.use(cors());
 app.use(express.json());
 
-// Serve static files from "public"
-// ----------------------
+// ==================== MIDDLEWARE ====================
+app.use(cors());
+app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Serve manifest and service worker for PWA
-app.get('/manifest.json', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'manifest.json'));
-});
-
-app.get('/service-worker.js', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'service-worker.js'));
-});
-
-// Serve admin.html specifically
-app.get('/admin.html', (req, res) => {
-  res.sendFile(path.join(__dirname, 'admin.html'));
-});
-
-// SPA fallback: serve index.html for all other routes
-app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, 'index.html'));
-});
+// ==================== DATABASE ====================
 
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb+srv://efootballadmin:Brashokish2425@efootball-league.xykgya4.mongodb.net/efootball-league?retryWrites=true&w=majority&appName=efootball-league';
 
@@ -505,24 +489,11 @@ app.post('/api/initialize', async (req, res) => {
   }
 });
 
-// Serve PWA files from public/
-app.get('/manifest.json', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'manifest.json'));
-});
-
-app.get('/service-worker.js', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'service-worker.js'));
-});
-
-// Serve admin.html specifically
-app.get('/admin.html', (req, res) => {
-  res.sendFile(path.join(__dirname, 'admin.html'));
-});
-
-// SPA fallback: serve index.html for all other routes
-app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, 'index.html'));
-});
+// ==================== PWA & SPA ====================
+app.get('/manifest.json', (req, res) => res.sendFile(path.join(__dirname, 'public', 'manifest.json')));
+app.get('/service-worker.js', (req, res) => res.sendFile(path.join(__dirname, 'public', 'service-worker.js')));
+app.get('/admin.html', (req, res) => res.sendFile(path.join(__dirname, 'admin.html')));
+app.get('*', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
 
 // Error handling middleware
 app.use((err, req, res, next) => {
