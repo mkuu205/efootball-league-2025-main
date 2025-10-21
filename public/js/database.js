@@ -97,43 +97,43 @@ const DEFAULT_PLAYERS = [
     }
 ];
 
-// NEW: Function to remove duplicate players
+// ✅ Function to remove duplicate players
 function removeDuplicatePlayers() {
     const players = getData(DB_KEYS.PLAYERS);
-    
+
     if (!players || players.length === 0) return [];
-    
+
     const uniquePlayers = [];
     const seenPlayers = new Map();
-    
+
     players.forEach(player => {
         if (!player || !player.id) return; // Skip invalid players
-        
-        // Use ID as primary key for uniqueness
+
+        // Use ID as the primary key for uniqueness
         if (!seenPlayers.has(player.id)) {
             seenPlayers.set(player.id, true);
             uniquePlayers.push(player);
         } else {
-            console.warn(`Removing duplicate player with ID ${player.id}: ${player.name}`);
+            console.warn(`🧹 Removing duplicate player with ID ${player.id}: ${player.name}`);
         }
     });
-    
+
     // Save cleaned players array
     saveData(DB_KEYS.PLAYERS, uniquePlayers);
-    console.log(`Cleaned players: ${players.length} → ${uniquePlayers.length}`);
-    
+    console.log(`✅ Cleaned players: ${players.length} → ${uniquePlayers.length}`);
+
     return uniquePlayers;
 }
 
-// Initialize database with sample data - FIXED: Better initialization
+// ✅ Initialize database with sample data
 function initializeDatabase() {
-    console.log('Initializing database...');
-    
+    console.log('⚙️ Initializing database...');
+
     // Check if data already exists
     const existingPlayers = getData(DB_KEYS.PLAYERS);
-    
+
     if (existingPlayers && existingPlayers.length > 0) {
-        console.log('Database already initialized with', existingPlayers.length, 'players');
+        console.log(`✅ Database already initialized with ${existingPlayers.length} players`);
         // Clean any duplicates that might exist
         removeDuplicatePlayers();
         return;
@@ -148,14 +148,14 @@ function initializeDatabase() {
 
     // Save sample players
     saveData(DB_KEYS.PLAYERS, samplePlayers);
-    
+
     // Generate sample fixtures
     generateSampleFixtures();
-    
+
     // Initialize empty results
     saveData(DB_KEYS.RESULTS, []);
-    
-    console.log('Database initialized successfully with', samplePlayers.length, 'players');
+
+    console.log(`✅ Database initialized successfully with ${samplePlayers.length} players`);
 }
 
 // Generate sample fixtures - FIXED: Better fixture generation
