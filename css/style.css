@@ -17,13 +17,6 @@
     --notification-urgent: #dc3545;
 }
 
-[data-theme="light"] {
-    --dark-bg: #f8f9fa;
-    --darker-bg: #e9ecef;
-    --text-light: #212529;
-    --text-muted: #6c757d;
-}
-
 * {
     margin: 0;
     padding: 0;
@@ -88,13 +81,13 @@ body {
     transform: translateY(-2px);
 }
 
-/* PWA Install Button - FIXED */
+/* Install Button Styles */
 #install-button {
     position: fixed !important;
     bottom: 20px !important;
     right: 20px !important;
     z-index: 10000 !important;
-    background: linear-gradient(135deg, var(--success-color), #20c997) !important;
+    background: linear-gradient(135deg, #28a745, #20c997) !important;
     border: none !important;
     color: white !important;
     padding: 12px 20px !important;
@@ -103,10 +96,12 @@ body {
     box-shadow: 0 8px 25px rgba(40, 167, 69, 0.4) !important;
     transition: all 0.3s ease !important;
     animation: pulse 2s infinite !important;
-    min-height: auto !important;
     display: flex !important;
     align-items: center !important;
     gap: 8px !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    font-size: 14px !important;
 }
 
 #install-button:hover {
@@ -114,45 +109,30 @@ body {
     box-shadow: 0 12px 30px rgba(40, 167, 69, 0.6) !important;
 }
 
-/* Player Name Fixes - Make names fit in boxes */
-.player-name {
-    font-weight: 600;
-    font-size: 0.95rem;
-    line-height: 1.3;
-    word-wrap: break-word;
-    overflow-wrap: break-word;
-    hyphens: auto;
-    max-width: 100%;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-    text-overflow: ellipsis;
+/* Hide any theme toggle elements */
+.theme-toggle {
+    display: none !important;
 }
 
-/* Table cell fixes for player names */
-.table td {
-    max-width: 200px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+.btn.theme-toggle {
+    display: none !important;
 }
 
-.table td.player-cell {
-    max-width: 150px;
-    white-space: normal;
-    word-wrap: break-word;
-    line-height: 1.3;
+.nav-item .theme-toggle {
+    display: none !important;
 }
 
-/* Card body fixes for player content */
-.card-body .player-name {
-    min-height: 2.6em;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    text-align: center;
-    padding: 0 5px;
+/* Hide any buttons with moon/sun icons */
+button[class*="btn-outline"]:has(.fa-moon),
+button[class*="btn-outline"]:has(.fa-sun) {
+    display: none !important;
+}
+
+/* Pulse animation for install button */
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
 }
 
 /* Mobile Navigation Improvements */
@@ -223,13 +203,6 @@ body {
     transition: all 0.3s ease-in-out;
 }
 
-/* Enhanced mobile dropdown animations */
-@media (max-width: 768px) {
-    .navbar-collapse.collapsing {
-        transition: height 0.3s ease;
-    }
-}
-
 /* Cards */
 .card {
     background: rgba(255, 255, 255, 0.1);
@@ -281,6 +254,45 @@ body {
     background: rgba(255, 255, 255, 0.1);
     transform: scale(1.01);
     transition: all 0.2s ease;
+}
+
+/* Player Name Fixes */
+.player-name {
+    font-weight: 600;
+    font-size: 0.95rem;
+    line-height: 1.3;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    hyphens: auto;
+    max-width: 100%;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.table td {
+    max-width: 200px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.table td.player-cell {
+    max-width: 150px;
+    white-space: normal;
+    word-wrap: break-word;
+    line-height: 1.3;
+}
+
+.card-body .player-name {
+    min-height: 2.6em;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 0 5px;
 }
 
 /* League Table Positions */
@@ -398,17 +410,6 @@ body {
 .dropdown-item:hover {
     background-color: #4a5568 !important;
     color: white !important;
-}
-
-/* Fix select dropdown in dark theme */
-select.form-control, select.form-select {
-    background-color: #2d3748 !important;
-    color: white !important;
-}
-
-/* Make sure selects are clickable */
-select {
-    cursor: pointer !important;
 }
 
 /* Player Cards */
@@ -628,22 +629,6 @@ footer {
     transform: translateX(5px);
 }
 
-.notification-item::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(135deg, transparent, rgba(255, 255, 255, 0.05));
-    opacity: 0;
-    transition: opacity 0.3s ease;
-}
-
-.notification-item:hover::before {
-    opacity: 1;
-}
-
 .notification-high { 
     border-left-color: var(--notification-urgent);
     background: linear-gradient(135deg, rgba(220, 53, 69, 0.1), rgba(220, 53, 69, 0.05));
@@ -673,140 +658,6 @@ footer {
     border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
-/* Notification History Styles */
-.notification-history-item {
-    background: rgba(255, 255, 255, 0.05);
-    border-radius: 10px;
-    padding: 15px;
-    margin-bottom: 15px;
-    border-left: 4px solid var(--primary-color);
-    transition: all 0.3s ease;
-}
-
-.notification-history-item:hover {
-    background: rgba(255, 255, 255, 0.08);
-    transform: translateX(5px);
-}
-
-.notification-stats-card {
-    background: rgba(255, 255, 255, 0.05);
-    border-radius: 10px;
-    padding: 15px;
-    text-align: center;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    transition: all 0.3s ease;
-}
-
-.notification-stats-card:hover {
-    background: rgba(255, 255, 255, 0.08);
-    transform: translateY(-2px);
-}
-
-/* Notification Type Badges */
-.notification-type-info { 
-    background: linear-gradient(135deg, var(--notification-info), #138496) !important;
-}
-
-.notification-type-warning { 
-    background: linear-gradient(135deg, var(--notification-warning), #e0a800) !important;
-    color: #212529 !important;
-}
-
-.notification-type-success { 
-    background: linear-gradient(135deg, var(--notification-success), #1e7e34) !important;
-}
-
-.notification-type-urgent { 
-    background: linear-gradient(135deg, var(--notification-urgent), #c82333) !important;
-}
-
-/* User Notification Center */
-.user-notification-center {
-    max-height: 400px;
-    overflow-y: auto;
-    background: rgba(255, 255, 255, 0.05);
-    border-radius: 10px;
-    padding: 15px;
-}
-
-.user-notification-item {
-    padding: 12px 15px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    transition: background-color 0.2s ease;
-    border-radius: 8px;
-    margin-bottom: 8px;
-}
-
-.user-notification-item:hover {
-    background: rgba(255, 255, 255, 0.05);
-}
-
-.user-notification-item.unread {
-    background: rgba(13, 110, 253, 0.1);
-    border-left: 3px solid #0d6efd;
-}
-
-.user-notification-item.read {
-    opacity: 0.7;
-}
-
-.notification-badge {
-    position: absolute;
-    top: -5px;
-    right: -5px;
-    background: #dc3545;
-    color: white;
-    border-radius: 50%;
-    width: 20px;
-    height: 20px;
-    font-size: 0.7rem;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: bold;
-    animation: pulse 2s infinite;
-}
-
-/* Password Strength Indicator */
-.password-strength-container {
-    margin-top: 10px;
-}
-
-.password-strength {
-    height: 6px;
-    border-radius: 5px;
-    transition: all 0.3s ease;
-    width: 0%;
-    background: linear-gradient(135deg, #dc3545, #ffc107, #28a745);
-}
-
-.password-strength-text {
-    font-size: 0.8rem;
-    margin-top: 5px;
-    color: var(--text-muted);
-}
-
-/* Loading animations */
-.loading-spinner {
-    display: inline-block;
-    width: 20px;
-    height: 20px;
-    border: 3px solid rgba(255,255,255,.3);
-    border-radius: 50%;
-    border-top-color: #fff;
-    animation: spin 1s ease-in-out infinite;
-}
-
-@keyframes spin {
-    to { transform: rotate(360deg); }
-}
-
-@keyframes pulse {
-    0% { transform: scale(1); }
-    50% { transform: scale(1.1); }
-    100% { transform: scale(1); }
-}
-
 /* Scrollbar styling */
 ::-webkit-scrollbar {
     width: 8px;
@@ -825,205 +676,17 @@ footer {
     background: var(--secondary-color);
 }
 
-/* Print styles */
-@media print {
-    .navbar, .countdown, .prize-pool, .btn, .no-print {
-        display: none !important;
-    }
-    
-    .card {
-        background: white !important;
-        color: black !important;
-        border: 1px solid #ddd !important;
-        box-shadow: none !important;
-    }
-    
-    .table-dark {
-        background: white !important;
-        color: black !important;
-    }
-    
-    .table-dark th, .table-dark td {
-        border-color: #ddd !important;
-        color: black !important;
-    }
+/* Additional player name fixes for admin page */
+.admin-section .player-name {
+    max-width: 180px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
-/* Additional fixes for admin panel */
-.admin-section .form-select {
-    background-color: rgba(26, 32, 44, 0.8) !important;
-    border-color: rgba(74, 85, 104, 0.8) !important;
-}
-
-.admin-section .form-select:focus {
-    border-color: #63b3ed !important;
-    box-shadow: 0 0 0 0.2rem rgba(99, 179, 237, 0.25) !important;
-}
-
-/* Modal fixes for dark theme */
-.modal-content {
-    background: var(--dark-bg);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-}
-
-.modal-header {
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.modal-footer {
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-/* Theme toggle button */
-.theme-toggle {
-    background: rgba(255, 255, 255, 0.1);
-    border: 1px solid rgba(255, 255, 255, 0.3);
-    color: var(--text-light);
-    border-radius: 50%;
-    width: 40px;
-    height: 40px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.3s ease;
-}
-
-.theme-toggle:hover {
-    background: rgba(255, 255, 255, 0.2);
-    transform: scale(1.1);
-}
-
-/* Enhanced table styles */
-.table-hover tbody tr {
-    transition: all 0.3s ease;
-}
-
-.table-hover tbody tr:hover {
-    background: rgba(255, 255, 255, 0.1);
-    transform: scale(1.01);
-}
-
-/* Badge enhancements */
-.badge {
-    font-weight: 600;
-    padding: 0.5rem 1rem;
-    border-radius: 20px;
-}
-
-/* Card hover effects */
-.card {
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
-}
-
-.card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.3);
-}
-
-/* Notification Form Styles */
-.notification-form {
-    background: rgba(255, 255, 255, 0.05);
-    border-radius: 15px;
-    padding: 20px;
-    margin-bottom: 20px;
-}
-
-.notification-form .form-group {
-    margin-bottom: 1.5rem;
-}
-
-.notification-form label {
-    font-weight: 600;
-    margin-bottom: 0.5rem;
-    color: var(--text-light);
-}
-
-.notification-form .form-check {
-    margin-bottom: 0.5rem;
-}
-
-.notification-form .form-check-input:checked {
-    background-color: var(--primary-color);
-    border-color: var(--primary-color);
-}
-
-/* Responsive Design - Enhanced for Mobile */
-@media (max-width: 768px) {
-    .navbar-nav {
-        text-align: center;
-    }
-    
-    .logo-container {
-        justify-content: center;
-        margin-bottom: 1rem;
-    }
-    
-    .card {
-        margin-bottom: 1rem;
-    }
-    
-    .player-photo {
-        width: 80px;
-        height: 80px;
-    }
-    
-    .form-select {
-        font-size: 14px;
-    }
-    
-    .btn {
-        width: 100%;
-        margin-bottom: 0.5rem;
-    }
-    
-    .countdown, .prize-pool {
-        font-size: 1rem;
-        padding: 0.75rem;
-    }
-    
-    .stat-card, .admin-card, .update-card {
-        padding: 15px;
-        margin-bottom: 15px;
-    }
-    
-    .bulk-operation {
-        padding: 15px;
-    }
-    
-    .push-notification {
-        padding: 12px;
-    }
-    
-    /* Mobile Notification Improvements */
-    .notification-item {
-        padding: 12px;
-        margin-bottom: 8px;
-    }
-    
-    .user-notification-item {
-        padding: 10px 12px;
-    }
-    
-    .notification-stats-card {
-        padding: 12px;
-        margin-bottom: 10px;
-    }
-    
-    .notification-form {
-        padding: 15px;
-    }
-    
-    /* Better mobile table scrolling */
-    .table-responsive {
-        border-radius: 10px;
-    }
-    
-    /* Mobile admin tabs */
-    .nav-pills .nav-link {
-        padding: 0.5rem 1rem;
-        margin: 0.25rem;
-        font-size: 0.9rem;
-    }
+/* Ensure install button is always on top */
+#install-button {
+    z-index: 10000 !important;
 }
 
 /* Extra Small Devices */
@@ -1038,24 +701,9 @@ footer {
         font-size: 1rem;
     }
     
-    .notification-item {
-        padding: 10px;
-    }
-    
     .btn {
         padding: 0.5rem 1rem;
         font-size: 0.9rem;
-    }
-    
-    /* Stack notification actions vertically on very small screens */
-    .notification-actions {
-        flex-direction: column;
-        gap: 5px;
-    }
-    
-    .notification-actions .btn {
-        width: 100%;
-        margin-bottom: 5px;
     }
 
     /* Extra small player name fixes */
@@ -1068,117 +716,4 @@ footer {
         max-width: 100px;
         font-size: 0.75rem;
     }
-}
-
-/* Dark theme enhancements for form elements in notifications */
-.notification-form .form-control,
-.notification-form .form-select,
-.notification-form .form-textarea {
-    background: rgba(255, 255, 255, 0.08);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    color: var(--text-light);
-}
-
-.notification-form .form-control:focus,
-.notification-form .form-select:focus,
-.notification-form .form-textarea:focus {
-    background: rgba(255, 255, 255, 0.12);
-    border-color: var(--primary-color);
-    box-shadow: 0 0 0 0.2rem rgba(106, 17, 203, 0.25);
-}
-
-/* Animation for new notifications */
-@keyframes slideInNotification {
-    from {
-        opacity: 0;
-        transform: translateX(-100%);
-    }
-    to {
-        opacity: 1;
-        transform: translateX(0);
-    }
-}
-
-.new-notification {
-    animation: slideInNotification 0.3s ease-out;
-}
-
-/* Notification priority indicators */
-.priority-indicator {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    display: inline-block;
-    margin-right: 8px;
-}
-
-.priority-high { background-color: var(--notification-urgent); }
-.priority-medium { background-color: var(--notification-warning); }
-.priority-low { background-color: var(--notification-info); }
-
-/* Notification action buttons */
-.notification-actions {
-    display: flex;
-    gap: 8px;
-    margin-top: 10px;
-}
-
-.notification-actions .btn {
-    padding: 0.25rem 0.75rem;
-    font-size: 0.8rem;
-}
-
-/* Empty state styling */
-.empty-state {
-    text-align: center;
-    padding: 40px 20px;
-    color: var(--text-muted);
-}
-
-.empty-state i {
-    font-size: 3rem;
-    margin-bottom: 1rem;
-    opacity: 0.5;
-}
-
-/* Loading states */
-.loading-state {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    padding: 40px;
-    color: var(--text-muted);
-}
-
-/* Success states */
-.success-state {
-    background: rgba(40, 167, 69, 0.1);
-    border: 1px solid rgba(40, 167, 69, 0.3);
-    border-radius: 10px;
-    padding: 15px;
-    text-align: center;
-    color: var(--success-color);
-}
-
-/* Error states */
-.error-state {
-    background: rgba(220, 53, 69, 0.1);
-    border: 1px solid rgba(220, 53, 69, 0.3);
-    border-radius: 10px;
-    padding: 15px;
-    text-align: center;
-    color: var(--danger-color);
-}
-
-/* Additional player name fixes for admin page */
-.admin-section .player-name {
-    max-width: 180px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-/* Ensure install button is always on top */
-#install-button {
-    z-index: 10000 !important;
-}
+        }
