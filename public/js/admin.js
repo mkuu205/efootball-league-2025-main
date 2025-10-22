@@ -275,10 +275,7 @@ function renderAdminResults() {
 async function deletePlayerHandler(id) {
     if (confirm('Are you sure you want to delete this player? This will also remove their fixtures and results.')) {
         await deletePlayer(id);
-        renderAdminPlayers();
-        renderAdminFixtures();
-        renderAdminResults();
-        populatePlayerSelects();
+        // The refreshAllDisplays() in deletePlayer() will handle all refreshes
         showNotification('Player deleted successfully!', 'success');
     }
 }
@@ -286,7 +283,7 @@ async function deletePlayerHandler(id) {
 async function deleteFixtureHandler(id) {
     if (confirm('Are you sure you want to delete this fixture?')) {
         await deleteFixture(id);
-        renderAdminFixtures();
+        // The refreshAllDisplays() in deleteFixture() will handle all refreshes
         showNotification('Fixture deleted successfully!', 'success');
     }
 }
@@ -294,8 +291,7 @@ async function deleteFixtureHandler(id) {
 async function deleteResultHandler(id) {
     if (confirm('Are you sure you want to delete this result?')) {
         await deleteResult(id);
-        renderAdminResults();
-        renderAdminFixtures();
+        // The refreshAllDisplays() in deleteResult() will handle all refreshes
         showNotification('Result deleted successfully!', 'success');
     }
 }
@@ -321,7 +317,7 @@ async function updateResultHandler(id) {
     result.awayScore = awayScore;
     
     await updateResult(result);
-    renderAdminResults();
+    // The refreshAllDisplays() in updateResult() will handle all refreshes
     showNotification('Result updated successfully!', 'success');
 }
 
@@ -342,10 +338,7 @@ function editPlayer(id) {
     if (newPhoto) player.photo = newPhoto;
     
     updatePlayer(player);
-    renderAdminPlayers();
-    renderAdminFixtures();
-    renderAdminResults();
-    populatePlayerSelects();
+    // The refreshAllDisplays() in updatePlayer() will handle all refreshes
     showNotification('Player updated successfully!', 'success');
 }
 
@@ -365,9 +358,7 @@ function editPlayerStrength(id) {
     player.strength = strengthValue;
     
     updatePlayer(player);
-    renderAdminPlayers();
-    renderAdminFixtures();
-    populatePlayerSelects();
+    // The refreshAllDisplays() in updatePlayer() will handle all refreshes
     showNotification('Player strength updated successfully!', 'success');
 }
 
@@ -389,7 +380,7 @@ function editFixture(id) {
     fixture.venue = newVenue;
     
     updateFixture(fixture);
-    renderAdminFixtures();
+    // The refreshAllDisplays() in updateFixture() will handle all refreshes
     showNotification('Fixture updated successfully!', 'success');
 }
 
@@ -405,10 +396,7 @@ function resetTournament() {
         initializeDatabase();
         
         showNotification('Local tournament data has been reset to default settings!', 'success');
-        renderAdminPlayers();
-        renderAdminFixtures();
-        renderAdminResults();
-        populatePlayerSelects();
+        // The initializeDatabase() will trigger refreshes
     }
 }
 
@@ -437,11 +425,7 @@ async function resetMongoDB() {
                 // Reinitialize database which will pull from MongoDB
                 await initializeDatabase();
                 
-                // Refresh all admin displays
-                renderAdminPlayers();
-                renderAdminFixtures();
-                renderAdminResults();
-                populatePlayerSelects();
+                // The initializeDatabase() will trigger refreshes
                 
                 showNotification('MongoDB reset complete! All data has been re-synced.', 'success');
             } else {
@@ -470,9 +454,10 @@ function resetAllResults() {
         // Also try to reset results in MongoDB
         resetMongoDBResults();
         
+        // Refresh all displays
+        refreshAllDisplays();
+        
         showNotification('All results have been cleared!', 'success');
-        renderAdminResults();
-        renderAdminFixtures();
     }
 }
 
@@ -555,12 +540,13 @@ function setupAdminEventListeners() {
             const photo = document.getElementById('playerPhoto').value;
             const strength = parseInt(document.getElementById('playerStrength').value) || 2500;
             
-            await addPlayer({ name, team, photo, strength });
-            this.reset();
-            renderAdminPlayers();
-            renderAdminFixtures();
-            populatePlayerSelects();
-            showNotification('Player added successfully!', 'success');
+            try {
+                await addPlayer({ name, team, photo, strength });
+                this.reset();
+                // The refreshAllDisplays() in addPlayer() will handle all refreshes
+            } catch (error) {
+                // Error handling is done in addPlayer function
+            }
         });
     } else {
         console.error('Add player form not found');
@@ -584,8 +570,7 @@ function setupAdminEventListeners() {
             
             await addFixture({ homePlayerId, awayPlayerId, date, time, venue });
             this.reset();
-            renderAdminFixtures();
-            showNotification('Fixture added successfully!', 'success');
+            // The refreshAllDisplays() in addFixture() will handle all refreshes
         });
     } else {
         console.error('Add fixture form not found');
@@ -615,9 +600,7 @@ function setupAdminEventListeners() {
             
             await addResult({ homePlayerId, awayPlayerId, homeScore, awayScore, date });
             this.reset();
-            renderAdminResults();
-            renderAdminFixtures();
-            showNotification('Result added successfully!', 'success');
+            // The refreshAllDisplays() in addResult() will handle all refreshes
         });
     } else {
         console.error('Add result form not found');
@@ -740,4 +723,4 @@ function initializeAdminNotifications() {
     } else {
         console.warn('Tournament updates system not available');
     }
-                }
+        }
