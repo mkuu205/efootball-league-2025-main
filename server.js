@@ -16,7 +16,7 @@ app.use(express.static('.'));
 // --------------------
 // MongoDB Connection
 // --------------------
-const MONGODB_URI = process.env.MONGODB_URI;
+const MONGODB_URI = process.env.MONGODB_URI || 'mongodb+srv://efootballadmin:Brashokish2425@efootball-league.xykgya4.mongodb.net/efootball-league?retryWrites=true&w=majority&appName=efootball-league';
 
 if (!MONGODB_URI) {
   console.error('❌ MONGODB_URI is not set! Please add it in your environment variables.');
