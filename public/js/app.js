@@ -1,5 +1,5 @@
 // Cache and Version Control
-const APP_VERSION = '1.0.3';
+const APP_VERSION = '1.0.4';
 
 function initializeApp() {
     // Check if we need to clear cache
