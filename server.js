@@ -92,6 +92,25 @@ app.get('/api/data', async (req, res) => {
   }
 });
 
+// ==================== Initialize Database Endpoint ====================
+app.post('/api/initialize', async (req, res) => {
+  try {
+    const { db } = await connectToDatabase();
+
+    await db.collection('players').deleteMany({});
+    await db.collection('fixtures').deleteMany({});
+    await db.collection('results').deleteMany({});
+
+    res.json({
+      success: true,
+      message: 'Database cleared successfully.'
+    });
+  } catch (error) {
+    console.error('❌ Initialize API error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 // ==================== Players ====================
 const seedPlayers = require('./api/seed-players');
 app.post('/api/seed-players', seedPlayers);
