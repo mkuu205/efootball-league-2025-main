@@ -746,3 +746,9 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 });
+
+// Global error handler for better user experience
+window.addEventListener('error', function(e) {
+    console.error('Global error:', e.error);
+    showNotification('An unexpected error occurred', 'error');
+});
