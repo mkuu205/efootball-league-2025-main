@@ -93,6 +93,15 @@ app.get('/api/data', async (req, res) => {
 });
 
 // ==================== Players ====================
+const seedPlayers = require('./api/seed-players');
+app.post('/api/seed-players', seedPlayers);
+
+// ==================== Generic Data API ====================
+async function getCollectionData(collectionName) {
+  const { db } = await connectToDatabase();
+  return db.collection(collectionName).find().toArray();
+}
+
 app.get('/api/players', async (req, res) => {
   try {
     const { db } = await connectToDatabase();
