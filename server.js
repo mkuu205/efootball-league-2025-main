@@ -92,28 +92,39 @@ app.get('/api/data', async (req, res) => {
   }
 });
 
-// ==================== Initialize Database Endpoint ====================
-app.post('/api/initialize', async (req, res) => {
-  try {
-    const { db } = await connectToDatabase();
-
-    await db.collection('players').deleteMany({});
-    await db.collection('fixtures').deleteMany({});
-    await db.collection('results').deleteMany({});
-
-    res.json({
-      success: true,
-      message: 'Database cleared successfully.'
-    });
-  } catch (error) {
-    console.error('❌ Initialize API error:', error);
-    res.status(500).json({ success: false, error: error.message });
-  }
+// Initialize database (clear only)
+app.all('/api/initialize', async (req, res) => {
+    if (req.method === 'POST') {
+        try {
+            const initialize = require('./api/initialize');
+            await initialize(req, res);
+        } catch (error) {
+            res.status(500).json({ success: false, error: error.message });
+        }
+    } else {
+        res.json({
+            success: true,
+            message: 'Use POST to clear the database via this endpoint.'
+        });
+    }
 });
 
-// ==================== Players ====================
-const seedPlayers = require('./api/seed-players');
-app.post('/api/seed-players', seedPlayers);
+// Seed sample players
+app.all('/api/seed-players', async (req, res) => {
+    if (req.method === 'POST') {
+        try {
+            const seedPlayers = require('./api/seed-players');
+            await seedPlayers(req, res);
+        } catch (error) {
+            res.status(500).json({ success: false, error: error.message });
+        }
+    } else {
+        res.json({
+            success: true,
+            message: 'Use POST to seed sample players via this endpoint.'
+        });
+    }
+});
 
 // ==================== Generic Data API ====================
 async function getCollectionData(collectionName) {
