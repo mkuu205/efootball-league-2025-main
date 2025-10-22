@@ -1,38 +1,60 @@
-// API Service for eFootball League - Render Version
+// API Service for eFootball League - Fully Online Version
 const API_BASE_URL = '/api';
 
 class EFLAPI {
     constructor() {
         this.baseURL = API_BASE_URL;
-        this.isOnline = false;
+        this.isOnline = true; // Always assume online now
+        this.cache = new Map(); // Simple cache for performance
         this.checkConnection();
     }
 
     async checkConnection() {
         try {
-            const response = await fetch(`${this.baseURL}/health`, { method: 'GET' });
+            const response = await fetch(`${this.baseURL}/health`, { 
+                method: 'GET',
+                headers: { 'Cache-Control': 'no-cache' }
+            });
             if (response.ok) {
                 const data = await response.json();
                 this.isOnline = data.status === 'online';
-                if (this.isOnline) console.log('✅ API server is online with MongoDB');
+                if (this.isOnline) {
+                    console.log('✅ API server is online with MongoDB');
+                } else {
+                    console.warn('⚠️ API server responded but not online');
+                }
             } else {
                 this.isOnline = false;
-                console.log('❌ API response not OK');
+                console.error('❌ API health check failed:', response.status);
+                throw new Error(`Server error: ${response.status}`);
             }
         } catch (error) {
             this.isOnline = false;
-            console.log('❌ API server not available, using offline mode');
+            console.error('❌ API server not available:', error);
+            throw new Error('Cannot connect to server. Please check your internet connection and try again.');
         }
     }
 
     async request(endpoint, options = {}) {
-        if (!this.isOnline) throw new Error('API server offline');
+        if (!this.isOnline) {
+            throw new Error('Server is offline. Please check your connection and refresh the page.');
+        }
+
         try {
             const response = await fetch(`${this.baseURL}${endpoint}`, {
-                headers: { 'Content-Type': 'application/json', ...options.headers },
+                headers: { 
+                    'Content-Type': 'application/json',
+                    ...options.headers 
+                },
                 ...options,
             });
-            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error(`API Error ${response.status}:`, errorText);
+                throw new Error(`Server error: ${response.status} - ${errorText}`);
+            }
+
             return await response.json();
         } catch (error) {
             console.error('API request failed:', error);
@@ -40,60 +62,122 @@ class EFLAPI {
         }
     }
 
+    // Clear cache for specific data type
+    clearCache(type = null) {
+        if (type) {
+            this.cache.delete(type);
+        } else {
+            this.cache.clear();
+        }
+    }
+
     // ===== Players API =====
-    async getPlayers() {
+    async getPlayers(forceRefresh = false) {
+        if (!forceRefresh && this.cache.has('players')) {
+            return this.cache.get('players');
+        }
         const result = await this.request('/players');
+        this.cache.set('players', result.players);
         return result.players;
     }
+
     async addPlayer(player) {
-        const result = await this.request('/players', { method: 'POST', body: JSON.stringify(player) });
+        const result = await this.request('/players', { 
+            method: 'POST', 
+            body: JSON.stringify(player) 
+        });
+        this.clearCache('players'); // Clear cache after modification
         return result.player;
     }
+
     async updatePlayer(id, updates) {
-        const result = await this.request('/players', { method: 'PUT', body: JSON.stringify({ id, ...updates }) });
+        const result = await this.request('/players', { 
+            method: 'PUT', 
+            body: JSON.stringify({ id, ...updates }) 
+        });
+        this.clearCache('players');
         return result.player;
     }
+
     async deletePlayer(id) {
         await this.request(`/players?id=${id}`, { method: 'DELETE' });
+        this.clearCache('players');
     }
 
     // ===== Fixtures API =====
-    async getFixtures() {
+    async getFixtures(forceRefresh = false) {
+        if (!forceRefresh && this.cache.has('fixtures')) {
+            return this.cache.get('fixtures');
+        }
         const result = await this.request('/fixtures');
+        this.cache.set('fixtures', result.fixtures);
         return result.fixtures;
     }
+
     async addFixture(fixture) {
-        const result = await this.request('/fixtures', { method: 'POST', body: JSON.stringify(fixture) });
+        const result = await this.request('/fixtures', { 
+            method: 'POST', 
+            body: JSON.stringify(fixture) 
+        });
+        this.clearCache('fixtures');
         return result.fixture;
     }
+
     async updateFixture(id, updates) {
-        const result = await this.request('/fixtures', { method: 'PUT', body: JSON.stringify({ id, ...updates }) });
+        const result = await this.request('/fixtures', { 
+            method: 'PUT', 
+            body: JSON.stringify({ id, ...updates }) 
+        });
+        this.clearCache('fixtures');
         return result.fixture;
     }
+
     async deleteFixture(id) {
         await this.request(`/fixtures?id=${id}`, { method: 'DELETE' });
+        this.clearCache('fixtures');
     }
 
     // ===== Results API =====
-    async getResults() {
+    async getResults(forceRefresh = false) {
+        if (!forceRefresh && this.cache.has('results')) {
+            return this.cache.get('results');
+        }
         const result = await this.request('/results');
+        this.cache.set('results', result.results);
         return result.results;
     }
+
     async addResult(resultData) {
-        const result = await this.request('/results', { method: 'POST', body: JSON.stringify(resultData) });
+        const result = await this.request('/results', { 
+            method: 'POST', 
+            body: JSON.stringify(resultData) 
+        });
+        this.clearCache('results');
         return result.result;
     }
+
     async updateResult(id, updates) {
-        const result = await this.request('/results', { method: 'PUT', body: JSON.stringify({ id, ...updates }) });
+        const result = await this.request('/results', { 
+            method: 'PUT', 
+            body: JSON.stringify({ id, ...updates }) 
+        });
+        this.clearCache('results');
         return result.result;
     }
+
     async deleteResult(id) {
         await this.request(`/results?id=${id}`, { method: 'DELETE' });
+        this.clearCache('results');
     }
 
     // ===== All Data =====
     async getAllData() {
-        return await this.request('/data');
+        const [players, fixtures, results] = await Promise.all([
+            this.getPlayers(true),
+            this.getFixtures(true),
+            this.getResults(true)
+        ]);
+        return { players, fixtures, results };
     }
 
     // ===== Initialize DB =====
@@ -105,9 +189,8 @@ class EFLAPI {
 // Create global API instance
 const eflAPI = new EFLAPI();
 
-
 // =======================================================
-// 🔔 DARK TOAST SYSTEM (for all notifications)
+// 🔔 NOTIFICATION SYSTEM (Updated for online mode)
 // =======================================================
 function showNotification(message, type = 'info') {
     const colors = {
@@ -138,7 +221,15 @@ function showNotification(message, type = 'info') {
         transition: all 0.3s ease;
         opacity: 1;
     `;
-    div.innerHTML = `<i class="fas fa-info-circle me-2" style="color:${colors[type]};"></i>${message}`;
+    
+    const icons = {
+        success: 'fa-check-circle',
+        error: 'fa-exclamation-circle',
+        warning: 'fa-exclamation-triangle',
+        info: 'fa-info-circle'
+    };
+    
+    div.innerHTML = `<i class="fas ${icons[type] || icons.info} me-2" style="color:${colors[type]};"></i>${message}`;
 
     document.body.appendChild(div);
 
@@ -149,114 +240,88 @@ function showNotification(message, type = 'info') {
     }, 4000);
 }
 
-
 // =======================================================
-// 🔄 DATA SYNC SYSTEM
-// =======================================================
-class DataSync {
-    constructor() {
-        this.lastUpdate = localStorage.getItem('efl_last_sync') || null;
-        this.syncInterval = null;
-        this.isSyncing = false;
-    }
-
-    startAutoSync() {
-        // Run every 5 hours (18,000,000 ms)
-        this.syncInterval = setInterval(() => this.syncData(), 18000000);
-        console.log('🔄 Auto-sync started (5-hour intervals)');
-        this.syncData(); // run once on load
-    }
-
-    stopAutoSync() {
-        if (this.syncInterval) {
-            clearInterval(this.syncInterval);
-            this.syncInterval = null;
-        }
-    }
-
-    async syncData(manual = false) {
-        if (!eflAPI.isOnline || this.isSyncing) {
-            if (manual) showNotification('⚠️ Server offline. Cannot sync.', 'error');
-            return;
-        }
-
-        this.isSyncing = true;
-        if (manual) showNotification('🔄 Syncing with server...', 'info');
-
-        try {
-            const remoteData = await eflAPI.getAllData();
-            const localVersion = localStorage.getItem('efl_data_version');
-            const remoteVersion = remoteData.lastUpdate;
-
-            if (!localVersion || new Date(remoteVersion) > new Date(localVersion)) {
-                console.log('🔁 Updating local data...');
-                localStorage.setItem(DB_KEYS.PLAYERS, JSON.stringify(remoteData.players));
-                localStorage.setItem(DB_KEYS.FIXTURES, JSON.stringify(remoteData.fixtures));
-                localStorage.setItem(DB_KEYS.RESULTS, JSON.stringify(remoteData.results));
-                localStorage.setItem('efl_data_version', remoteVersion);
-                localStorage.setItem('efl_last_sync', new Date().toISOString());
-
-                showNotification('✅ Data synced successfully!', 'success');
-                if (typeof window.currentTab === 'string') showTab(window.currentTab);
-            } else {
-                if (manual) showNotification('✅ Data already up to date.', 'success');
-            }
-        } catch (error) {
-            console.error('Sync failed:', error);
-            if (manual) showNotification('❌ Sync failed. Please try again.', 'error');
-        } finally {
-            this.isSyncing = false;
-        }
-    }
-
-    async manualSync() {
-        if (typeof checkAdminAuth === 'function' && checkAdminAuth()) {
-            await this.syncData(true);
-        } else {
-            showNotification('⚠️ Only admin can trigger manual sync.', 'warning');
-        }
-    }
-}
-
-const dataSync = new DataSync();
-
-
-// =======================================================
-// 🌐 CONNECTION STATUS HANDLER
+// 🌐 CONNECTION STATUS HANDLER (Updated for online mode)
 // =======================================================
 function updateSyncStatus() {
     const statusElement = document.getElementById('sync-status');
     if (!statusElement) return;
+    
     if (eflAPI.isOnline) {
         statusElement.innerHTML = '<i class="fas fa-cloud me-1"></i>Online';
         statusElement.className = 'badge bg-success';
+        statusElement.title = 'Fully online mode - Connected to server';
     } else {
-        statusElement.innerHTML = '<i class="fas fa-cloud me-1"></i>Offline';
+        statusElement.innerHTML = '<i class="fas fa-cloud-slash me-1"></i>Offline';
         statusElement.className = 'badge bg-danger';
+        statusElement.title = 'Server connection failed - Please refresh';
     }
 }
 
-
 // =======================================================
-// ⚙️ EVENT HANDLERS
+// ⚙️ EVENT HANDLERS (Simplified for online mode)
 // =======================================================
-document.addEventListener('DOMContentLoaded', () => {
-    // Update connection status every 30 minutes
-    setInterval(() => {
-        eflAPI.checkConnection();
+document.addEventListener('DOMContentLoaded', async () => {
+    console.log('🚀 Initializing fully online mode...');
+    
+    try {
+        // Wait for API connection
+        await eflAPI.checkConnection();
         updateSyncStatus();
-    }, 1800000);
-
-    // Initial check & auto-sync
-    setTimeout(() => {
-        eflAPI.checkConnection();
+        
+        console.log('✅ Fully online mode initialized');
+        showNotification('Connected to server successfully', 'success');
+        
+    } catch (error) {
+        console.error('❌ Failed to initialize online mode:', error);
         updateSyncStatus();
-        dataSync.startAutoSync();
-    }, 3000);
-
-    // Manual sync button (admin only)
-    const syncBtn = document.getElementById('manual-sync-btn');
-    if (syncBtn) {
-        syncBtn.addEventListener('click', () => dataSync.manualSync());
+        showNotification('Server connection failed: ' + error.message, 'error');
     }
+
+    // Periodic connection check (every 5 minutes)
+    setInterval(async () => {
+        try {
+            await eflAPI.checkConnection();
+            updateSyncStatus();
+        } catch (error) {
+            console.warn('Periodic connection check failed:', error);
+            updateSyncStatus();
+        }
+    }, 300000); // 5 minutes
+
+    // Manual refresh button handler
+    const refreshBtn = document.getElementById('manual-refresh-btn');
+    if (refreshBtn) {
+        refreshBtn.addEventListener('click', async () => {
+            try {
+                showNotification('Refreshing data from server...', 'info');
+                eflAPI.clearCache(); // Clear all cache
+                
+                if (typeof refreshAllDisplays === 'function') {
+                    await refreshAllDisplays();
+                } else {
+                    // Fallback: reload page if refresh function not available
+                    window.location.reload();
+                }
+                
+                showNotification('Data refreshed successfully', 'success');
+            } catch (error) {
+                console.error('Manual refresh failed:', error);
+                showNotification('Refresh failed: ' + error.message, 'error');
+            }
+        });
+    }
+});
+
+// Global error handler for network issues
+window.addEventListener('online', () => {
+    console.log('🌐 Browser is online, checking server connection...');
+    eflAPI.checkConnection().then(updateSyncStatus);
+});
+
+window.addEventListener('offline', () => {
+    console.log('🌐 Browser is offline');
+    eflAPI.isOnline = false;
+    updateSyncStatus();
+    showNotification('Your device lost internet connection', 'warning');
 });
