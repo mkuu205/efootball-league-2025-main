@@ -86,7 +86,7 @@ class EFLAPI {
             method: 'POST', 
             body: JSON.stringify(player) 
         });
-        this.clearCache('players'); // Clear cache after modification
+        this.clearCache('players');
         return result.player;
     }
 
