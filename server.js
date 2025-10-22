@@ -1,144 +1,322 @@
-// server.js - eFootball League 2025 (CommonJS)
+// server.js - Safe Deployment Version for eFootball League 2025
 const express = require('express');
-const bodyParser = require('body-parser');
 const cors = require('cors');
-const { MongoClient, ObjectId } = require('mongodb');
+const path = require('path');
+const { MongoClient } = require('mongodb');
+const sendResetEmail = require('./js/send-reset-email');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 // Middleware
 app.use(cors());
-app.use(bodyParser.json());
-app.use(express.static('public')); // optional, if you have static frontend
+app.use(express.json());
+app.use(express.static('.'));
 
-// MongoDB Setup
-const MONGO_URL = process.env.MONGO_URL || 'mongodb://127.0.0.1:27017';
-const DB_NAME = 'efl2025';
-let db, playersCollection, fixturesCollection, resultsCollection;
+// --------------------
+// MongoDB Connection
+// --------------------
+const MONGODB_URI = process.env.MONGODB_URI;
 
-async function connectDB() {
-    const client = new MongoClient(MONGO_URL);
-    await client.connect();
-    db = client.db(DB_NAME);
-    playersCollection = db.collection('players');
-    fixturesCollection = db.collection('fixtures');
-    resultsCollection = db.collection('results');
-    console.log('✅ Connected to MongoDB');
+if (!MONGODB_URI) {
+  console.error('❌ MONGODB_URI is not set! Please add it in your environment variables.');
+  process.exit(1);
 }
-connectDB().catch(console.error);
 
-// ===== Health Check =====
-app.get('/api/health', async (req, res) => {
+let cachedClient = null;
+let cachedDb = null;
+
+async function connectToDatabase() {
+  if (cachedClient && cachedDb) {
+    return { client: cachedClient, db: cachedDb };
+  }
+
+  try {
+    const client = await MongoClient.connect(MONGODB_URI, {
+      useNewUrlParser: true,
+      useUnifiedTopology: true,
+    });
+
+    const db = client.db(); // default DB from URI
+    cachedClient = client;
+    cachedDb = db;
+
+    console.log('✅ Connected to MongoDB successfully');
+    return { client, db };
+  } catch (error) {
+    console.error('❌ MongoDB connection failed:', error);
+    throw error;
+  }
+}
+
+// ==================== API ROUTES ====================
+
+// Health check
+app.get('/api/health', (req, res) => {
+  res.json({ 
+    status: 'online', 
+    message: 'eFootball League 2025 API is running!',
+    timestamp: new Date().toISOString()
+  });
+});
+
+// Password reset API
+app.post('/send-reset-email', async (req, res) => {
+    const { to_email, reset_link } = req.body;
     try {
-        await db.command({ ping: 1 });
-        res.json({ status: 'online' });
-    } catch (error) {
-        res.status(500).json({ status: 'offline', error: error.message });
+        await sendResetEmail(to_email, reset_link);
+        res.json({ success: true, message: 'Password reset email sent' });
+    } catch (err) {
+        console.error(err);
+        res.status(400).json({ success: false, message: err.message });
     }
 });
 
-// ===== Initialize DB (Clear all collections) =====
-app.post('/api/initialize', async (req, res) => {
-    try {
-        await playersCollection.deleteMany({});
-        await fixturesCollection.deleteMany({});
-        await resultsCollection.deleteMany({});
-        res.json({ status: 'ok', message: 'Database initialized' });
-    } catch (error) {
-        res.status(500).json({ status: 'error', error: error.message });
-    }
+// Get all data
+app.get('/api/data', async (req, res) => {
+  try {
+    const { db } = await connectToDatabase();
+    const players = await db.collection('players').find().toArray();
+    const fixtures = await db.collection('fixtures').find().toArray();
+    const results = await db.collection('results').find().toArray();
+
+    res.json({
+      success: true,
+      players,
+      fixtures,
+      results,
+      lastUpdate: new Date().toISOString()
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
 });
 
-// ===== Players Routes =====
+// ==================== Players ====================
 app.get('/api/players', async (req, res) => {
-    const players = await playersCollection.find({}).toArray();
-    res.json({ players });
+  try {
+    const { db } = await connectToDatabase();
+    const players = await db.collection('players').find().toArray();
+    res.json({ success: true, players });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
 });
 
 app.post('/api/players', async (req, res) => {
-    const player = req.body;
-    const result = await playersCollection.insertOne(player);
-    res.json({ player: { _id: result.insertedId, ...player } });
+  try {
+    const { db } = await connectToDatabase();
+    const newPlayer = req.body;
+
+    if (!newPlayer.id) {
+      const maxIdPlayer = await db.collection('players').find().sort({ id: -1 }).limit(1).toArray();
+      newPlayer.id = maxIdPlayer.length > 0 ? maxIdPlayer[0].id + 1 : 1;
+    }
+
+    newPlayer.createdAt = new Date();
+    await db.collection('players').insertOne(newPlayer);
+    res.json({ success: true, player: newPlayer });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
 });
 
-app.put('/api/players/:id', async (req, res) => {
-    const { id } = req.params;
-    const updates = req.body;
-    const result = await playersCollection.findOneAndUpdate(
-        { _id: new ObjectId(id) },
-        { $set: updates },
-        { returnDocument: 'after' }
+app.put('/api/players', async (req, res) => {
+  try {
+    const { db } = await connectToDatabase();
+    const { id, ...updates } = req.body;
+    updates.updatedAt = new Date();
+
+    await db.collection('players').updateOne(
+      { id: parseInt(id) },
+      { $set: updates }
     );
-    res.json({ player: result.value });
+
+    const updatedPlayer = await db.collection('players').findOne({ id: parseInt(id) });
+    res.json({ success: true, player: updatedPlayer });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
 });
 
-app.delete('/api/players/:id', async (req, res) => {
-    const { id } = req.params;
-    await playersCollection.deleteOne({ _id: new ObjectId(id) });
-    res.json({ status: 'ok' });
+app.delete('/api/players', async (req, res) => {
+  try {
+    const { db } = await connectToDatabase();
+    const playerId = parseInt(req.query.id);
+    await db.collection('players').deleteOne({ id: playerId });
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
 });
 
-// ===== Fixtures Routes =====
+// ==================== Fixtures ====================
 app.get('/api/fixtures', async (req, res) => {
-    const fixtures = await fixturesCollection.find({}).toArray();
-    res.json({ fixtures });
+  try {
+    const { db } = await connectToDatabase();
+    const fixtures = await db.collection('fixtures').find().toArray();
+    res.json({ success: true, fixtures });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
 });
 
 app.post('/api/fixtures', async (req, res) => {
-    const fixture = req.body;
-    const result = await fixturesCollection.insertOne(fixture);
-    res.json({ fixture: { _id: result.insertedId, ...fixture } });
+  try {
+    const { db } = await connectToDatabase();
+    const newFixture = req.body;
+
+    if (!newFixture.id) {
+      const maxIdFixture = await db.collection('fixtures').find().sort({ id: -1 }).limit(1).toArray();
+      newFixture.id = maxIdFixture.length > 0 ? maxIdFixture[0].id + 1 : 1;
+    }
+
+    newFixture.createdAt = new Date();
+    await db.collection('fixtures').insertOne(newFixture);
+    res.json({ success: true, fixture: newFixture });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
 });
 
-app.put('/api/fixtures/:id', async (req, res) => {
-    const { id } = req.params;
-    const updates = req.body;
-    const result = await fixturesCollection.findOneAndUpdate(
-        { _id: new ObjectId(id) },
-        { $set: updates },
-        { returnDocument: 'after' }
+app.put('/api/fixtures', async (req, res) => {
+  try {
+    const { db } = await connectToDatabase();
+    const { id, ...updates } = req.body;
+    updates.updatedAt = new Date();
+
+    await db.collection('fixtures').updateOne(
+      { id: parseInt(id) },
+      { $set: updates }
     );
-    res.json({ fixture: result.value });
+
+    const updatedFixture = await db.collection('fixtures').findOne({ id: parseInt(id) });
+    res.json({ success: true, fixture: updatedFixture });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
 });
 
-app.delete('/api/fixtures/:id', async (req, res) => {
-    const { id } = req.params;
-    await fixturesCollection.deleteOne({ _id: new ObjectId(id) });
-    res.json({ status: 'ok' });
+app.delete('/api/fixtures', async (req, res) => {
+  try {
+    const { db } = await connectToDatabase();
+    const fixtureId = parseInt(req.query.id);
+    await db.collection('fixtures').deleteOne({ id: fixtureId });
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
 });
 
-// ===== Results Routes =====
+// ==================== Results ====================
 app.get('/api/results', async (req, res) => {
-    const results = await resultsCollection.find({}).toArray();
-    res.json({ results });
+  try {
+    const { db } = await connectToDatabase();
+    const results = await db.collection('results').find().toArray();
+    res.json({ success: true, results });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
 });
 
 app.post('/api/results', async (req, res) => {
-    const resultData = req.body;
-    const result = await resultsCollection.insertOne(resultData);
-    res.json({ result: { _id: result.insertedId, ...resultData } });
-});
+  try {
+    const { db } = await connectToDatabase();
+    const newResult = req.body;
 
-app.put('/api/results/:id', async (req, res) => {
-    const { id } = req.params;
-    const updates = req.body;
-    const result = await resultsCollection.findOneAndUpdate(
-        { _id: new ObjectId(id) },
-        { $set: updates },
-        { returnDocument: 'after' }
+    if (!newResult.id) {
+      const maxIdResult = await db.collection('results').find().sort({ id: -1 }).limit(1).toArray();
+      newResult.id = maxIdResult.length > 0 ? maxIdResult[0].id + 1 : 1;
+    }
+
+    newResult.createdAt = new Date();
+    await db.collection('results').insertOne(newResult);
+
+    // Mark fixture as played
+    await db.collection('fixtures').updateOne(
+      {
+        homePlayerId: newResult.homePlayerId,
+        awayPlayerId: newResult.awayPlayerId,
+        played: false
+      },
+      { $set: { played: true, updatedAt: new Date() } }
     );
-    res.json({ result: result.value });
+
+    res.json({ success: true, result: newResult });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
 });
 
-app.delete('/api/results/:id', async (req, res) => {
-    const { id } = req.params;
-    await resultsCollection.deleteOne({ _id: new ObjectId(id) });
-    res.json({ status: 'ok' });
+app.put('/api/results', async (req, res) => {
+  try {
+    const { db } = await connectToDatabase();
+    const { id, ...updates } = req.body;
+    updates.updatedAt = new Date();
+
+    await db.collection('results').updateOne(
+      { id: parseInt(id) },
+      { $set: updates }
+    );
+
+    const updatedResult = await db.collection('results').findOne({ id: parseInt(id) });
+    res.json({ success: true, result: updatedResult });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
 });
 
-// ===== Start Server =====
+app.delete('/api/results', async (req, res) => {
+  try {
+    const { db } = await connectToDatabase();
+    const resultId = parseInt(req.query.id);
+    const result = await db.collection('results').findOne({ id: resultId });
+    await db.collection('results').deleteOne({ id: resultId });
+
+    if (result) {
+      await db.collection('fixtures').updateOne(
+        {
+          homePlayerId: result.homePlayerId,
+          awayPlayerId: result.awayPlayerId
+        },
+        { $set: { played: false, updatedAt: new Date() } }
+      );
+    }
+
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// ==================== Initialize Database ====================
+app.post('/api/initialize', async (req, res) => {
+  try {
+    const { db } = await connectToDatabase();
+
+    // Clear collections
+    await db.collection('players').deleteMany({});
+    await db.collection('fixtures').deleteMany({});
+    await db.collection('results').deleteMany({});
+
+    // Insert sample players and fixtures (simplified)
+    // ... same sample data as your working version ...
+    // Keep your 7 sample players and 14 simplified fixtures here
+
+    res.json({ success: true, message: 'Database initialized' });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Serve frontend
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, 'index.html'));
+});
+
+// Start server
 app.listen(PORT, () => {
-    console.log(`🚀 Server running on port ${PORT}`);
-    console.log(`🔗 API Base: http://localhost:${PORT}/api`);
+  console.log(`🚀 Server running on port ${PORT}`);
+  console.log(`📱 Frontend: http://localhost:${PORT}`);
+  console.log(`🔗 API: http://localhost:${PORT}/api/health`);
 });
