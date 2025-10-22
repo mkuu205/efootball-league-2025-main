@@ -1,10 +1,8 @@
-// Database and Data Management System
+// Online Database Manager - No Local Storage
 const DB_KEYS = {
-    PLAYERS: 'efl_players',
-    FIXTURES: 'efl_fixtures',
-    RESULTS: 'efl_results',
-    ADMIN_AUTH: 'efl_admin_auth',
-    TOURNAMENT_UPDATES: 'efl_tournament_updates'
+    PLAYERS: 'players',
+    FIXTURES: 'fixtures',
+    RESULTS: 'results'
 };
 
 // Default balanced teams configuration
@@ -21,243 +19,120 @@ const BALANCED_TEAMS = [
     { name: 'Newcastle', strength: 82, color: '#241f20' }
 ];
 
-// Sample players data - FIXED: No duplicates, unique IDs
-const DEFAULT_PLAYERS = [
-    { 
-        id: 1, 
-        name: 'alwaysresistance', 
-        team: 'Kenya', 
-        photo: 'https://i.ibb.co/0jmt3HXf/alwaysresistance.jpg', 
-        strength: 3138, 
-        teamColor: '#000000', 
-        defaultPhoto: 'https://i.ibb.co/0jmt3HXf/alwaysresistance.jpg'
-    },
-    { 
-        id: 2, 
-        name: 'lildrip035', 
-        team: 'Chelsea', 
-        photo: 'https://i.ibb.co/CcXdyfc/lildrip035.jpg',
-        strength: 3100, 
-        teamColor: '#034694', 
-        defaultPhoto: 'https://i.ibb.co/CcXdyfc/lildrip035.jpg'
-    },
-    { 
-        id: 3, 
-        name: 'Sergent white', 
-        team: 'Chelsea', 
-        photo: 'https://i.ibb.co/TD6HHksv/sergent-white.jpg', 
-        strength: 3042, 
-        teamColor: '#034694', 
-        defaultPhoto: 'https://i.ibb.co/TD6HHksv/sergent-white.jpg'
-    },
-    { 
-        id: 4, 
-        name: 'skangaKe254', 
-        team: 'Liverpool', 
-        photo: 'https://i.ibb.co/Wv5nbZRy/skanga-Ke254.jpg', 
-        strength: 2700, 
-        teamColor: '#c8102e', 
-        defaultPhoto: 'https://i.ibb.co/Wv5nbZRy/skanga-Ke254.jpg'
-    },
-    { 
-        id: 5, 
-        name: 'Drexas', 
-        team: 'Everton', 
-        photo: 'https://i.ibb.co/2mzRJVn/drexas.jpg', 
-        strength: 2792, 
-        teamColor: '#003399', 
-        defaultPhoto: 'https://i.ibb.co/2mzRJVn/drexas.jpg'
-    },
-    { 
-        id: 6, 
-        name: 'Collo leevan', 
-        team: 'Manchester United', 
-        photo: 'https://i.ibb.co/nqyFvzvf/collo-leevan.jpg', 
-        strength: 2448, 
-        teamColor: '#da291c', 
-        defaultPhoto: 'https://i.ibb.co/nqyFvzvf/collo-leevan.jpg'
-    },
-    { 
-        id: 7, 
-        name: 'captainkenn', 
-        team: 'West Ham', 
-        photo: 'https://i.ibb.co/35kMmxjW/captainkenn.jpg', 
-        strength: 3110, 
-        teamColor: '#7c2c3b', 
-        defaultPhoto: 'https://i.ibb.co/35kMmxjW/captainkenn.jpg'
-    },
-    { 
-        id: 8,
-        name: 'Bora kesho',
-        team: 'Man U',
-        photo: 'https://i.ibb.co/7NXyjhWR/Bora-20kesho.jpg',
-        strength: 3177,
-        teamColor: '#DA291C',
-        defaultPhoto: 'https://i.ibb.co/7NXyjhWR/Bora-20kesho.jpg'
-    }
-];
-
-// ✅ Function to remove duplicate players
-function removeDuplicatePlayers() {
-    const players = getData(DB_KEYS.PLAYERS);
-
-    if (!players || players.length === 0) return [];
-
-    const uniquePlayers = [];
-    const seenPlayers = new Map();
-
-    players.forEach(player => {
-        if (!player || !player.id) return;
-
-        if (!seenPlayers.has(player.id)) {
-            seenPlayers.set(player.id, true);
-            uniquePlayers.push(player);
-        } else {
-            console.warn(`🧹 Removing duplicate player with ID ${player.id}: ${player.name}`);
-        }
-    });
-
-    saveData(DB_KEYS.PLAYERS, uniquePlayers);
-    console.log(`✅ Cleaned players: ${players.length} → ${uniquePlayers.length}`);
-
-    return uniquePlayers;
-}
-
-// ✅ Initialize database with version control + duplicates cleanup
-function initializeDatabase() {
-    console.log('⚙️ Initializing database...');
-
-    const existingPlayers = getData(DB_KEYS.PLAYERS);
-    const DB_VERSION_KEY = 'efl_db_version';
-    const CURRENT_VERSION = '1.1.0';
-
-    const savedVersion = localStorage.getItem(DB_VERSION_KEY);
-
-    if (!existingPlayers || existingPlayers.length === 0 || savedVersion !== CURRENT_VERSION) {
-        console.log('⚙️ Setting up new player data...');
-
-        const samplePlayers = DEFAULT_PLAYERS.map(player => ({
-            ...player,
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString()
-        }));
-
-        saveData(DB_KEYS.PLAYERS, samplePlayers);
-        generateSampleFixtures();
-        saveData(DB_KEYS.RESULTS, []);
-        localStorage.setItem(DB_VERSION_KEY, CURRENT_VERSION);
-
-        console.log(`✅ Database initialized with ${samplePlayers.length} players (version ${CURRENT_VERSION})`);
-        return;
-    }
-
-    console.log(`✅ Database already initialized with ${existingPlayers.length} players`);
-    removeDuplicatePlayers();
-}
-
-// Generate sample fixtures
-function generateSampleFixtures() {
-    const players = getData(DB_KEYS.PLAYERS);
-    const fixtures = [];
-    let fixtureId = 1;
-    const startDate = new Date();
+// Initialize online database
+async function initializeDatabase() {
+    console.log('⚙️ Initializing online database...');
     
-    const matchPairs = [];
-    
-    for (let i = 0; i < players.length; i++) {
-        for (let j = i + 1; j < players.length; j++) {
-            matchPairs.push([players[i], players[j]]);
-        }
-    }
-    
-    matchPairs.forEach(([player1, player2], index) => {
-        const matchDate = new Date(startDate);
-        matchDate.setDate(matchDate.getDate() + index * 2);
-        
-        fixtures.push({
-            id: fixtureId++,
-            homePlayerId: player1.id,
-            awayPlayerId: player2.id,
-            date: matchDate.toISOString().split('T')[0],
-            time: '15:00',
-            venue: 'Virtual Stadium ' + String.fromCharCode(65 + (index % 3)),
-            played: false,
-            isHomeLeg: true,
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString()
-        });
-    });
-    
-    saveData(DB_KEYS.FIXTURES, fixtures);
-    console.log('Generated', fixtures.length, 'fixtures');
-}
-
-// Data management functions
-function getData(key) {
     try {
-        const data = localStorage.getItem(key);
-        if (!data) return [];
-        const parsed = JSON.parse(data);
-        return Array.isArray(parsed) ? parsed : [];
-    } catch (error) {
-        console.error('Error getting data for key:', key, error);
-        return [];
-    }
-}
-
-function saveData(key, data) {
-    try {
-        localStorage.setItem(key, JSON.stringify(data));
+        // Check if we can connect to the API
+        await eflAPI.checkConnection();
+        console.log('✅ Online database initialized');
         return true;
     } catch (error) {
-        console.error('Error saving data for key:', key, error);
+        console.error('❌ Failed to initialize online database:', error);
+        showNotification('Cannot connect to server. Please check your connection.', 'error');
         return false;
     }
 }
 
-function getPlayerById(playerId) {
-    const players = getData(DB_KEYS.PLAYERS);
-    return players.find(p => p && p.id === playerId);
+// Data management functions - Now all async and online-only
+async function getData(key) {
+    try {
+        console.log(`📡 Fetching ${key} from server...`);
+        
+        switch (key) {
+            case DB_KEYS.PLAYERS:
+                return await eflAPI.getPlayers();
+            case DB_KEYS.FIXTURES:
+                return await eflAPI.getFixtures();
+            case DB_KEYS.RESULTS:
+                return await eflAPI.getResults();
+            default:
+                console.warn(`Unknown data key: ${key}`);
+                return [];
+        }
+    } catch (error) {
+        console.error(`Error getting ${key}:`, error);
+        showNotification(`Error loading ${key}: ${error.message}`, 'error');
+        return [];
+    }
 }
 
-function getFixtureById(fixtureId) {
-    const fixtures = getData(DB_KEYS.FIXTURES);
-    return fixtures.find(f => f && f.id === fixtureId);
+async function getPlayerById(playerId) {
+    try {
+        const players = await getData(DB_KEYS.PLAYERS);
+        return players.find(p => p && p.id === playerId);
+    } catch (error) {
+        console.error('Error getting player by ID:', error);
+        return null;
+    }
 }
 
-function getResultById(resultId) {
-    const results = getData(DB_KEYS.RESULTS);
-    return results.find(r => r && r.id === resultId);
+async function getFixtureById(fixtureId) {
+    try {
+        const fixtures = await getData(DB_KEYS.FIXTURES);
+        return fixtures.find(f => f && f.id === fixtureId);
+    } catch (error) {
+        console.error('Error getting fixture by ID:', error);
+        return null;
+    }
+}
+
+async function getResultById(resultId) {
+    try {
+        const results = await getData(DB_KEYS.RESULTS);
+        return results.find(r => r && r.id === resultId);
+    } catch (error) {
+        console.error('Error getting result by ID:', error);
+        return null;
+    }
 }
 
 // ✅ Refresh all displays
-function refreshAllDisplays() {
-    console.log('🔄 Refreshing all displays...');
+async function refreshAllDisplays() {
+    console.log('🔄 Refreshing all displays from server...');
     
-    if (typeof renderLeagueTable === 'function') renderLeagueTable();
-    if (typeof renderPlayers === 'function') renderPlayers();
-    if (typeof renderHomePage === 'function') renderHomePage();
-    if (typeof renderFixtures === 'function') renderFixtures();
-    if (typeof renderResults === 'function') renderResults();
-    
-    if (typeof renderAdminPlayers === 'function') renderAdminPlayers();
-    if (typeof renderAdminFixtures === 'function') renderAdminFixtures();
-    if (typeof renderAdminResults === 'function') renderAdminResults();
-    if (typeof populatePlayerSelects === 'function') populatePlayerSelects();
-    
-    if (typeof advancedStats !== 'undefined' && typeof advancedStats.loadAdvancedStatsDashboard === 'function') {
-        advancedStats.loadAdvancedStatsDashboard();
+    try {
+        // Force refresh by clearing any cached data
+        if (typeof eflAPI !== 'undefined' && eflAPI.clearCache) {
+            eflAPI.clearCache();
+        }
+        
+        if (typeof renderLeagueTable === 'function') await renderLeagueTable();
+        if (typeof renderPlayers === 'function') await renderPlayers();
+        if (typeof renderHomePage === 'function') await renderHomePage();
+        if (typeof renderFixtures === 'function') await renderFixtures();
+        if (typeof renderResults === 'function') await renderResults();
+        
+        if (typeof renderAdminPlayers === 'function') await renderAdminPlayers();
+        if (typeof renderAdminFixtures === 'function') await renderAdminFixtures();
+        if (typeof renderAdminResults === 'function') await renderAdminResults();
+        if (typeof populatePlayerSelects === 'function') await populatePlayerSelects();
+        
+        if (typeof advancedStats !== 'undefined' && typeof advancedStats.loadAdvancedStatsDashboard === 'function') {
+            await advancedStats.loadAdvancedStatsDashboard();
+        }
+        
+        console.log('✅ All displays refreshed from server');
+    } catch (error) {
+        console.error('Error refreshing displays:', error);
+        showNotification('Error refreshing data: ' + error.message, 'error');
     }
-    
-    console.log('✅ All displays refreshed');
 }
 
-// Player management functions
+// Player management functions - Now fully online
 async function addPlayer(playerData) {
     try {
-        const players = getData(DB_KEYS.PLAYERS);
+        console.log('👤 Adding player online:', playerData.name);
         
-        const isDuplicate = players.some(player => 
+        // Validate player data
+        if (!playerData.name || !playerData.team) {
+            throw new Error('Player name and team are required');
+        }
+
+        // Check for duplicates via API
+        const existingPlayers = await eflAPI.getPlayers();
+        const isDuplicate = existingPlayers.some(player => 
             player.name.toLowerCase() === playerData.name.toLowerCase() &&
             player.team.toLowerCase() === playerData.team.toLowerCase()
         );
@@ -266,32 +141,24 @@ async function addPlayer(playerData) {
             throw new Error(`Player "${playerData.name}" already exists in team ${playerData.team}`);
         }
         
-        const maxId = players.length > 0 ? Math.max(...players.map(p => p.id || 0)) : 0;
-        const newId = maxId + 1;
-        
-        const newPlayer = {
+        // Add timestamps
+        const playerWithTimestamps = {
             ...playerData,
-            id: newId,
-            photo: playerData.photo || `https://via.placeholder.com/100/1a1a2e/ffffff?text=${playerData.name.charAt(0)}`,
-            defaultPhoto: playerData.photo || `https://via.placeholder.com/100/1a1a2e/ffffff?text=${playerData.name.charAt(0)}`,
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString()
         };
         
-        players.push(newPlayer);
-        saveData(DB_KEYS.PLAYERS, players);
+        // Save directly to API
+        const newPlayer = await eflAPI.addPlayer(playerWithTimestamps);
         
-        refreshAllDisplays();
+        // Refresh all displays to show the new player immediately
+        await refreshAllDisplays();
         
-        if (typeof eflAPI !== 'undefined' && eflAPI.isOnline) {
-            await eflAPI.addPlayer(newPlayer);
-        }
-        
-        console.log('Player added:', newPlayer.name, '(ID:', newPlayer.id + ')');
+        console.log('✅ Player added online:', newPlayer.name, '(ID:', newPlayer.id + ')');
         showNotification('Player added successfully!', 'success');
         return newPlayer;
     } catch (error) {
-        console.error('Error adding player:', error);
+        console.error('❌ Error adding player:', error);
         showNotification('Error adding player: ' + error.message, 'error');
         throw error;
     }
@@ -299,27 +166,25 @@ async function addPlayer(playerData) {
 
 async function updatePlayer(updatedPlayer) {
     try {
-        const players = getData(DB_KEYS.PLAYERS);
-        const index = players.findIndex(p => p.id === updatedPlayer.id);
+        console.log('✏️ Updating player online:', updatedPlayer.name);
         
-        if (index !== -1) {
-            updatedPlayer.updatedAt = new Date().toISOString();
-            players[index] = { ...players[index], ...updatedPlayer };
-            saveData(DB_KEYS.PLAYERS, players);
-            
-            refreshAllDisplays();
-            
-            if (typeof eflAPI !== 'undefined' && eflAPI.isOnline) {
-                await eflAPI.updatePlayer(updatedPlayer.id, updatedPlayer);
-            }
-            
-            console.log('Player updated:', updatedPlayer.name);
-            showNotification('Player updated successfully!', 'success');
-            return updatedPlayer;
+        if (!updatedPlayer.id) {
+            throw new Error('Player ID is required for update');
         }
-        throw new Error('Player not found');
+
+        updatedPlayer.updatedAt = new Date().toISOString();
+        
+        // Update directly via API
+        const result = await eflAPI.updatePlayer(updatedPlayer.id, updatedPlayer);
+        
+        // Refresh displays
+        await refreshAllDisplays();
+        
+        console.log('✅ Player updated online:', updatedPlayer.name);
+        showNotification('Player updated successfully!', 'success');
+        return result;
     } catch (error) {
-        console.error('Error updating player:', error);
+        console.error('❌ Error updating player:', error);
         showNotification('Error updating player: ' + error.message, 'error');
         throw error;
     }
@@ -327,64 +192,51 @@ async function updatePlayer(updatedPlayer) {
 
 async function deletePlayer(playerId) {
     try {
-        let players = getData(DB_KEYS.PLAYERS);
-        players = players.filter(p => p.id !== playerId);
-        saveData(DB_KEYS.PLAYERS, players);
+        console.log('🗑️ Deleting player online:', playerId);
         
-        let fixtures = getData(DB_KEYS.FIXTURES);
-        fixtures = fixtures.filter(f => f.homePlayerId !== playerId && f.awayPlayerId !== playerId);
-        saveData(DB_KEYS.FIXTURES, fixtures);
-        
-        let results = getData(DB_KEYS.RESULTS);
-        results = results.filter(r => r.homePlayerId !== playerId && r.awayPlayerId !== playerId);
-        saveData(DB_KEYS.RESULTS, results);
-        
-        refreshAllDisplays();
-        
-        if (typeof eflAPI !== 'undefined' && eflAPI.isOnline) {
-            await eflAPI.deletePlayer(playerId);
+        if (!playerId) {
+            throw new Error('Player ID is required for deletion');
         }
+
+        // Delete directly via API
+        await eflAPI.deletePlayer(playerId);
         
-        console.log('Player deleted:', playerId);
+        // Refresh displays
+        await refreshAllDisplays();
+        
+        console.log('✅ Player deleted online:', playerId);
         showNotification('Player deleted successfully!', 'success');
         return true;
     } catch (error) {
-        console.error('Error deleting player:', error);
+        console.error('❌ Error deleting player:', error);
         showNotification('Error deleting player: ' + error.message, 'error');
         throw error;
     }
 }
 
-// Fixture management functions
+// Fixture management functions - Now fully online
 async function addFixture(fixtureData) {
     try {
-        const fixtures = getData(DB_KEYS.FIXTURES);
+        console.log('📅 Adding fixture online');
         
-        const maxId = fixtures.length > 0 ? Math.max(...fixtures.map(f => f.id || 0)) : 0;
-        const newId = maxId + 1;
-        
-        const newFixture = {
+        const fixtureWithTimestamps = {
             ...fixtureData,
-            id: newId,
             played: false,
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString()
         };
         
-        fixtures.push(newFixture);
-        saveData(DB_KEYS.FIXTURES, fixtures);
+        // Save directly to API
+        const newFixture = await eflAPI.addFixture(fixtureWithTimestamps);
         
-        refreshAllDisplays();
+        // Refresh displays
+        await refreshAllDisplays();
         
-        if (typeof eflAPI !== 'undefined' && eflAPI.isOnline) {
-            await eflAPI.addFixture(newFixture);
-        }
-        
-        console.log('Fixture added:', newFixture.id);
+        console.log('✅ Fixture added online:', newFixture.id);
         showNotification('Fixture added successfully!', 'success');
         return newFixture;
     } catch (error) {
-        console.error('Error adding fixture:', error);
+        console.error('❌ Error adding fixture:', error);
         showNotification('Error adding fixture: ' + error.message, 'error');
         throw error;
     }
@@ -392,27 +244,25 @@ async function addFixture(fixtureData) {
 
 async function updateFixture(updatedFixture) {
     try {
-        const fixtures = getData(DB_KEYS.FIXTURES);
-        const index = fixtures.findIndex(f => f.id === updatedFixture.id);
+        console.log('✏️ Updating fixture online:', updatedFixture.id);
         
-        if (index !== -1) {
-            updatedFixture.updatedAt = new Date().toISOString();
-            fixtures[index] = { ...fixtures[index], ...updatedFixture };
-            saveData(DB_KEYS.FIXTURES, fixtures);
-            
-            refreshAllDisplays();
-            
-            if (typeof eflAPI !== 'undefined' && eflAPI.isOnline) {
-                await eflAPI.updateFixture(updatedFixture.id, updatedFixture);
-            }
-            
-            console.log('Fixture updated:', updatedFixture.id);
-            showNotification('Fixture updated successfully!', 'success');
-            return updatedFixture;
+        if (!updatedFixture.id) {
+            throw new Error('Fixture ID is required for update');
         }
-        throw new Error('Fixture not found');
+
+        updatedFixture.updatedAt = new Date().toISOString();
+        
+        // Update directly via API
+        const result = await eflAPI.updateFixture(updatedFixture.id, updatedFixture);
+        
+        // Refresh displays
+        await refreshAllDisplays();
+        
+        console.log('✅ Fixture updated online:', updatedFixture.id);
+        showNotification('Fixture updated successfully!', 'success');
+        return result;
     } catch (error) {
-        console.error('Error updating fixture:', error);
+        console.error('❌ Error updating fixture:', error);
         showNotification('Error updating fixture: ' + error.message, 'error');
         throw error;
     }
@@ -420,76 +270,64 @@ async function updateFixture(updatedFixture) {
 
 async function deleteFixture(fixtureId) {
     try {
-        let fixtures = getData(DB_KEYS.FIXTURES);
-        fixtures = fixtures.filter(f => f.id !== fixtureId);
-        saveData(DB_KEYS.FIXTURES, fixtures);
+        console.log('🗑️ Deleting fixture online:', fixtureId);
         
-        let results = getData(DB_KEYS.RESULTS);
-        const fixture = getFixtureById(fixtureId);
-        if (fixture) {
-            results = results.filter(r => 
-                !(r.homePlayerId === fixture.homePlayerId && r.awayPlayerId === fixture.awayPlayerId)
-            );
-            saveData(DB_KEYS.RESULTS, results);
+        if (!fixtureId) {
+            throw new Error('Fixture ID is required for deletion');
         }
+
+        // Delete directly via API
+        await eflAPI.deleteFixture(fixtureId);
         
-        refreshAllDisplays();
+        // Refresh displays
+        await refreshAllDisplays();
         
-        if (typeof eflAPI !== 'undefined' && eflAPI.isOnline) {
-            await eflAPI.deleteFixture(fixtureId);
-        }
-        
-        console.log('Fixture deleted:', fixtureId);
+        console.log('✅ Fixture deleted online:', fixtureId);
         showNotification('Fixture deleted successfully!', 'success');
         return true;
     } catch (error) {
-        console.error('Error deleting fixture:', error);
+        console.error('❌ Error deleting fixture:', error);
         showNotification('Error deleting fixture: ' + error.message, 'error');
         throw error;
     }
 }
 
-// Result management functions
+// Result management functions - Now fully online
 async function addResult(resultData) {
     try {
-        const results = getData(DB_KEYS.RESULTS);
+        console.log('⚽ Adding result online');
         
-        const maxId = results.length > 0 ? Math.max(...results.map(r => r.id || 0)) : 0;
-        const newId = maxId + 1;
-        
-        const newResult = {
+        const resultWithTimestamps = {
             ...resultData,
-            id: newId,
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString()
         };
         
-        results.push(newResult);
-        saveData(DB_KEYS.RESULTS, results);
+        // Save directly to API
+        const newResult = await eflAPI.addResult(resultWithTimestamps);
         
-        const fixtures = getData(DB_KEYS.FIXTURES);
-        const fixtureIndex = fixtures.findIndex(f => 
+        // Also mark fixture as played
+        const fixtures = await getData(DB_KEYS.FIXTURES);
+        const fixture = fixtures.find(f => 
             f.homePlayerId === resultData.homePlayerId && 
             f.awayPlayerId === resultData.awayPlayerId
         );
         
-        if (fixtureIndex !== -1) {
-            fixtures[fixtureIndex].played = true;
-            fixtures[fixtureIndex].updatedAt = new Date().toISOString();
-            saveData(DB_KEYS.FIXTURES, fixtures);
+        if (fixture) {
+            await updateFixture({
+                ...fixture,
+                played: true
+            });
         }
         
-        refreshAllDisplays();
+        // Refresh displays
+        await refreshAllDisplays();
         
-        if (typeof eflAPI !== 'undefined' && eflAPI.isOnline) {
-            await eflAPI.addResult(newResult);
-        }
-        
-        console.log('Result added:', newResult.id);
+        console.log('✅ Result added online:', newResult.id);
         showNotification('Result added successfully!', 'success');
         return newResult;
     } catch (error) {
-        console.error('Error adding result:', error);
+        console.error('❌ Error adding result:', error);
         showNotification('Error adding result: ' + error.message, 'error');
         throw error;
     }
@@ -497,27 +335,25 @@ async function addResult(resultData) {
 
 async function updateResult(updatedResult) {
     try {
-        const results = getData(DB_KEYS.RESULTS);
-        const index = results.findIndex(r => r.id === updatedResult.id);
+        console.log('✏️ Updating result online:', updatedResult.id);
         
-        if (index !== -1) {
-            updatedResult.updatedAt = new Date().toISOString();
-            results[index] = { ...results[index], ...updatedResult };
-            saveData(DB_KEYS.RESULTS, results);
-            
-            refreshAllDisplays();
-            
-            if (typeof eflAPI !== 'undefined' && eflAPI.isOnline) {
-                await eflAPI.updateResult(updatedResult.id, updatedResult);
-            }
-            
-            console.log('Result updated:', updatedResult.id);
-            showNotification('Result updated successfully!', 'success');
-            return updatedResult;
+        if (!updatedResult.id) {
+            throw new Error('Result ID is required for update');
         }
-        throw new Error('Result not found');
+
+        updatedResult.updatedAt = new Date().toISOString();
+        
+        // Update directly via API
+        const result = await eflAPI.updateResult(updatedResult.id, updatedResult);
+        
+        // Refresh displays
+        await refreshAllDisplays();
+        
+        console.log('✅ Result updated online:', updatedResult.id);
+        showNotification('Result updated successfully!', 'success');
+        return result;
     } catch (error) {
-        console.error('Error updating result:', error);
+        console.error('❌ Error updating result:', error);
         showNotification('Error updating result: ' + error.message, 'error');
         throw error;
     }
@@ -525,137 +361,162 @@ async function updateResult(updatedResult) {
 
 async function deleteResult(resultId) {
     try {
-        let results = getData(DB_KEYS.RESULTS);
-        const result = getResultById(resultId);
+        console.log('🗑️ Deleting result online:', resultId);
         
-        results = results.filter(r => r.id !== resultId);
-        saveData(DB_KEYS.RESULTS, results);
+        if (!resultId) {
+            throw new Error('Result ID is required for deletion');
+        }
+
+        // Get result first to update related fixture
+        const result = await getResultById(resultId);
         
+        // Delete directly via API
+        await eflAPI.deleteResult(resultId);
+        
+        // Mark fixture as unplayed if result exists
         if (result) {
-            const fixtures = getData(DB_KEYS.FIXTURES);
-            const fixtureIndex = fixtures.findIndex(f => 
+            const fixtures = await getData(DB_KEYS.FIXTURES);
+            const fixture = fixtures.find(f => 
                 f.homePlayerId === result.homePlayerId && 
                 f.awayPlayerId === result.awayPlayerId
             );
             
-            if (fixtureIndex !== -1) {
-                fixtures[fixtureIndex].played = false;
-                fixtures[fixtureIndex].updatedAt = new Date().toISOString();
-                saveData(DB_KEYS.FIXTURES, fixtures);
+            if (fixture) {
+                await updateFixture({
+                    ...fixture,
+                    played: false
+                });
             }
         }
         
-        refreshAllDisplays();
+        // Refresh displays
+        await refreshAllDisplays();
         
-        if (typeof eflAPI !== 'undefined' && eflAPI.isOnline) {
-            await eflAPI.deleteResult(resultId);
-        }
-        
-        console.log('Result deleted:', resultId);
+        console.log('✅ Result deleted online:', resultId);
         showNotification('Result deleted successfully!', 'success');
         return true;
     } catch (error) {
-        console.error('Error deleting result:', error);
+        console.error('❌ Error deleting result:', error);
         showNotification('Error deleting result: ' + error.message, 'error');
         throw error;
     }
 }
 
-// Statistics and calculations
-function calculatePlayerStats(playerId) {
-    const results = getData(DB_KEYS.RESULTS);
-    const playerResults = results.filter(r => 
-        r && (r.homePlayerId === playerId || r.awayPlayerId === playerId)
-    );
+// Statistics and calculations - Now async
+async function calculatePlayerStats(playerId) {
+    try {
+        const results = await getData(DB_KEYS.RESULTS);
+        const playerResults = results.filter(r => 
+            r && (r.homePlayerId === playerId || r.awayPlayerId === playerId)
+        );
 
-    let stats = {
-        played: 0,
-        wins: 0,
-        draws: 0,
-        losses: 0,
-        goalsFor: 0,
-        goalsAgainst: 0,
-        goalDifference: 0,
-        points: 0
-    };
-
-    playerResults.forEach(result => {
-        if (!result) return;
-        
-        const isHome = result.homePlayerId === playerId;
-        const playerScore = isHome ? result.homeScore : result.awayScore;
-        const opponentScore = isHome ? result.awayScore : result.homeScore;
-
-        stats.played++;
-        stats.goalsFor += playerScore || 0;
-        stats.goalsAgainst += opponentScore || 0;
-
-        if (playerScore > opponentScore) {
-            stats.wins++;
-            stats.points += 3;
-        } else if (playerScore === opponentScore) {
-            stats.draws++;
-            stats.points += 1;
-        } else {
-            stats.losses++;
-        }
-    });
-
-    stats.goalDifference = stats.goalsFor - stats.goalsAgainst;
-    return stats;
-}
-
-// Get recent form for a player
-function getRecentForm(playerId, matches = 5) {
-    const results = getData(DB_KEYS.RESULTS);
-    const playerResults = results.filter(r => 
-        r && (r.homePlayerId === playerId || r.awayPlayerId === playerId)
-    ).sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, matches);
-
-    return playerResults.map(result => {
-        if (!result) return '-';
-        
-        const isHome = result.homePlayerId === playerId;
-        const playerScore = isHome ? result.homeScore : result.awayScore;
-        const opponentScore = isHome ? result.awayScore : result.homeScore;
-
-        if (playerScore > opponentScore) return 'W';
-        if (playerScore === opponentScore) return 'D';
-        return 'L';
-    }).reverse();
-}
-
-// League table function with duplicate prevention
-function getLeagueTable() {
-    const uniquePlayers = removeDuplicatePlayers();
-    
-    const tableData = uniquePlayers.map(player => {
-        if (!player) return null;
-        
-        const stats = calculatePlayerStats(player.id);
-        const form = getRecentForm(player.id, 5);
-        
-        return {
-            id: player.id,
-            name: player.name,
-            team: player.team,
-            played: stats.played,
-            wins: stats.wins,
-            draws: stats.draws,
-            losses: stats.losses,
-            goalsFor: stats.goalsFor,
-            goalsAgainst: stats.goalsAgainst,
-            goalDifference: stats.goalDifference,
-            points: stats.points,
-            form: form
+        let stats = {
+            played: 0,
+            wins: 0,
+            draws: 0,
+            losses: 0,
+            goalsFor: 0,
+            goalsAgainst: 0,
+            goalDifference: 0,
+            points: 0
         };
-    }).filter(player => player !== null);
 
-    return tableData.sort((a, b) => {
-        if (b.points !== a.points) return b.points - a.points;
-        if (b.goalDifference !== a.goalDifference) return b.goalDifference - a.goalDifference;
-        return b.goalsFor - a.goalsFor;
-    });
+        playerResults.forEach(result => {
+            if (!result) return;
+            
+            const isHome = result.homePlayerId === playerId;
+            const playerScore = isHome ? result.homeScore : result.awayScore;
+            const opponentScore = isHome ? result.awayScore : result.homeScore;
+
+            stats.played++;
+            stats.goalsFor += playerScore || 0;
+            stats.goalsAgainst += opponentScore || 0;
+
+            if (playerScore > opponentScore) {
+                stats.wins++;
+                stats.points += 3;
+            } else if (playerScore === opponentScore) {
+                stats.draws++;
+                stats.points += 1;
+            } else {
+                stats.losses++;
+            }
+        });
+
+        stats.goalDifference = stats.goalsFor - stats.goalsAgainst;
+        return stats;
+    } catch (error) {
+        console.error('Error calculating player stats:', error);
+        return {
+            played: 0, wins: 0, draws: 0, losses: 0,
+            goalsFor: 0, goalsAgainst: 0, goalDifference: 0, points: 0
+        };
+    }
+}
+
+// Get recent form for a player - Now async
+async function getRecentForm(playerId, matches = 5) {
+    try {
+        const results = await getData(DB_KEYS.RESULTS);
+        const playerResults = results.filter(r => 
+            r && (r.homePlayerId === playerId || r.awayPlayerId === playerId)
+        ).sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, matches);
+
+        return playerResults.map(result => {
+            if (!result) return '-';
+            
+            const isHome = result.homePlayerId === playerId;
+            const playerScore = isHome ? result.homeScore : result.awayScore;
+            const opponentScore = isHome ? result.awayScore : result.homeScore;
+
+            if (playerScore > opponentScore) return 'W';
+            if (playerScore === opponentScore) return 'D';
+            return 'L';
+        }).reverse();
+    } catch (error) {
+        console.error('Error getting recent form:', error);
+        return [];
+    }
+}
+
+// League table function - Now async
+async function getLeagueTable() {
+    try {
+        const players = await getData(DB_KEYS.PLAYERS);
+        
+        const tablePromises = players.map(async (player) => {
+            if (!player) return null;
+            
+            const stats = await calculatePlayerStats(player.id);
+            const form = await getRecentForm(player.id, 5);
+            
+            return {
+                id: player.id,
+                name: player.name,
+                team: player.team,
+                played: stats.played,
+                wins: stats.wins,
+                draws: stats.draws,
+                losses: stats.losses,
+                goalsFor: stats.goalsFor,
+                goalsAgainst: stats.goalsAgainst,
+                goalDifference: stats.goalDifference,
+                points: stats.points,
+                form: form
+            };
+        });
+
+        const tableData = (await Promise.all(tablePromises)).filter(player => player !== null);
+
+        return tableData.sort((a, b) => {
+            if (b.points !== a.points) return b.points - a.points;
+            if (b.goalDifference !== a.goalDifference) return b.goalDifference - a.goalDifference;
+            return b.goalsFor - a.goalsFor;
+        });
+    } catch (error) {
+        console.error('Error getting league table:', error);
+        return [];
+    }
 }
 
 // Utility functions
@@ -704,84 +565,72 @@ function updateSyncStatus() {
     const syncStatus = document.getElementById('sync-status');
     if (!syncStatus) return;
 
-    if (typeof eflAPI !== 'undefined' && eflAPI.isOnline) {
-        syncStatus.className = 'badge bg-success';
-        syncStatus.innerHTML = '<i class="fas fa-cloud me-1"></i>Online';
-    } else {
-        syncStatus.className = 'badge bg-warning';
-        syncStatus.innerHTML = '<i class="fas fa-cloud me-1"></i>Offline';
-    }
+    // Always online now
+    syncStatus.className = 'badge bg-success';
+    syncStatus.innerHTML = '<i class="fas fa-cloud me-1"></i>Online';
+    syncStatus.title = 'Fully online mode - no local storage';
 }
 
-// Data export/import functions
-function exportData() {
-    const data = {
-        players: getData(DB_KEYS.PLAYERS),
-        fixtures: getData(DB_KEYS.FIXTURES),
-        results: getData(DB_KEYS.RESULTS),
-        exportDate: new Date().toISOString(),
-        version: '1.0'
-    };
-
-    const dataStr = JSON.stringify(data, null, 2);
-    const dataBlob = new Blob([dataStr], { type: 'application/json' });
-    
-    const url = URL.createObjectURL(dataBlob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `efootball_backup_${new Date().toISOString().split('T')[0]}.json`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    
-    showNotification('Data exported successfully!', 'success');
-}
-
-function importData(jsonData) {
+// Data export/import functions - Updated for online
+async function exportData() {
     try {
-        const data = typeof jsonData === 'string' ? JSON.parse(jsonData) : jsonData;
-        
-        if (data.players) saveData(DB_KEYS.PLAYERS, data.players);
-        if (data.fixtures) saveData(DB_KEYS.FIXTURES, data.fixtures);
-        if (data.results) saveData(DB_KEYS.RESULTS, data.results);
-        
-        removeDuplicatePlayers();
-        refreshAllDisplays();
-        
-        showNotification('Data imported successfully!', 'success');
-        return true;
-    } catch (error) {
-        console.error('Error importing data:', error);
-        showNotification('Error importing data!', 'error');
-        return false;
-    }
-}
+        const [players, fixtures, results] = await Promise.all([
+            getData(DB_KEYS.PLAYERS),
+            getData(DB_KEYS.FIXTURES),
+            getData(DB_KEYS.RESULTS)
+        ]);
 
-// Emergency cleanup function
-function emergencyCleanup() {
-    if (confirm('This will remove all duplicate players and fix the league table. Continue?')) {
-        const initialPlayers = getData(DB_KEYS.PLAYERS);
-        const cleanedPlayers = removeDuplicatePlayers();
+        const data = {
+            players,
+            fixtures,
+            results,
+            exportDate: new Date().toISOString(),
+            version: '1.0'
+        };
+
+        const dataStr = JSON.stringify(data, null, 2);
+        const dataBlob = new Blob([dataStr], { type: 'application/json' });
         
-        refreshAllDisplays();
+        const url = URL.createObjectURL(dataBlob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `efootball_backup_${new Date().toISOString().split('T')[0]}.json`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
         
-        showNotification(`Removed ${initialPlayers.length - cleanedPlayers.length} duplicate players!`, 'success');
+        showNotification('Data exported successfully!', 'success');
+    } catch (error) {
+        console.error('Error exporting data:', error);
+        showNotification('Error exporting data: ' + error.message, 'error');
     }
 }
 
 // Initialize database when script loads
-document.addEventListener('DOMContentLoaded', function() {
-    initializeDatabase();
-    console.log('Database system initialized');
+document.addEventListener('DOMContentLoaded', async function() {
+    console.log('🚀 Initializing online database system...');
     
-    setTimeout(() => {
-        removeDuplicatePlayers();
-    }, 1000);
+    // Wait for API to be available
+    if (typeof eflAPI === 'undefined') {
+        console.error('EFL API not found. Make sure api.js is loaded first.');
+        showNotification('Error: API system not available', 'error');
+        return;
+    }
+    
+    try {
+        await initializeDatabase();
+        console.log('✅ Online database system initialized');
+        
+        // Update sync status to show online
+        updateSyncStatus();
+    } catch (error) {
+        console.error('❌ Failed to initialize online database:', error);
+        showNotification('Failed to connect to server. Please refresh the page.', 'error');
+    }
 });
 
 // Make functions globally available
 window.getData = getData;
-window.saveData = saveData;
 window.getPlayerById = getPlayerById;
 window.getFixtureById = getFixtureById;
 window.getResultById = getResultById;
@@ -801,9 +650,11 @@ window.formatDisplayDate = formatDisplayDate;
 window.showNotification = showNotification;
 window.updateSyncStatus = updateSyncStatus;
 window.initializeDatabase = initializeDatabase;
-window.removeDuplicatePlayers = removeDuplicatePlayers;
-window.emergencyCleanup = emergencyCleanup;
 window.refreshAllDisplays = refreshAllDisplays;
 window.DB_KEYS = DB_KEYS;
 window.BALANCED_TEAMS = BALANCED_TEAMS;
-window.DEFAULT_PLAYERS = DEFAULT_PLAYERS;
+
+// Remove localStorage-dependent functions
+window.removeDuplicatePlayers = () => console.log('Local storage functions disabled in online mode');
+window.emergencyCleanup = () => console.log('Local storage functions disabled in online mode');
+window.saveData = () => console.log('Local storage functions disabled in online mode');
