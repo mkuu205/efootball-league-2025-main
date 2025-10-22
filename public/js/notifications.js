@@ -1221,7 +1221,7 @@ class PushNotificationManager {
         // Register service worker
         if ('serviceWorker' in navigator) {
             try {
-                this.registration = await navigator.serviceWorker.register('/sw.js');
+                this.registration = await navigator.serviceWorker.register('/service-worker.js');
                 console.log('Service Worker registered successfully');
                 
                 // Listen for service worker messages
