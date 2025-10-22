@@ -1,8 +1,8 @@
-// server.js - eFootball League 2025
-import express from 'express';
-import bodyParser from 'body-parser';
-import cors from 'cors';
-import { MongoClient, ObjectId } from 'mongodb';
+// server.js - eFootball League 2025 (CommonJS)
+const express = require('express');
+const bodyParser = require('body-parser');
+const cors = require('cors');
+const { MongoClient, ObjectId } = require('mongodb');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
