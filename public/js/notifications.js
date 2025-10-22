@@ -1208,15 +1208,31 @@ class TournamentUpdates {
     }
 }
 
-// Push Notification Manager
+// Push Notification Manager with Service Worker Support
 class PushNotificationManager {
     constructor() {
         this.notificationPermission = null;
         this.scheduledReminders = new Map();
+        this.registration = null;
         this.init();
     }
 
     async init() {
+        // Register service worker
+        if ('serviceWorker' in navigator) {
+            try {
+                this.registration = await navigator.serviceWorker.register('/sw.js');
+                console.log('Service Worker registered successfully');
+                
+                // Listen for service worker messages
+                navigator.serviceWorker.addEventListener('message', (event) => {
+                    this.handleServiceWorkerMessage(event);
+                });
+            } catch (error) {
+                console.error('Service Worker registration failed:', error);
+            }
+        }
+
         // Check notification permission
         this.notificationPermission = Notification.permission;
         
@@ -1226,6 +1242,25 @@ class PushNotificationManager {
 
         // Schedule existing fixture reminders
         this.scheduleAllReminders();
+    }
+
+    // Handle messages from service worker
+    handleServiceWorkerMessage(event) {
+        const { action, data } = event.data;
+        
+        switch (action) {
+            case 'showTab':
+                if (typeof showTab === 'function') {
+                    showTab(data.tab);
+                }
+                break;
+            case 'focusWindow':
+                window.focus();
+                break;
+            case 'snoozeReminder':
+                this.handleSnoozeReminder(data.fixtureId);
+                break;
+        }
     }
 
     // Request notification permission
@@ -1276,8 +1311,8 @@ class PushNotificationManager {
         });
     }
 
-    // Send match reminder notification
-    sendMatchReminder(fixture) {
+    // Send match reminder notification using Service Worker
+    async sendMatchReminder(fixture) {
         if (this.notificationPermission !== 'granted') return;
 
         const homePlayer = getPlayerById(fixture.homePlayerId);
@@ -1303,65 +1338,92 @@ class PushNotificationManager {
             ],
             data: {
                 fixtureId: fixture.id,
+                type: 'match-reminder',
                 url: `${window.location.origin}${window.location.pathname}?tab=fixtures`
             }
         };
 
-        // Show notification
-        const notification = new Notification('⚽ Match Reminder', notificationOptions);
+        // Use Service Worker for notification if available
+        if (this.registration) {
+            try {
+                await this.registration.showNotification('⚽ Match Reminder', notificationOptions);
+                console.log('Match reminder sent via Service Worker');
+            } catch (error) {
+                console.error('Service Worker notification failed, using fallback:', error);
+                this.sendFallbackNotification('⚽ Match Reminder', notificationOptions);
+            }
+        } else {
+            // Fallback to regular notification without actions
+            this.sendFallbackNotification('⚽ Match Reminder', notificationOptions);
+        }
+    }
 
-        // Handle notification clicks
+    // Fallback notification without actions
+    sendFallbackNotification(title, options) {
+        const { actions, ...fallbackOptions } = options;
+        const notification = new Notification(title, fallbackOptions);
+        
         notification.onclick = () => {
             window.focus();
             notification.close();
-            // Navigate to fixtures tab
             if (typeof showTab === 'function') {
                 showTab('fixtures');
             }
         };
 
-        // Handle notification actions
-        notification.addEventListener('notificationclick', (event) => {
-            event.notification.close();
+        setTimeout(() => notification.close(), 30000);
+        return notification;
+    }
 
-            if (event.action === 'view-fixtures') {
-                window.focus();
-                if (typeof showTab === 'function') {
-                    showTab('fixtures');
-                }
-            } else if (event.action === 'snooze') {
-                // Reschedule reminder for 10 minutes later
-                setTimeout(() => {
-                    this.sendMatchReminder(fixture);
-                }, 10 * 60 * 1000);
-            }
-        });
-
-        // Auto-close after 30 seconds
-        setTimeout(() => {
-            notification.close();
-        }, 30000);
+    // Handle snooze reminder
+    handleSnoozeReminder(fixtureId) {
+        const fixtures = getData(DB_KEYS.FIXTURES);
+        const fixture = fixtures.find(f => f.id === fixtureId);
+        
+        if (fixture) {
+            // Reschedule reminder for 10 minutes later
+            setTimeout(() => {
+                this.sendMatchReminder(fixture);
+            }, 10 * 60 * 1000);
+            
+            console.log(`Snoozed reminder for fixture ${fixtureId}`);
+        }
     }
 
     // Send update notification
-    sendUpdateNotification(update) {
+    async sendUpdateNotification(update) {
         if (this.notificationPermission !== 'granted') return;
 
-        const notification = new Notification(
-            `🔔 ${update.data.title}`,
-            {
-                body: update.data.message,
-                icon: '/icons/icon-192x192.png',
-                badge: '/icons/badge-72x72.png',
-                tag: `update-${update.id}`,
-                requireInteraction: true,
-                data: {
-                    updateId: update.id,
-                    url: `${window.location.origin}${window.location.pathname}?tab=updates`
-                }
+        const notificationOptions = {
+            body: update.data.message,
+            icon: '/icons/icon-192x192.png',
+            badge: '/icons/badge-72x72.png',
+            tag: `update-${update.id}`,
+            requireInteraction: true,
+            data: {
+                updateId: update.id,
+                type: 'tournament-update',
+                url: `${window.location.origin}${window.location.pathname}?tab=updates`
             }
-        );
+        };
 
+        if (this.registration) {
+            try {
+                await this.registration.showNotification(`🔔 ${update.data.title}`, notificationOptions);
+            } catch (error) {
+                console.error('Service Worker notification failed:', error);
+                this.sendFallbackUpdateNotification(update, notificationOptions);
+            }
+        } else {
+            this.sendFallbackUpdateNotification(update, notificationOptions);
+        }
+    }
+
+    // Fallback for update notifications
+    sendFallbackUpdateNotification(update, options) {
+        const { actions, ...fallbackOptions } = options;
+        const notification = new Notification(`🔔 ${update.data.title}`, fallbackOptions);
+        
         notification.onclick = () => {
             window.focus();
             notification.close();
@@ -1370,23 +1432,32 @@ class PushNotificationManager {
             }
         };
 
-        // Auto-close after 10 seconds
-        setTimeout(() => {
-            notification.close();
-        }, 10000);
+        setTimeout(() => notification.close(), 10000);
+        return notification;
     }
 
     // Custom notification types
-    sendCustomNotification(title, message, options = {}) {
+    async sendCustomNotification(title, message, options = {}) {
         if (this.notificationPermission !== 'granted') return;
 
-        const notification = new Notification(title, {
+        const notificationOptions = {
             body: message,
             icon: options.icon || '/icons/icon-192x192.png',
             badge: '/icons/badge-72x72.png',
             ...options
-        });
+        };
 
+        if (this.registration && !options.actions) {
+            try {
+                await this.registration.showNotification(title, notificationOptions);
+                return;
+            } catch (error) {
+                console.error('Service Worker notification failed:', error);
+            }
+        }
+
+        // Fallback to regular notification
+        const notification = new Notification(title, notificationOptions);
         notification.onclick = () => {
             window.focus();
             notification.close();
@@ -1467,3 +1538,14 @@ function resendNotification(notificationId) {
         showNotification('Notification system not available', 'error');
     }
 }
+
+// Service Worker message handling
+if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.addEventListener('message', (event) => {
+        const { action, data } = event.data;
+        
+        if (action === 'showTab' && typeof showTab === 'function') {
+            showTab(data.tab);
+        }
+    });
+                                                                           }
