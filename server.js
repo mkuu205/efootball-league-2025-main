@@ -229,6 +229,8 @@ app.post('/api/players', async (req, res) => {
   }
 });
 
+// In your server.js, add this route:
+app.post('/api/seed-players', require('./api/seed-players'));
 // Update player
 app.put('/api/players/:id', async (req, res) => {
   try {
