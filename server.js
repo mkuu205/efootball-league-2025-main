@@ -3,7 +3,7 @@ const express = require('express');
 const cors = require('cors');
 const path = require('path');
 const { MongoClient } = require('mongodb');
-const sendResetEmail = require('./js/send-reset-email');
+const { Resend } = require("resend");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
