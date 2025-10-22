@@ -92,7 +92,7 @@ const DEFAULT_PLAYERS = [
         team: 'Man U',
         photo: 'https://i.ibb.co/7NXyjhWR/Bora-20kesho.jpg',
         strength: 3177,
-        teamColor: '#DA291C', // Manchester United red
+        teamColor: '#DA291C',
         defaultPhoto: 'https://i.ibb.co/7NXyjhWR/Bora-20kesho.jpg'
     }
 ];
@@ -107,9 +107,8 @@ function removeDuplicatePlayers() {
     const seenPlayers = new Map();
 
     players.forEach(player => {
-        if (!player || !player.id) return; // Skip invalid players
+        if (!player || !player.id) return;
 
-        // Use ID as the primary key for uniqueness
         if (!seenPlayers.has(player.id)) {
             seenPlayers.set(player.id, true);
             uniquePlayers.push(player);
@@ -118,7 +117,6 @@ function removeDuplicatePlayers() {
         }
     });
 
-    // Save cleaned players array
     saveData(DB_KEYS.PLAYERS, uniquePlayers);
     console.log(`✅ Cleaned players: ${players.length} → ${uniquePlayers.length}`);
 
@@ -135,46 +133,35 @@ function initializeDatabase() {
 
     const savedVersion = localStorage.getItem(DB_VERSION_KEY);
 
-    // 🧩 Case 1: No players or version change → reset database
     if (!existingPlayers || existingPlayers.length === 0 || savedVersion !== CURRENT_VERSION) {
         console.log('⚙️ Setting up new player data...');
 
-        // Set default values for sample players
         const samplePlayers = DEFAULT_PLAYERS.map(player => ({
             ...player,
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString()
         }));
 
-        // Save sample players
         saveData(DB_KEYS.PLAYERS, samplePlayers);
-
-        // Generate sample fixtures
         generateSampleFixtures();
-
-        // Initialize empty results
         saveData(DB_KEYS.RESULTS, []);
-
-        // Save current version
         localStorage.setItem(DB_VERSION_KEY, CURRENT_VERSION);
 
         console.log(`✅ Database initialized with ${samplePlayers.length} players (version ${CURRENT_VERSION})`);
         return;
     }
 
-    // 🧩 Case 2: Existing data → clean duplicates
     console.log(`✅ Database already initialized with ${existingPlayers.length} players`);
     removeDuplicatePlayers();
 }
 
-// Generate sample fixtures - FIXED: Better fixture generation
+// Generate sample fixtures
 function generateSampleFixtures() {
     const players = getData(DB_KEYS.PLAYERS);
     const fixtures = [];
     let fixtureId = 1;
     const startDate = new Date();
     
-    // Create a simple round-robin with only one match between each pair
     const matchPairs = [];
     
     for (let i = 0; i < players.length; i++) {
@@ -183,10 +170,9 @@ function generateSampleFixtures() {
         }
     }
     
-    // Create fixtures (one match between each pair)
     matchPairs.forEach(([player1, player2], index) => {
         const matchDate = new Date(startDate);
-        matchDate.setDate(matchDate.getDate() + index * 2); // Matches every 2 days
+        matchDate.setDate(matchDate.getDate() + index * 2);
         
         fixtures.push({
             id: fixtureId++,
@@ -244,42 +230,21 @@ function getResultById(resultId) {
     return results.find(r => r && r.id === resultId);
 }
 
-// ✅ ADD THIS FUNCTION to refresh all displays
+// ✅ Refresh all displays
 function refreshAllDisplays() {
     console.log('🔄 Refreshing all displays...');
     
-    // Refresh main app displays
-    if (typeof renderLeagueTable === 'function') {
-        renderLeagueTable();
-    }
-    if (typeof renderPlayers === 'function') {
-        renderPlayers();
-    }
-    if (typeof renderHomePage === 'function') {
-        renderHomePage();
-    }
-    if (typeof renderFixtures === 'function') {
-        renderFixtures();
-    }
-    if (typeof renderResults === 'function') {
-        renderResults();
-    }
+    if (typeof renderLeagueTable === 'function') renderLeagueTable();
+    if (typeof renderPlayers === 'function') renderPlayers();
+    if (typeof renderHomePage === 'function') renderHomePage();
+    if (typeof renderFixtures === 'function') renderFixtures();
+    if (typeof renderResults === 'function') renderResults();
     
-    // Refresh admin displays if on admin page
-    if (typeof renderAdminPlayers === 'function') {
-        renderAdminPlayers();
-    }
-    if (typeof renderAdminFixtures === 'function') {
-        renderAdminFixtures();
-    }
-    if (typeof renderAdminResults === 'function') {
-        renderAdminResults();
-    }
-    if (typeof populatePlayerSelects === 'function') {
-        populatePlayerSelects();
-    }
+    if (typeof renderAdminPlayers === 'function') renderAdminPlayers();
+    if (typeof renderAdminFixtures === 'function') renderAdminFixtures();
+    if (typeof renderAdminResults === 'function') renderAdminResults();
+    if (typeof populatePlayerSelects === 'function') populatePlayerSelects();
     
-    // Refresh advanced stats if available
     if (typeof advancedStats !== 'undefined' && typeof advancedStats.loadAdvancedStatsDashboard === 'function') {
         advancedStats.loadAdvancedStatsDashboard();
     }
@@ -287,12 +252,11 @@ function refreshAllDisplays() {
     console.log('✅ All displays refreshed');
 }
 
-// Player management functions - FIXED: Better duplicate prevention
+// Player management functions
 async function addPlayer(playerData) {
     try {
         const players = getData(DB_KEYS.PLAYERS);
         
-        // Check for duplicates by name and team
         const isDuplicate = players.some(player => 
             player.name.toLowerCase() === playerData.name.toLowerCase() &&
             player.team.toLowerCase() === playerData.team.toLowerCase()
@@ -302,7 +266,6 @@ async function addPlayer(playerData) {
             throw new Error(`Player "${playerData.name}" already exists in team ${playerData.team}`);
         }
         
-        // Generate new ID
         const maxId = players.length > 0 ? Math.max(...players.map(p => p.id || 0)) : 0;
         const newId = maxId + 1;
         
@@ -318,10 +281,8 @@ async function addPlayer(playerData) {
         players.push(newPlayer);
         saveData(DB_KEYS.PLAYERS, players);
         
-        // ✅ CRITICAL: Refresh ALL frontend displays
         refreshAllDisplays();
         
-        // Sync with server if online
         if (typeof eflAPI !== 'undefined' && eflAPI.isOnline) {
             await eflAPI.addPlayer(newPlayer);
         }
@@ -346,10 +307,8 @@ async function updatePlayer(updatedPlayer) {
             players[index] = { ...players[index], ...updatedPlayer };
             saveData(DB_KEYS.PLAYERS, players);
             
-            // ✅ Refresh displays after update
             refreshAllDisplays();
             
-            // Sync with server if online
             if (typeof eflAPI !== 'undefined' && eflAPI.isOnline) {
                 await eflAPI.updatePlayer(updatedPlayer.id, updatedPlayer);
             }
@@ -372,7 +331,6 @@ async function deletePlayer(playerId) {
         players = players.filter(p => p.id !== playerId);
         saveData(DB_KEYS.PLAYERS, players);
         
-        // Also remove related fixtures and results
         let fixtures = getData(DB_KEYS.FIXTURES);
         fixtures = fixtures.filter(f => f.homePlayerId !== playerId && f.awayPlayerId !== playerId);
         saveData(DB_KEYS.FIXTURES, fixtures);
@@ -381,10 +339,8 @@ async function deletePlayer(playerId) {
         results = results.filter(r => r.homePlayerId !== playerId && r.awayPlayerId !== playerId);
         saveData(DB_KEYS.RESULTS, results);
         
-        // ✅ Refresh displays after delete
         refreshAllDisplays();
         
-        // Sync with server if online
         if (typeof eflAPI !== 'undefined' && eflAPI.isOnline) {
             await eflAPI.deletePlayer(playerId);
         }
@@ -404,7 +360,6 @@ async function addFixture(fixtureData) {
     try {
         const fixtures = getData(DB_KEYS.FIXTURES);
         
-        // Generate new ID
         const maxId = fixtures.length > 0 ? Math.max(...fixtures.map(f => f.id || 0)) : 0;
         const newId = maxId + 1;
         
@@ -419,10 +374,8 @@ async function addFixture(fixtureData) {
         fixtures.push(newFixture);
         saveData(DB_KEYS.FIXTURES, fixtures);
         
-        // ✅ Refresh displays
         refreshAllDisplays();
         
-        // Sync with server if online
         if (typeof eflAPI !== 'undefined' && eflAPI.isOnline) {
             await eflAPI.addFixture(newFixture);
         }
@@ -447,10 +400,8 @@ async function updateFixture(updatedFixture) {
             fixtures[index] = { ...fixtures[index], ...updatedFixture };
             saveData(DB_KEYS.FIXTURES, fixtures);
             
-            // ✅ Refresh displays
             refreshAllDisplays();
             
-            // Sync with server if online
             if (typeof eflAPI !== 'undefined' && eflAPI.isOnline) {
                 await eflAPI.updateFixture(updatedFixture.id, updatedFixture);
             }
@@ -473,7 +424,6 @@ async function deleteFixture(fixtureId) {
         fixtures = fixtures.filter(f => f.id !== fixtureId);
         saveData(DB_KEYS.FIXTURES, fixtures);
         
-        // Also remove related results
         let results = getData(DB_KEYS.RESULTS);
         const fixture = getFixtureById(fixtureId);
         if (fixture) {
@@ -483,10 +433,8 @@ async function deleteFixture(fixtureId) {
             saveData(DB_KEYS.RESULTS, results);
         }
         
-        // ✅ Refresh displays
         refreshAllDisplays();
         
-        // Sync with server if online
         if (typeof eflAPI !== 'undefined' && eflAPI.isOnline) {
             await eflAPI.deleteFixture(fixtureId);
         }
@@ -506,7 +454,6 @@ async function addResult(resultData) {
     try {
         const results = getData(DB_KEYS.RESULTS);
         
-        // Generate new ID
         const maxId = results.length > 0 ? Math.max(...results.map(r => r.id || 0)) : 0;
         const newId = maxId + 1;
         
@@ -520,7 +467,6 @@ async function addResult(resultData) {
         results.push(newResult);
         saveData(DB_KEYS.RESULTS, results);
         
-        // Mark fixture as played
         const fixtures = getData(DB_KEYS.FIXTURES);
         const fixtureIndex = fixtures.findIndex(f => 
             f.homePlayerId === resultData.homePlayerId && 
@@ -533,10 +479,8 @@ async function addResult(resultData) {
             saveData(DB_KEYS.FIXTURES, fixtures);
         }
         
-        // ✅ Refresh displays
         refreshAllDisplays();
         
-        // Sync with server if online
         if (typeof eflAPI !== 'undefined' && eflAPI.isOnline) {
             await eflAPI.addResult(newResult);
         }
@@ -561,10 +505,8 @@ async function updateResult(updatedResult) {
             results[index] = { ...results[index], ...updatedResult };
             saveData(DB_KEYS.RESULTS, results);
             
-            // ✅ Refresh displays
             refreshAllDisplays();
             
-            // Sync with server if online
             if (typeof eflAPI !== 'undefined' && eflAPI.isOnline) {
                 await eflAPI.updateResult(updatedResult.id, updatedResult);
             }
@@ -589,7 +531,6 @@ async function deleteResult(resultId) {
         results = results.filter(r => r.id !== resultId);
         saveData(DB_KEYS.RESULTS, results);
         
-        // Mark fixture as unplayed
         if (result) {
             const fixtures = getData(DB_KEYS.FIXTURES);
             const fixtureIndex = fixtures.findIndex(f => 
@@ -604,10 +545,8 @@ async function deleteResult(resultId) {
             }
         }
         
-        // ✅ Refresh displays
         refreshAllDisplays();
         
-        // Sync with server if online
         if (typeof eflAPI !== 'undefined' && eflAPI.isOnline) {
             await eflAPI.deleteResult(resultId);
         }
@@ -622,7 +561,7 @@ async function deleteResult(resultId) {
     }
 }
 
-// Statistics and calculations - FIXED: Better player stats calculation
+// Statistics and calculations
 function calculatePlayerStats(playerId) {
     const results = getData(DB_KEYS.RESULTS);
     const playerResults = results.filter(r => 
@@ -666,7 +605,7 @@ function calculatePlayerStats(playerId) {
     return stats;
 }
 
-// NEW: Get recent form for a player
+// Get recent form for a player
 function getRecentForm(playerId, matches = 5) {
     const results = getData(DB_KEYS.RESULTS);
     const playerResults = results.filter(r => 
@@ -683,12 +622,11 @@ function getRecentForm(playerId, matches = 5) {
         if (playerScore > opponentScore) return 'W';
         if (playerScore === opponentScore) return 'D';
         return 'L';
-    }).reverse(); // Show oldest first
+    }).reverse();
 }
 
-// FIXED: League table function with duplicate prevention
+// League table function with duplicate prevention
 function getLeagueTable() {
-    // First, clean any duplicate players
     const uniquePlayers = removeDuplicatePlayers();
     
     const tableData = uniquePlayers.map(player => {
@@ -711,9 +649,8 @@ function getLeagueTable() {
             points: stats.points,
             form: form
         };
-    }).filter(player => player !== null); // Remove any null entries
+    }).filter(player => player !== null);
 
-    // Sort by points, then goal difference, then goals for
     return tableData.sort((a, b) => {
         if (b.points !== a.points) return b.points - a.points;
         if (b.goalDifference !== a.goalDifference) return b.goalDifference - a.goalDifference;
@@ -740,7 +677,6 @@ function formatDisplayDate(dateString) {
 }
 
 function showNotification(message, type = 'info') {
-    // Create notification element
     const notification = document.createElement('div');
     notification.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
     notification.style.cssText = `
@@ -757,7 +693,6 @@ function showNotification(message, type = 'info') {
     
     document.body.appendChild(notification);
     
-    // Auto-remove after 5 seconds
     setTimeout(() => {
         if (notification.parentNode) {
             notification.parentNode.removeChild(notification);
@@ -810,10 +745,7 @@ function importData(jsonData) {
         if (data.fixtures) saveData(DB_KEYS.FIXTURES, data.fixtures);
         if (data.results) saveData(DB_KEYS.RESULTS, data.results);
         
-        // Clean duplicates after import
         removeDuplicatePlayers();
-        
-        // Refresh all displays
         refreshAllDisplays();
         
         showNotification('Data imported successfully!', 'success');
@@ -825,13 +757,12 @@ function importData(jsonData) {
     }
 }
 
-// NEW: Emergency cleanup function
+// Emergency cleanup function
 function emergencyCleanup() {
     if (confirm('This will remove all duplicate players and fix the league table. Continue?')) {
         const initialPlayers = getData(DB_KEYS.PLAYERS);
         const cleanedPlayers = removeDuplicatePlayers();
         
-        // Refresh all displays
         refreshAllDisplays();
         
         showNotification(`Removed ${initialPlayers.length - cleanedPlayers.length} duplicate players!`, 'success');
@@ -843,7 +774,6 @@ document.addEventListener('DOMContentLoaded', function() {
     initializeDatabase();
     console.log('Database system initialized');
     
-    // Run cleanup on startup to fix any existing duplicates
     setTimeout(() => {
         removeDuplicatePlayers();
     }, 1000);
