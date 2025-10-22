@@ -1,4 +1,6 @@
-// service-worker.js - Fixed Version (Clean + Corrected)
+// ============================================================
+// service-worker.js — eFootball League 2025
+
 const CACHE_NAME = 'efl-tournament-v1.3';
 const urlsToCache = [
   '/',
@@ -20,70 +22,71 @@ const urlsToCache = [
   'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css'
 ];
 
-// URLs never to cache (manifest, icons)
+// Files to skip caching (dynamic content)
 const neverCacheUrls = ['/manifest.json', '/icons/'];
 
+// ------------------------------------------------------------
+// INSTALL EVENT
+// ------------------------------------------------------------
 self.addEventListener('install', (event) => {
   console.log('📦 Installing service worker...');
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then((cache) => {
-        console.log('📁 Caching app shell...');
+        console.log('📁 Caching app shell');
         return cache.addAll(urlsToCache);
       })
       .then(() => {
         console.log('✅ Service Worker installed');
         return self.skipWaiting();
       })
-      .catch((err) => console.error('❌ Install failed:', err))
   );
 });
 
+// ------------------------------------------------------------
+// ACTIVATE EVENT
+// ------------------------------------------------------------
 self.addEventListener('activate', (event) => {
   console.log('🔄 Activating Service Worker...');
   event.waitUntil(
-    caches.keys()
-      .then((cacheNames) => {
-        return Promise.all(
-          cacheNames.map((cacheName) => {
-            if (cacheName !== CACHE_NAME) {
-              console.log('🗑️ Deleting old cache:', cacheName);
-              return caches.delete(cacheName);
-            }
-            return null;
-          })
-        );
-      })
-      .then(() => {
-        console.log('✅ Service Worker activated');
-        return self.clients.claim();
-      })
-      .catch((err) => console.error('❌ Activation failed:', err))
+    caches.keys().then((cacheNames) => {
+      return Promise.all(
+        cacheNames.map((cacheName) => {
+          if (cacheName !== CACHE_NAME) {
+            console.log('🗑️ Removing old cache:', cacheName);
+            return caches.delete(cacheName);
+          }
+        })
+      );
+    }).then(() => {
+      console.log('✅ Service Worker activated');
+      return self.clients.claim();
+    })
   );
 });
 
+// ------------------------------------------------------------
+// FETCH EVENT (Network & Cache Handling)
+// ------------------------------------------------------------
 self.addEventListener('fetch', (event) => {
-  // Skip non-GET requests
   if (event.request.method !== 'GET') return;
 
   const url = new URL(event.request.url);
 
-  // Never cache manifest or icons
-  if (neverCacheUrls.some((path) => url.pathname.includes(path))) {
+  // Skip manifest and icons
+  if (neverCacheUrls.some(path => url.pathname.includes(path))) {
     event.respondWith(fetch(event.request));
     return;
   }
 
-  // Network-first strategy for API calls
+  // Network-first for API requests
   if (url.pathname.startsWith('/api/')) {
     event.respondWith(
       fetch(event.request)
         .then((response) => {
           if (response && response.status === 200) {
-            const responseClone = response.clone();
-            caches.open(CACHE_NAME).then((cache) => {
-              cache.put(event.request, responseClone);
-            });
+            const clone = response.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
           }
           return response;
         })
@@ -92,30 +95,50 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Cache-first strategy for all other requests
+  // Cache-first for static files
   event.respondWith(
     caches.match(event.request)
-      .then((cachedResponse) => {
-        if (cachedResponse) return cachedResponse;
-
-        return fetch(event.request)
-          .then((response) => {
-            if (!response || response.status !== 200 || response.type !== 'basic') {
-              return response;
-            }
-
-            const responseClone = response.clone();
-            caches.open(CACHE_NAME)
-              .then((cache) => {
-                cache.put(event.request, responseClone);
-              });
-
-            return response;
-          })
-          .catch((error) => {
-            console.error('❌ Fetch failed:', error);
-            throw error;
-          });
+      .then((cached) => {
+        if (cached) return cached;
+        return fetch(event.request).then((response) => {
+          if (!response || response.status !== 200 || response.type !== 'basic') return response;
+          const clone = response.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+          return response;
+        });
       })
   );
 });
+
+// ============================================================
+// ✅ FIXED: Persistent Notification & Action Support
+// ============================================================
+
+self.addEventListener('notificationclick', (event) => {
+  console.log('🔔 Notification clicked:', event.notification);
+  event.notification.close();
+
+  // Handle action buttons
+  if (event.action === 'view-fixtures') {
+    event.waitUntil(clients.openWindow('/index.html?tab=fixtures'));
+  } else if (event.action === 'snooze') {
+    // Send a message to the client
+    event.waitUntil(
+      self.clients.matchAll({ type: 'window', includeUncontrolled: true })
+        .then((clientsArr) => {
+          for (const client of clientsArr) {
+            client.postMessage({
+              action: 'snoozeReminder',
+              data: event.notification.data || {}
+            });
+          }
+        })
+    );
+  } else {
+    // Default click (open the URL if provided)
+    event.waitUntil(
+      clients.openWindow(event.notification.data?.url || '/')
+    );
+  }
+});
+
