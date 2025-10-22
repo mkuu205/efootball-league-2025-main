@@ -9,16 +9,16 @@ class PWAHelper {
     init() {
         // Register service worker
         this.registerServiceWorker();
-        
+
         // Listen for install prompt
         this.setupInstallPrompt();
-        
+
         // Check if running as PWA
         this.checkPWAStatus();
-        
+
         // Setup network detection
         this.setupNetworkDetection();
-        
+
         // Setup iOS install prompt
         this.setupIOSInstallPrompt();
     }
@@ -28,7 +28,7 @@ class PWAHelper {
             // Try different possible service worker filenames
             const swPaths = [
                 '/service-worker.js',    // Most common
-                '/sw.js',               // Short version
+                '/sw.js',                // Short version
                 '/js/service-worker.js', // If it's in js folder
                 '/service worker.js'     // If it has space (not recommended)
             ];
@@ -74,7 +74,7 @@ class PWAHelper {
         registration.addEventListener('updatefound', () => {
             const newWorker = registration.installing;
             console.log('🔄 Service Worker update found!');
-            
+
             newWorker.addEventListener('statechange', () => {
                 if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
                     this.showUpdateNotification();
@@ -93,9 +93,16 @@ class PWAHelper {
             e.preventDefault();
             this.deferredPrompt = e;
             this.showInstallPromotion();
-            
+
             // Log installability
             console.log('📱 PWA install prompt available');
+
+            // Make sure install button is clickable immediately
+            const installBtn = document.getElementById('install-button');
+            if (installBtn) {
+                installBtn.onclick = () => this.installApp();
+                installBtn.style.display = 'block';
+            }
         });
 
         window.addEventListener('appinstalled', () => {
@@ -108,9 +115,9 @@ class PWAHelper {
 
     checkPWAStatus() {
         // Check if app is running in standalone mode
-        this.isPWA = window.matchMedia('(display-mode: standalone)').matches || 
-                     window.navigator.standalone === true;
-        
+        this.isPWA = window.matchMedia('(display-mode: standalone)').matches ||
+            window.navigator.standalone === true;
+
         if (this.isPWA) {
             console.log('📱 Running as installed PWA');
             document.body.classList.add('pwa-mode');
@@ -120,7 +127,7 @@ class PWAHelper {
     showInstallPromotion() {
         // Don't show if already installed or in PWA mode
         if (this.isPWA) return;
-        
+
         // Create install button if not exists
         if (!document.getElementById('install-button')) {
             const installBtn = document.createElement('button');
@@ -153,13 +160,13 @@ class PWAHelper {
                 <span class="d-inline d-sm-none">Install</span>
             `;
             installBtn.onclick = () => this.installApp();
-            
+
             document.body.appendChild(installBtn);
-            
-            // Auto-hide after 30 seconds
+
+            // Auto-hide after 2 minutes (instead of 30s)
             setTimeout(() => {
                 this.hideInstallPromotion();
-            }, 30000);
+            }, 120000);
         }
     }
 
@@ -177,10 +184,12 @@ class PWAHelper {
     }
 
     async installApp() {
+        console.log('🟢 installApp() called, deferredPrompt =', this.deferredPrompt);
+
         if (this.deferredPrompt) {
             this.deferredPrompt.prompt();
             const { outcome } = await this.deferredPrompt.userChoice;
-            
+
             if (outcome === 'accepted') {
                 console.log('✅ User accepted the install prompt');
                 this.showNotification('Installing app...', 'info');
@@ -188,9 +197,11 @@ class PWAHelper {
                 console.log('❌ User dismissed the install prompt');
                 this.showNotification('Installation cancelled', 'warning');
             }
-            
+
             this.deferredPrompt = null;
             this.hideInstallPromotion();
+        } else {
+            console.log('⚠️ No install prompt available');
         }
     }
 
@@ -220,7 +231,7 @@ class PWAHelper {
                 <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
             `;
             document.body.appendChild(notification);
-            
+
             setTimeout(() => {
                 if (notification.parentNode) {
                     notification.style.opacity = '0';
@@ -252,10 +263,10 @@ class PWAHelper {
     setupIOSInstallPrompt() {
         // Detect iOS
         const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
-        
+
         if (isIOS) {
             const isInStandaloneMode = window.navigator.standalone;
-            
+
             if (!isInStandaloneMode) {
                 setTimeout(() => {
                     this.showNotification('Tap the share button and "Add to Home Screen" to install', 'info', 10000);
@@ -270,7 +281,7 @@ class PWAHelper {
         themeToggles.forEach(toggle => {
             toggle.remove();
         });
-        
+
         // Remove theme toggle from navbar
         const navItems = document.querySelectorAll('.nav-item');
         navItems.forEach(item => {
@@ -285,16 +296,16 @@ class PWAHelper {
 document.addEventListener('DOMContentLoaded', () => {
     const pwaHelper = new PWAHelper();
     window.pwaHelper = pwaHelper;
-    
+
     // Remove any theme toggle elements on startup
     pwaHelper.removeThemeToggle();
-    
+
     // Additional cleanup for theme toggle
     const removeThemeElements = () => {
         // Remove theme toggle buttons
         const themeToggles = document.querySelectorAll('.theme-toggle');
         themeToggles.forEach(toggle => toggle.remove());
-        
+
         // Remove theme-related list items
         const navItems = document.querySelectorAll('.nav-item');
         navItems.forEach(item => {
@@ -302,7 +313,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 item.remove();
             }
         });
-        
+
         // Remove any theme toggle that might be created later
         const observer = new MutationObserver((mutations) => {
             mutations.forEach((mutation) => {
@@ -318,13 +329,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
             });
         });
-        
+
         observer.observe(document.body, {
             childList: true,
             subtree: true
         });
     };
-    
+
     // Run cleanup immediately and after a short delay
     removeThemeElements();
     setTimeout(removeThemeElements, 100);
