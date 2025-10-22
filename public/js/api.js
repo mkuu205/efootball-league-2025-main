@@ -49,13 +49,18 @@ class EFLAPI {
                 ...options,
             });
 
-            if (!response.ok) {
-                const errorText = await response.text();
-                console.error(`API Error ${response.status}:`, errorText);
-                throw new Error(`Server error: ${response.status} - ${errorText}`);
+            const text = await response.text();
+            try {
+                const data = JSON.parse(text);
+                if (!response.ok) {
+                    console.error(`API Error ${response.status}:`, data);
+                    throw new Error(`Server error: ${response.status} - ${JSON.stringify(data)}`);
+                }
+                return data;
+            } catch {
+                console.error('Response is not valid JSON:', text);
+                throw new Error('Invalid JSON response from server');
             }
-
-            return await response.json();
         } catch (error) {
             console.error('API request failed:', error);
             throw error;
@@ -91,16 +96,16 @@ class EFLAPI {
     }
 
     async updatePlayer(id, updates) {
-        const result = await this.request('/players', { 
+        const result = await this.request(`/players/${id}`, { 
             method: 'PUT', 
-            body: JSON.stringify({ id, ...updates }) 
+            body: JSON.stringify(updates) 
         });
         this.clearCache('players');
         return result.player;
     }
 
     async deletePlayer(id) {
-        await this.request(`/players?id=${id}`, { method: 'DELETE' });
+        await this.request(`/players/${id}`, { method: 'DELETE' });
         this.clearCache('players');
     }
 
@@ -124,16 +129,16 @@ class EFLAPI {
     }
 
     async updateFixture(id, updates) {
-        const result = await this.request('/fixtures', { 
+        const result = await this.request(`/fixtures/${id}`, { 
             method: 'PUT', 
-            body: JSON.stringify({ id, ...updates }) 
+            body: JSON.stringify(updates) 
         });
         this.clearCache('fixtures');
         return result.fixture;
     }
 
     async deleteFixture(id) {
-        await this.request(`/fixtures?id=${id}`, { method: 'DELETE' });
+        await this.request(`/fixtures/${id}`, { method: 'DELETE' });
         this.clearCache('fixtures');
     }
 
@@ -157,16 +162,16 @@ class EFLAPI {
     }
 
     async updateResult(id, updates) {
-        const result = await this.request('/results', { 
+        const result = await this.request(`/results/${id}`, { 
             method: 'PUT', 
-            body: JSON.stringify({ id, ...updates }) 
+            body: JSON.stringify(updates) 
         });
         this.clearCache('results');
         return result.result;
     }
 
     async deleteResult(id) {
-        await this.request(`/results?id=${id}`, { method: 'DELETE' });
+        await this.request(`/results/${id}`, { method: 'DELETE' });
         this.clearCache('results');
     }
 
@@ -265,13 +270,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     console.log('🚀 Initializing fully online mode...');
     
     try {
-        // Wait for API connection
         await eflAPI.checkConnection();
         updateSyncStatus();
-        
         console.log('✅ Fully online mode initialized');
         showNotification('Connected to server successfully', 'success');
-        
     } catch (error) {
         console.error('❌ Failed to initialize online mode:', error);
         updateSyncStatus();
@@ -300,7 +302,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                 if (typeof refreshAllDisplays === 'function') {
                     await refreshAllDisplays();
                 } else {
-                    // Fallback: reload page if refresh function not available
                     window.location.reload();
                 }
                 
