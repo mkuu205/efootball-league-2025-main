@@ -1,98 +1,88 @@
+// api/results.js
 const { MongoClient } = require('mongodb');
 
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb+srv://efootballadmin:Brashokish2425@efootball-league.xykgya4.mongodb.net/efootball-league?retryWrites=true&w=majority&appName=efootball-league';
+const DB_NAME = 'efootball-league';
 
+let cachedClient = null;
 let cachedDb = null;
 
 async function connectToDatabase() {
   if (cachedDb) return cachedDb;
 
-  try {
-    const client = new MongoClient(MONGODB_URI);
-    await client.connect();
-    const db = client.db('efootball-league');
-    cachedDb = db;
-    return db;
-  } catch (error) {
-    console.error('MongoDB connection failed:', error);
-    throw error;
-  }
+  const client = await MongoClient.connect(MONGODB_URI, {
+    useNewUrlParser: true,
+    useUnifiedTopology: true,
+  });
+
+  const db = client.db(DB_NAME);
+  cachedClient = client;
+  cachedDb = db;
+  console.log('✅ MongoDB connected (results.js)');
+  return db;
 }
 
 module.exports = async (req, res) => {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-
-  if (req.method === 'OPTIONS') {
-    return res.status(200).end();
-  }
+  const db = await connectToDatabase();
+  const collection = db.collection('results');
+  const fixtures = db.collection('fixtures');
 
   try {
-    const db = await connectToDatabase();
-
-    // GET - Get all results
     if (req.method === 'GET') {
-      const results = await db.collection('results').find().sort({ date: -1 }).toArray();
+      const results = await collection.find().sort({ id: 1 }).toArray();
       return res.status(200).json({ success: true, results });
     }
 
-    // POST - Create new result
     if (req.method === 'POST') {
       const newResult = req.body;
-      
-      if (!newResult.homePlayerId || !newResult.awayPlayerId || !newResult.date) {
-        return res.status(400).json({ success: false, error: 'Home player, away player, and date are required' });
+      if (!newResult.homePlayerId || !newResult.awayPlayerId) {
+        return res.status(400).json({ success: false, message: 'Missing result fields' });
       }
 
-      if (newResult.homePlayerId === newResult.awayPlayerId) {
-        return res.status(400).json({ success: false, error: 'Home and away players must be different' });
-      }
-
-      // Check for existing result
-      const existingResult = await db.collection('results').findOne({
-        homePlayerId: newResult.homePlayerId,
-        awayPlayerId: newResult.awayPlayerId,
-        date: newResult.date
-      });
-      
-      if (existingResult) {
-        return res.status(400).json({ 
-          success: false, 
-          error: 'Result already exists for this fixture' 
-        });
-      }
-      
-      // Generate ID
-      const maxIdResult = await db.collection('results').find().sort({ id: -1 }).limit(1).toArray();
-      newResult.id = maxIdResult.length > 0 ? maxIdResult[0].id + 1 : 1;
-      
+      const last = await collection.find().sort({ id: -1 }).limit(1).toArray();
+      newResult.id = last.length ? last[0].id + 1 : 1;
       newResult.createdAt = new Date();
-      newResult.updatedAt = new Date();
-      
-      await db.collection('results').insertOne(newResult);
-      
+
+      await collection.insertOne(newResult);
+
       // Mark fixture as played
-      await db.collection('fixtures').updateOne(
-        {
-          homePlayerId: newResult.homePlayerId,
-          awayPlayerId: newResult.awayPlayerId
-        },
-        { 
-          $set: { 
-            played: true, 
-            updatedAt: new Date() 
-          } 
-        }
+      await fixtures.updateOne(
+        { homePlayerId: newResult.homePlayerId, awayPlayerId: newResult.awayPlayerId },
+        { $set: { played: true, updatedAt: new Date() } }
       );
-      
+
       return res.status(201).json({ success: true, result: newResult });
     }
 
-    return res.status(405).json({ success: false, error: 'Method not allowed' });
+    if (req.method === 'PUT') {
+      const { id, ...updates } = req.body;
+      updates.updatedAt = new Date();
 
-  } catch (error) {
-    console.error('Results API error:', error);
-    return res.status(500).json({ success: false, error: error.message });
+      await collection.updateOne({ id: parseInt(id) }, { $set: updates });
+      const updated = await collection.findOne({ id: parseInt(id) });
+      return res.status(200).json({ success: true, result: updated });
+    }
+
+    if (req.method === 'DELETE') {
+      const id = parseInt(req.query.id);
+      const result = await collection.findOne({ id });
+      await collection.deleteOne({ id });
+
+      if (result) {
+        await fixtures.updateOne(
+          { homePlayerId: result.homePlayerId, awayPlayerId: result.awayPlayerId },
+          { $set: { played: false, updatedAt: new Date() } }
+        );
+      }
+
+      return res.status(200).json({ success: true, message: `Result ${id} deleted` });
+    }
+
+    res.setHeader('Allow', ['GET', 'POST', 'PUT', 'DELETE']);
+    return res.status(405).json({ success: false, message: `Method ${req.method} not allowed` });
+
+  } catch (err) {
+    console.error('❌ Results API error:', err);
+    return res.status(500).json({ success: false, error: err.message });
   }
 };
