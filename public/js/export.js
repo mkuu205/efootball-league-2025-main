@@ -201,25 +201,39 @@ class ImageExporter {
     async exportMatchDayFixtures() {
         if (!(await this.isReady())) return;
 
-        const fixtures = getData(DB_KEYS.FIXTURES);
-        const players = getData(DB_KEYS.PLAYERS);
-
-        const nextWeek = new Date();
-        nextWeek.setDate(nextWeek.getDate() + 7);
-
-        const upcomingFixtures = fixtures.filter(f => {
-            const fixtureDate = new Date(f.date);
-            return !f.played && fixtureDate <= nextWeek;
-        }).slice(0, 6);
-
-        if (upcomingFixtures.length === 0) {
-            showNotification('No upcoming fixtures found for the next 7 days!', 'warning');
-            return;
-        }
-
-        this.isGenerating = true;
-
         try {
+            // Use await to get the actual data from getData()
+            const fixtures = await getData(DB_KEYS.FIXTURES);
+            const players = await getData(DB_KEYS.PLAYERS);
+
+            // Validate that we got arrays
+            if (!Array.isArray(fixtures)) {
+                console.error('Fixtures data is not an array:', fixtures);
+                showNotification('Error: Fixtures data is not available', 'error');
+                return;
+            }
+
+            if (!Array.isArray(players)) {
+                console.error('Players data is not an array:', players);
+                showNotification('Error: Players data is not available', 'error');
+                return;
+            }
+
+            const nextWeek = new Date();
+            nextWeek.setDate(nextWeek.getDate() + 7);
+
+            const upcomingFixtures = fixtures.filter(f => {
+                if (!f) return false;
+                const fixtureDate = new Date(f.date);
+                return !f.played && fixtureDate <= nextWeek;
+            }).slice(0, 6);
+
+            if (upcomingFixtures.length === 0) {
+                showNotification('No upcoming fixtures found for the next 7 days!', 'warning');
+                return;
+            }
+
+            this.isGenerating = true;
             showNotification('🔄 Generating fixtures image...', 'info');
 
             const tempContainer = document.createElement('div');
@@ -265,10 +279,13 @@ class ImageExporter {
             `;
 
             upcomingFixtures.forEach(fixture => {
-                const homePlayer = players.find(p => p.id === fixture.homePlayerId);
-                const awayPlayer = players.find(p => p.id === fixture.awayPlayerId);
+                const homePlayer = players.find(p => p.id === fixture.home_player_id);
+                const awayPlayer = players.find(p => p.id === fixture.away_player_id);
 
-                if (!homePlayer || !awayPlayer) return;
+                if (!homePlayer || !awayPlayer) {
+                    console.warn('Could not find players for fixture:', fixture);
+                    return;
+                }
 
                 const fixtureElement = document.createElement('div');
                 fixtureElement.style.cssText = `
@@ -285,7 +302,7 @@ class ImageExporter {
                             ${this.formatDisplayDate(fixture.date)}
                         </div>
                         <div style="background: rgba(255, 107, 107, 0.9); padding: 5px 10px; border-radius: 15px; font-weight: bold; font-size: 0.9em;">
-                            ${fixture.time}
+                            ${fixture.time || '15:00'}
                         </div>
                     </div>
                     <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;">
@@ -311,13 +328,20 @@ class ImageExporter {
                     </div>
                     <div style="text-align: center; padding-top: 8px; border-top: 1px solid rgba(255, 255, 255, 0.1);">
                         <span style="opacity: 0.9; font-size: 0.85em;">
-                            🏟️ ${fixture.venue}
+                            🏟️ ${fixture.venue || 'Virtual Stadium'}
                         </span>
                     </div>
                 `;
 
                 fixturesList.appendChild(fixtureElement);
             });
+
+            // Check if we have any valid fixtures to display
+            if (fixturesList.children.length === 0) {
+                showNotification('No valid fixtures found to export', 'warning');
+                this.isGenerating = false;
+                return;
+            }
 
             tempContainer.appendChild(fixturesList);
             document.body.appendChild(tempContainer);
@@ -373,8 +397,14 @@ class ImageExporter {
 
     // Format date for display
     formatDisplayDate(dateString) {
-        const options = { weekday: 'short', day: 'numeric', month: 'short' };
-        return new Date(dateString).toLocaleDateString('en-US', options);
+        if (!dateString) return 'TBD';
+        try {
+            const options = { weekday: 'short', day: 'numeric', month: 'short' };
+            return new Date(dateString).toLocaleDateString('en-US', options);
+        } catch (error) {
+            console.error('Error formatting date:', dateString, error);
+            return 'Invalid Date';
+        }
     }
 
     // Download image helper
@@ -386,6 +416,92 @@ class ImageExporter {
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
+    }
+
+    // Export player statistics
+    async exportPlayerStats(playerId) {
+        if (!(await this.isReady())) return;
+
+        try {
+            const player = await getPlayerById(playerId);
+            const players = await getData(DB_KEYS.PLAYERS);
+            
+            if (!player) {
+                showNotification('Player not found!', 'error');
+                return;
+            }
+
+            this.isGenerating = true;
+            showNotification('🔄 Generating player stats image...', 'info');
+
+            const tempContainer = document.createElement('div');
+            tempContainer.style.cssText = `
+                position: fixed;
+                left: -9999px;
+                top: -9999px;
+                background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
+                padding: 30px;
+                border-radius: 20px;
+                box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+                color: white;
+                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                max-width: 500px;
+                text-align: center;
+            `;
+
+            // You would need to calculate player stats here
+            // This is a simplified version
+            tempContainer.innerHTML = `
+                <div style="text-align: center;">
+                    <h1 style="color: #ffd700; margin-bottom: 20px;">Player Statistics</h1>
+                    
+                    <div style="display: flex; align-items: center; justify-content: center; gap: 20px; margin-bottom: 25px;">
+                        <img src="${player.photo}" 
+                             style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover; border: 3px solid rgba(255, 255, 255, 0.3);"
+                             onerror="this.src='https://via.placeholder.com/80/1a1a2e/ffffff?text=?'">
+                        <div style="text-align: left;">
+                            <h2 style="margin: 0 0 5px 0; color: white;">${player.name}</h2>
+                            <p style="margin: 0; opacity: 0.8;">${player.team}</p>
+                            <p style="margin: 5px 0 0 0; font-size: 0.9em;">Strength: ${player.strength}</p>
+                        </div>
+                    </div>
+
+                    <div style="background: rgba(255, 255, 255, 0.1); padding: 20px; border-radius: 10px; margin-top: 20px;">
+                        <p style="margin: 0; opacity: 0.8;">Statistics export coming soon...</p>
+                    </div>
+
+                    <div style="margin-top: 20px; font-size: 0.8em; opacity: 0.7;">
+                        Generated on ${new Date().toLocaleDateString()}
+                    </div>
+                </div>
+            `;
+
+            document.body.appendChild(tempContainer);
+
+            await new Promise(resolve => setTimeout(resolve, 500));
+
+            const canvas = await html2canvas(tempContainer, {
+                backgroundColor: null,
+                scale: 2,
+                useCORS: true,
+                allowTaint: false,
+                logging: false
+            });
+
+            document.body.removeChild(tempContainer);
+
+            const image = canvas.toDataURL('image/png', 1.0);
+            const filename = `EFL_${player.name.replace(/\s+/g, '_')}_Stats_${new Date().toISOString().split('T')[0]}.png`;
+
+            this.downloadImage(image, filename);
+            showNotification('✅ Player stats exported successfully!', 'success');
+
+        } catch (error) {
+            console.error('Export failed:', error);
+            showNotification('❌ Failed to export player stats: ' + error.message, 'error');
+        } finally {
+            this.isGenerating = false;
+        }
     }
 }
 
