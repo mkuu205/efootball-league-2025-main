@@ -1,4 +1,4 @@
-// notifications.js
+// notifications-fixed.js
 class PushNotificationManager {
   constructor() {
     this.registration = null;
@@ -21,38 +21,22 @@ class PushNotificationManager {
     }
 
     try {
-      // Register service worker first
-      if ('serviceWorker' in navigator) {
-        try {
-          this.registration = await navigator.serviceWorker.register('/service-worker.js', {
-            scope: '/'
-          });
-          console.log('✅ Service Worker registered successfully:', this.registration);
-          
-          // Wait for service worker to be ready
-          if (this.registration.installing) {
-            console.log('Service Worker installing');
-          } else if (this.registration.waiting) {
-            console.log('Service Worker installed');
-          } else if (this.registration.active) {
-            console.log('Service Worker active');
-          }
-        } catch (err) {
-          console.error('Service Worker registration failed:', err);
-          this.registration = null;
-          return;
-        }
-      }
-
-      // Then request notification permission
       const permission = await Notification.requestPermission();
       if (permission !== "granted") {
         console.log("Notification permission denied.");
         return;
       }
 
-      console.log('🔔 Notification system fully initialized');
-      
+      // Register service worker for persistent notifications
+      if ('serviceWorker' in navigator) {
+        try {
+          this.registration = await navigator.serviceWorker.register("/service-worker.js");
+          console.log("✅ Service Worker ready for notifications.");
+        } catch (err) {
+          console.error("Service Worker registration failed:", err);
+          this.registration = null;
+        }
+      }
     } catch (error) {
       console.error("Error initializing notifications:", error);
     }
@@ -133,64 +117,45 @@ class PushNotificationManager {
   }
 
   // ------------------------------------------------------------------
-  // Send Player Registration Notification
-  // ------------------------------------------------------------------
-  async sendPlayerRegistrationNotification(playerName, teamName) {
-    const title = "👤 New Player Registered";
-    const body = `${playerName} has joined ${teamName}`;
-
-    if (this.canUsePushNotifications()) {
-      await this.sendPushNotification(title, body);
-    } else {
-      this.showBrowserNotification(title, body, 'info');
-    }
-  }
-
-  // ------------------------------------------------------------------
-  // Send Tournament Started Notification
-  // ------------------------------------------------------------------
-  async sendTournamentStartedNotification(tournamentName) {
-    const title = "🎯 Tournament Started";
-    const body = `${tournamentName} has officially begun!`;
-
-    if (this.canUsePushNotifications()) {
-      await this.sendPushNotification(title, body);
-    } else {
-      this.showBrowserNotification(title, body, 'success');
-    }
-  }
-
-  // ------------------------------------------------------------------
   // Core Push Notification Method
   // ------------------------------------------------------------------
   async sendPushNotification(title, body, matchData = null) {
-    if (!this.canUsePushNotifications()) {
-      console.warn('Push notifications not available, using fallback');
-      this.showBrowserNotification(title, body, 'info');
-      return;
-    }
-
     const options = {
       body,
       icon: "/icons/icon-192x192.png",
       badge: "/icons/icon-192x192.png",
       data: { 
         url: "/index.html?tab=fixtures",
-        matchData: matchData,
-        timestamp: new Date().toISOString()
+        matchData: matchData
       },
       actions: [
         { action: "view-fixtures", title: "View Fixtures" },
         { action: "snooze", title: "Snooze" }
       ],
-      tag: 'match-reminder',
-      requireInteraction: true
+      tag: 'match-reminder', // Group similar notifications
+      requireInteraction: true // Keep visible until dismissed
     };
 
     try {
-      console.log('Sending push notification via service worker...');
-      await this.registration.showNotification(title, options);
-      console.log("✅ Push notification sent successfully");
+      if (this.registration && this.registration.showNotification) {
+        await this.registration.showNotification(title, options);
+        console.log("✅ Persistent notification shown via Service Worker.");
+      } else {
+        // Fallback for browsers without SW support (no actions allowed)
+        const safeOptions = { ...options };
+        delete safeOptions.actions;
+        const notification = new Notification(title, safeOptions);
+        
+        // Add click handler for fallback notifications
+        notification.onclick = () => {
+          window.focus();
+          if (options.data && options.data.url) {
+            window.location.href = options.data.url;
+          }
+        };
+        
+        console.log("⚠️ Fallback notification shown.");
+      }
     } catch (err) {
       console.error("❌ Failed to show push notification:", err);
       // Fallback to browser notification
@@ -328,64 +293,6 @@ class PushNotificationManager {
   }
 
   // ------------------------------------------------------------------
-  // Batch Notification Methods
-  // ------------------------------------------------------------------
-  async sendBatchMatchReminders(fixtures, players) {
-    const results = [];
-    
-    for (const fixture of fixtures) {
-      const homePlayer = players.find(p => p.id === fixture.home_player_id);
-      const awayPlayer = players.find(p => p.id === fixture.away_player_id);
-      
-      if (homePlayer && awayPlayer) {
-        const result = await this.sendMatchReminder({
-          teamA: homePlayer.name,
-          teamB: awayPlayer.name,
-          time: fixture.time || '15:00',
-          date: fixture.date
-        });
-        results.push(result);
-      }
-    }
-    
-    return results;
-  }
-
-  async sendBatchResults(results, players) {
-    const notifications = [];
-    
-    for (const result of results) {
-      const homePlayer = players.find(p => p.id === result.home_player_id);
-      const awayPlayer = players.find(p => p.id === result.away_player_id);
-      
-      if (homePlayer && awayPlayer) {
-        const notification = await this.sendResultNotification(
-          homePlayer.name,
-          awayPlayer.name,
-          result.home_score,
-          result.away_score
-        );
-        notifications.push(notification);
-      }
-    }
-    
-    return notifications;
-  }
-
-  // ------------------------------------------------------------------
-  // Notification Analytics
-  // ------------------------------------------------------------------
-  getNotificationStats() {
-    // This would track notification engagement in a real app
-    return {
-      sent: 0, // Would be tracked in a real implementation
-      delivered: 0,
-      clicked: 0,
-      lastSent: null
-    };
-  }
-
-  // ------------------------------------------------------------------
   // Cleanup Method
   // ------------------------------------------------------------------
   destroy() {
@@ -418,7 +325,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     // Auto-test on development
     if (pushManager.isLocalhost && window.location.search.includes('test-notifications')) {
       setTimeout(() => {
-        pushManager.testNotification('success');
+        pushManager.testNotification('info');
       }, 2000);
     }
     
@@ -454,18 +361,55 @@ document.addEventListener("DOMContentLoaded", async () => {
           }
         }, 5000);
       },
-      getStatus: () => ({ supported: false, error: 'Initialization failed' }),
-      canUsePushNotifications: () => false,
-      testNotification: (type) => {
-        window.PushNotificationManager.showBrowserNotification(
-          'Test Notification', 
-          'This is a test notification', 
-          type
-        );
-      }
+      getStatus: () => ({ supported: false, error: 'Initialization failed' })
     };
   }
 });
+
+// Service Worker for Push Notifications (create this file as service-worker.js)
+const serviceWorkerCode = `
+// service-worker.js
+self.addEventListener('install', (event) => {
+  console.log('Service Worker installed');
+  self.skipWaiting();
+});
+
+self.addEventListener('activate', (event) => {
+  console.log('Service Worker activated');
+  event.waitUntil(self.clients.claim());
+});
+
+self.addEventListener('notificationclick', (event) => {
+  console.log('Notification clicked:', event.notification.tag);
+  event.notification.close();
+
+  const urlToOpen = event.notification.data?.url || '/';
+
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window' }).then((windowClients) => {
+      // Check if there is already a window/tab open with the target URL
+      for (let client of windowClients) {
+        if (client.url.includes(urlToOpen) && 'focus' in client) {
+          return client.focus();
+        }
+      }
+      // If no window/tab is open, open a new one
+      if (self.clients.openWindow) {
+        return self.clients.openWindow(urlToOpen);
+      }
+    })
+  );
+});
+
+self.addEventListener('notificationclose', (event) => {
+  console.log('Notification closed:', event.notification.tag);
+});
+`;
+
+// Export for module systems
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = PushNotificationManager;
+}
 
 // Global helper function for easy notification access
 window.showAppNotification = function(title, message, type = 'info') {
@@ -477,55 +421,3 @@ window.showAppNotification = function(title, message, type = 'info') {
     alert(`${title}: ${message}`);
   }
 };
-
-// Integration with existing database functions
-if (typeof window !== 'undefined' && window.getData && window.DB_KEYS) {
-  // Auto-send notifications for new results
-  const originalAddResult = window.addResult;
-  if (originalAddResult) {
-    window.addResult = async function(result) {
-      const addedResult = await originalAddResult.call(this, result);
-      
-      // Send notification for new result
-      if (window.PushNotificationManager && addedResult) {
-        const players = await getData(DB_KEYS.PLAYERS);
-        const homePlayer = players.find(p => p.id === result.home_player_id);
-        const awayPlayer = players.find(p => p.id === result.away_player_id);
-        
-        if (homePlayer && awayPlayer) {
-          window.PushNotificationManager.sendResultNotification(
-            homePlayer.name,
-            awayPlayer.name,
-            result.home_score,
-            result.away_score
-          );
-        }
-      }
-      
-      return addedResult;
-    };
-  }
-
-  // Auto-send notifications for new players
-  const originalAddPlayer = window.addPlayer;
-  if (originalAddPlayer) {
-    window.addPlayer = async function(playerData) {
-      const addedPlayer = await originalAddPlayer.call(this, playerData);
-      
-      // Send notification for new player
-      if (window.PushNotificationManager && addedPlayer) {
-        window.PushNotificationManager.sendPlayerRegistrationNotification(
-          addedPlayer.name,
-          addedPlayer.team
-        );
-      }
-      
-      return addedPlayer;
-    };
-  }
-}
-
-// Export for module systems
-if (typeof module !== 'undefined' && module.exports) {
-  module.exports = PushNotificationManager;
-}
