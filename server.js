@@ -133,6 +133,8 @@ require('./api/players')(app, supabaseAdmin);
 require('./api/fixtures')(app, supabaseAdmin);
 require('./api/results')(app, supabaseAdmin);
 require('./api/league-table')(app, supabaseAdmin);
+require('./api/initialize')(app, supabaseAdmin);
+
 
 // ==================== STATIC FILES ====================
 app.use('/css', express.static(path.join(__dirname, 'public/css')));
