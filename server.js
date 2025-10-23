@@ -128,12 +128,16 @@ app.post('/api/initialize', async (req, res) => {
   }
 });
 
+// ==================== LOAD MODULAR API ROUTES ====================
+require('./api/players')(app, supabaseAdmin);
+require('./api/fixtures')(app, supabaseAdmin);
+require('./api/results')(app, supabaseAdmin);
+require('./api/league-table')(app, supabaseAdmin);
+
 // ==================== STATIC FILES ====================
-app.get('/manifest.json', (req, res) => res.sendFile(path.join(__dirname, 'public', 'manifest.json')));
-app.use('/icons', express.static(path.join(__dirname, 'public/icons')));
 app.use('/css', express.static(path.join(__dirname, 'public/css')));
 app.use('/js', express.static(path.join(__dirname, 'public/js')));
-app.get('/service-worker.js', (req, res) => res.sendFile(path.join(__dirname, 'public', 'service-worker.js')));
+app.use('/icons', express.static(path.join(__dirname, 'public/icons')));
 app.get('/admin.html', (req, res) => res.sendFile(path.join(__dirname, 'admin.html')));
 app.get('*', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
 
