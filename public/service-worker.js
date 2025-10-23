@@ -1,144 +1,129 @@
-// ============================================================
-// service-worker.js — eFootball League 2025
+// service-worker.js
 
-const CACHE_NAME = 'efl-tournament-v1.3';
+const CACHE_NAME = 'tournament-manager-v1';
 const urlsToCache = [
   '/',
   '/index.html',
-  '/admin.html',
-  '/css/style.css',
-  '/js/database.js',
-  '/js/api.js',
-  '/js/auth.js',
+  '/admin.html', 
+  '/css/styles.css',
   '/js/app.js',
-  '/js/admin.js',
-  '/js/advanced-stats.js',
-  '/js/bulk-operations.js',
+  '/js/database.js',
+  '/js/auth.js',
   '/js/notifications.js',
-  '/js/export.js',
-  '/js/pwa.js',
-  'https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css',
-  'https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js',
-  'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css'
+  '/icons/icon-192x192.png',
+  '/icons/icon-512x512.png'
 ];
 
-// Files to skip caching (dynamic content)
-const neverCacheUrls = ['/manifest.json', '/icons/'];
-
-// ------------------------------------------------------------
-// INSTALL EVENT
-// ------------------------------------------------------------
+// Install event - cache essential files
 self.addEventListener('install', (event) => {
-  console.log('📦 Installing service worker...');
+  console.log('Service Worker installing...');
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then((cache) => {
-        console.log('📁 Caching app shell');
+        console.log('Opened cache');
         return cache.addAll(urlsToCache);
       })
-      .then(() => {
-        console.log('✅ Service Worker installed');
-        return self.skipWaiting();
+      .catch(error => {
+        console.log('Cache installation failed:', error);
       })
   );
+  self.skipWaiting();
 });
 
-// ------------------------------------------------------------
-// ACTIVATE EVENT
-// ------------------------------------------------------------
+// Activate event - clean up old caches
 self.addEventListener('activate', (event) => {
-  console.log('🔄 Activating Service Worker...');
+  console.log('Service Worker activating...');
   event.waitUntil(
     caches.keys().then((cacheNames) => {
       return Promise.all(
         cacheNames.map((cacheName) => {
           if (cacheName !== CACHE_NAME) {
-            console.log('🗑️ Removing old cache:', cacheName);
+            console.log('Deleting old cache:', cacheName);
             return caches.delete(cacheName);
           }
         })
       );
-    }).then(() => {
-      console.log('✅ Service Worker activated');
-      return self.clients.claim();
     })
   );
+  event.waitUntil(self.clients.claim());
 });
 
-// ------------------------------------------------------------
-// FETCH EVENT (Network & Cache Handling)
-// ------------------------------------------------------------
+// Fetch event - serve from cache or network
 self.addEventListener('fetch', (event) => {
-  if (event.request.method !== 'GET') return;
-
-  const url = new URL(event.request.url);
-
-  // Skip manifest and icons
-  if (neverCacheUrls.some(path => url.pathname.includes(path))) {
-    event.respondWith(fetch(event.request));
+  // Skip chrome-extension requests and other unsupported schemes
+  if (event.request.url.startsWith('chrome-extension:') ||
+      event.request.url.startsWith('moz-extension:') ||
+      event.request.url.startsWith('ms-browser-extension:')) {
     return;
   }
 
-  // Network-first for API requests
-  if (url.pathname.startsWith('/api/')) {
-    event.respondWith(
-      fetch(event.request)
-        .then((response) => {
-          if (response && response.status === 200) {
-            const clone = response.clone();
-            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
-          }
-          return response;
-        })
-        .catch(() => caches.match(event.request))
-    );
-    return;
-  }
-
-  // Cache-first for static files
   event.respondWith(
     caches.match(event.request)
-      .then((cached) => {
-        if (cached) return cached;
-        return fetch(event.request).then((response) => {
-          if (!response || response.status !== 200 || response.type !== 'basic') return response;
-          const clone = response.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
-          return response;
-        });
+      .then((response) => {
+        // Return cached version or fetch from network
+        return response || fetch(event.request);
+      })
+      .catch(error => {
+        console.log('Fetch failed; returning offline page:', error);
+        // You could return a custom offline page here
       })
   );
 });
 
-// ============================================================
-// ✅ FIXED: Persistent Notification & Action Support
-// ============================================================
-
+// Notification click event
 self.addEventListener('notificationclick', (event) => {
-  console.log('🔔 Notification clicked:', event.notification);
+  console.log('Notification clicked:', event.notification.tag);
   event.notification.close();
 
-  // Handle action buttons
-  if (event.action === 'view-fixtures') {
-    event.waitUntil(clients.openWindow('/index.html?tab=fixtures'));
-  } else if (event.action === 'snooze') {
-    // Send a message to the client
-    event.waitUntil(
-      self.clients.matchAll({ type: 'window', includeUncontrolled: true })
-        .then((clientsArr) => {
-          for (const client of clientsArr) {
-            client.postMessage({
-              action: 'snoozeReminder',
-              data: event.notification.data || {}
-            });
-          }
-        })
-    );
-  } else {
-    // Default click (open the URL if provided)
-    event.waitUntil(
-      clients.openWindow(event.notification.data?.url || '/')
-    );
+  const urlToOpen = event.notification.data?.url || '/';
+
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window' }).then((windowClients) => {
+      // Check if there is already a window/tab open with the target URL
+      for (let client of windowClients) {
+        // Check if the client's URL matches and focus it
+        if (client.url.includes(self.location.origin) && 'focus' in client) {
+          return client.navigate(urlToOpen).then(client => client.focus());
+        }
+      }
+      // If no window/tab is open, open a new one
+      if (self.clients.openWindow) {
+        return self.clients.openWindow(urlToOpen);
+      }
+    })
+  );
+});
+
+// Notification close event
+self.addEventListener('notificationclose', (event) => {
+  console.log('Notification closed:', event.notification.tag);
+  // You can track notification engagement here
+});
+
+// Background sync for offline functionality (optional)
+self.addEventListener('sync', (event) => {
+  if (event.tag === 'background-sync') {
+    console.log('Background sync triggered');
+    // You can implement background data sync here
   }
 });
 
+// Push event for push notifications
+self.addEventListener('push', (event) => {
+  if (!event.data) return;
+
+  const data = event.data.json();
+  const options = {
+    body: data.body,
+    icon: '/icons/icon-192x192.png',
+    badge: '/icons/icon-192x192.png',
+    data: data.data,
+    actions: data.actions || [],
+    tag: data.tag || 'general',
+    requireInteraction: data.requireInteraction || false
+  };
+
+  event.waitUntil(
+    self.registration.showNotification(data.title, options)
+  );
+});
