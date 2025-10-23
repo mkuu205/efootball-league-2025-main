@@ -1,4 +1,4 @@
-/* eFootball League 2025 - Enhanced Styles with Notification System */
+/* eFootball League 2025 - Enhanced Styles for Online-Only Admin Panel */
 :root {
     --primary-color: #6a11cb;
     --secondary-color: #2575fc;
@@ -81,58 +81,10 @@ body {
     transform: translateY(-2px);
 }
 
-/* Install Button Styles */
-#install-button {
-    position: fixed !important;
-    bottom: 20px !important;
-    right: 20px !important;
-    z-index: 10000 !important;
-    background: linear-gradient(135deg, #28a745, #20c997) !important;
-    border: none !important;
-    color: white !important;
-    padding: 12px 20px !important;
-    border-radius: 50px !important;
-    font-weight: 600 !important;
-    box-shadow: 0 8px 25px rgba(40, 167, 69, 0.4) !important;
-    transition: all 0.3s ease !important;
-    animation: pulse 2s infinite !important;
-    display: flex !important;
-    align-items: center !important;
-    gap: 8px !important;
-    opacity: 1 !important;
-    visibility: visible !important;
-    font-size: 14px !important;
-}
-
-#install-button:hover {
-    transform: translateY(-3px) scale(1.05) !important;
-    box-shadow: 0 12px 30px rgba(40, 167, 69, 0.6) !important;
-}
-
-/* Hide any theme toggle elements */
-.theme-toggle {
-    display: none !important;
-}
-
-.btn.theme-toggle {
-    display: none !important;
-}
-
-.nav-item .theme-toggle {
-    display: none !important;
-}
-
-/* Hide any buttons with moon/sun icons */
-button[class*="btn-outline"]:has(.fa-moon),
-button[class*="btn-outline"]:has(.fa-sun) {
-    display: none !important;
-}
-
-/* Pulse animation for install button */
-@keyframes pulse {
-    0% { transform: scale(1); }
-    50% { transform: scale(1.05); }
-    100% { transform: scale(1); }
+/* Connection Status Badge */
+#connection-status {
+    font-size: 0.9rem;
+    padding: 0.5rem 1rem;
 }
 
 /* Mobile Navigation Improvements */
@@ -187,14 +139,6 @@ button[class*="btn-outline"]:has(.fa-sun) {
     .table td.player-cell {
         max-width: 120px;
         font-size: 0.8rem;
-    }
-
-    /* Mobile install button */
-    #install-button {
-        bottom: 15px !important;
-        right: 15px !important;
-        padding: 10px 16px !important;
-        font-size: 0.85rem !important;
     }
 }
 
@@ -353,6 +297,17 @@ button[class*="btn-outline"]:has(.fa-sun) {
 .btn-outline-light:hover {
     background: rgba(255, 255, 255, 0.1);
     border-color: var(--text-light);
+    transform: translateY(-2px);
+}
+
+.btn-outline-info {
+    border: 2px solid var(--info-color);
+    color: var(--info-color);
+}
+
+.btn-outline-info:hover {
+    background: var(--info-color);
+    color: white;
     transform: translateY(-2px);
 }
 
@@ -684,9 +639,62 @@ footer {
     text-overflow: ellipsis;
 }
 
-/* Ensure install button is always on top */
-#install-button {
-    z-index: 10000 !important;
+/* Database Management Styles */
+.server-status-card {
+    background: linear-gradient(135deg, rgba(40, 167, 69, 0.1), rgba(32, 201, 151, 0.1));
+    border-left: 4px solid var(--success-color);
+}
+
+.server-offline {
+    background: linear-gradient(135deg, rgba(220, 53, 69, 0.1), rgba(232, 62, 140, 0.1));
+    border-left: 4px solid var(--danger-color);
+}
+
+.refresh-button {
+    background: linear-gradient(135deg, var(--info-color), #6f42c1);
+    border: none;
+    color: white;
+}
+
+.refresh-button:hover {
+    background: linear-gradient(135deg, #138496, #5a3596);
+    transform: translateY(-2px);
+}
+
+/* Password Strength Indicator */
+.password-strength-container {
+    height: 8px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+    overflow: hidden;
+    margin-top: 5px;
+}
+
+.password-strength {
+    height: 100%;
+    width: 0%;
+    transition: width 0.3s, background-color 0.3s;
+    border-radius: 4px;
+}
+
+.password-weak {
+    background: var(--danger-color);
+    width: 25%;
+}
+
+.password-medium {
+    background: var(--warning-color);
+    width: 50%;
+}
+
+.password-strong {
+    background: var(--success-color);
+    width: 75%;
+}
+
+.password-very-strong {
+    background: var(--success-color);
+    width: 100%;
 }
 
 /* Extra Small Devices */
@@ -716,4 +724,66 @@ footer {
         max-width: 100px;
         font-size: 0.75rem;
     }
-        }
+    
+    /* Mobile admin adjustments */
+    .admin-section {
+        padding: 1rem;
+    }
+    
+    .nav-pills .nav-link {
+        padding: 0.5rem 1rem;
+        font-size: 0.85rem;
+        margin: 0.25rem;
+    }
+    
+    .ef-profile-image {
+        width: 60px;
+        height: 60px;
+    }
+}
+
+/* Connection Status Animations */
+@keyframes pulse-online {
+    0% { box-shadow: 0 0 0 0 rgba(40, 167, 69, 0.7); }
+    70% { box-shadow: 0 0 0 10px rgba(40, 167, 69, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(40, 167, 69, 0); }
+}
+
+@keyframes pulse-offline {
+    0% { box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.7); }
+    70% { box-shadow: 0 0 0 10px rgba(220, 53, 69, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(220, 53, 69, 0); }
+}
+
+.badge.bg-success {
+    animation: pulse-online 2s infinite;
+}
+
+.badge.bg-danger {
+    animation: pulse-offline 2s infinite;
+}
+
+/* Loading States */
+.loading {
+    opacity: 0.7;
+    pointer-events: none;
+}
+
+.loading::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 20px;
+    height: 20px;
+    margin: -10px 0 0 -10px;
+    border: 2px solid #f3f3f3;
+    border-top: 2px solid var(--primary-color);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
