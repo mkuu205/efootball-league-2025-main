@@ -17,16 +17,16 @@
                 <span class="navbar-brand mb-0 h1">eFootball League 2025 - Admin</span>
             </div>
             
-            <!-- Sync Status -->
+            <!-- Connection Status -->
             <div class="navbar-text ms-3">
-                <span id="sync-status" class="badge bg-success">
+                <span id="connection-status" class="badge bg-success">
                     <i class="fas fa-cloud me-1"></i>Online
                 </span>
             </div>
 
             <div class="navbar-nav ms-auto">
-                <button class="btn btn-outline-info btn-sm me-2" onclick="dataSync.manualSync()">
-                    <i class="fas fa-sync-alt me-1"></i> Sync Now
+                <button class="btn btn-outline-info btn-sm me-2" onclick="refreshData()">
+                    <i class="fas fa-sync-alt me-1"></i> Refresh
                 </button>
                 <a class="nav-link" href="index.html">
                     <i class="fas fa-arrow-left me-1"></i> Back to Site
@@ -216,8 +216,8 @@
                         </button>
                     </li>
                     <li class="nav-item" role="presentation">
-                        <button class="nav-link" id="sync-tab" data-bs-toggle="pill" data-bs-target="#admin-sync" type="button">
-                            <i class="fas fa-sync-alt me-2"></i> Sync & Backup
+                        <button class="nav-link" id="database-tab" data-bs-toggle="pill" data-bs-target="#admin-database" type="button">
+                            <i class="fas fa-database me-2"></i> Database
                         </button>
                     </li>
                 </ul>
@@ -274,7 +274,7 @@
                             <div class="card-header d-flex justify-content-between align-items-center">
                                 <span><i class="fas fa-list me-2"></i> Current Players</span>
                                 <div>
-                                    <button class="btn btn-sm btn-outline-light me-2" id="export-data">
+                                    <button class="btn btn-sm btn-outline-light me-2" onclick="exportData('players')">
                                         <i class="fas fa-download me-1"></i> Export Data
                                     </button>
                                     <span class="badge bg-primary fs-6" id="players-badge">0</span>
@@ -601,7 +601,7 @@
                                     <button type="submit" class="btn btn-primary me-2">
                                         <i class="fas fa-upload me-1"></i> Create Fixtures
                                     </button>
-                                    <button type="button" class="btn btn-outline-info" onclick="bulkOperations.generateFixtureTemplate()">
+                                    <button type="button" class="btn btn-outline-info" onclick="generateFixtureTemplate()">
                                         <i class="fas fa-download me-1"></i> Download Template
                                     </button>
                                 </form>
@@ -625,7 +625,7 @@
                                     <button type="submit" class="btn btn-primary me-2">
                                         <i class="fas fa-sync me-1"></i> Update Players
                                     </button>
-                                    <button type="button" class="btn btn-outline-info" onclick="bulkOperations.generatePlayerTemplate()">
+                                    <button type="button" class="btn btn-outline-info" onclick="generatePlayerTemplate()">
                                         <i class="fas fa-download me-1"></i> Download Template
                                     </button>
                                 </form>
@@ -649,7 +649,7 @@
                                     <button type="submit" class="btn btn-primary me-2">
                                         <i class="fas fa-save me-1"></i> Add Results
                                     </button>
-                                    <button type="button" class="btn btn-outline-info" onclick="bulkOperations.generateResultTemplate()">
+                                    <button type="button" class="btn btn-outline-info" onclick="generateResultTemplate()">
                                         <i class="fas fa-download me-1"></i> Download Template
                                     </button>
                                 </form>
@@ -664,7 +664,7 @@
                                 <div class="row">
                                     <div class="col-md-4">
                                         <h6>Players</h6>
-                                        <button class="btn btn-outline-success w-100 mb-2" onclick="bulkOperations.exportToCSV('players')">
+                                        <button class="btn btn-outline-success w-100 mb-2" onclick="exportToCSV('players')">
                                             <i class="fas fa-download me-1"></i> Export
                                         </button>
                                         <input type="file" class="form-control bg-dark text-light mb-2" id="import-players-file" accept=".csv">
@@ -674,7 +674,7 @@
                                     </div>
                                     <div class="col-md-4">
                                         <h6>Fixtures</h6>
-                                        <button class="btn btn-outline-success w-100 mb-2" onclick="bulkOperations.exportToCSV('fixtures')">
+                                        <button class="btn btn-outline-success w-100 mb-2" onclick="exportToCSV('fixtures')">
                                             <i class="fas fa-download me-1"></i> Export
                                         </button>
                                         <input type="file" class="form-control bg-dark text-light mb-2" id="import-fixtures-file" accept=".csv">
@@ -684,7 +684,7 @@
                                     </div>
                                     <div class="col-md-4">
                                         <h6>Results</h6>
-                                        <button class="btn btn-outline-success w-100 mb-2" onclick="bulkOperations.exportToCSV('results')">
+                                        <button class="btn btn-outline-success w-100 mb-2" onclick="exportToCSV('results')">
                                             <i class="fas fa-download me-1"></i> Export
                                         </button>
                                         <input type="file" class="form-control bg-dark text-light mb-2" id="import-results-file" accept=".csv">
@@ -697,32 +697,32 @@
                         </div>
                     </div>
 
-                    <!-- Sync & Backup Tab -->
-                    <div class="tab-pane fade" id="admin-sync" role="tabpanel">
+                    <!-- Database Tab -->
+                    <div class="tab-pane fade" id="admin-database" role="tabpanel">
                         <div class="card">
                             <div class="card-header">
-                                <i class="fas fa-sync-alt me-2"></i> Real-time Sync Control
+                                <i class="fas fa-database me-2"></i> Database Management
                             </div>
                             <div class="card-body">
                                 <div class="row">
                                     <div class="col-md-6">
-                                        <h5 class="text-warning mb-3">Sync Status</h5>
+                                        <h5 class="text-warning mb-3">Server Connection</h5>
                                         <div class="mb-3">
                                             <div class="d-flex justify-content-between mb-2">
-                                                <span>Server Connection:</span>
+                                                <span>Server Status:</span>
                                                 <span id="server-status" class="badge bg-success">Online</span>
                                             </div>
                                             <div class="d-flex justify-content-between mb-2">
-                                                <span>Last Sync:</span>
-                                                <span id="last-sync-time">Never</span>
+                                                <span>Last Refresh:</span>
+                                                <span id="last-refresh-time">Never</span>
                                             </div>
                                             <div class="d-flex justify-content-between">
                                                 <span>Data Version:</span>
                                                 <span id="data-version">v1.0</span>
                                             </div>
                                         </div>
-                                        <button class="btn btn-success w-100 mb-3" onclick="dataSync.manualSync()">
-                                            <i class="fas fa-sync me-2"></i> Sync Now
+                                        <button class="btn btn-success w-100 mb-3" onclick="refreshData()">
+                                            <i class="fas fa-sync me-2"></i> Refresh Data
                                         </button>
                                     </div>
                                     <div class="col-md-6">
@@ -743,12 +743,12 @@
 
                         <div class="card mt-4">
                             <div class="card-header">
-                                <i class="fas fa-database me-2"></i> Database Management
+                                <i class="fas fa-server me-2"></i> Server Actions
                             </div>
                             <div class="card-body">
                                 <div class="row">
                                     <div class="col-md-6">
-                                        <h6 class="text-warning">Server Actions</h6>
+                                        <h6 class="text-warning">Data Management</h6>
                                         <div class="mb-3">
                                             <button class="btn btn-outline-primary w-100 mb-2" onclick="pushToServer()">
                                                 <i class="fas fa-cloud-upload-alt me-1"></i> Push to Server
@@ -799,10 +799,25 @@
     <script src="js/notifications.js"></script>
     <script src="js/admin.js"></script>
     <script src="js/bulk-operations.js"></script>
+    <script src="js/export.js"></script>
 
     <script>
-        // Auto-close navbar on mobile when links are clicked
+        // Initialize the application
         document.addEventListener('DOMContentLoaded', function() {
+            // Set up event listeners
+            window.addEventListener('online', updateConnectionStatus);
+            window.addEventListener('offline', updateConnectionStatus);
+            
+            // Initialize connection status
+            updateConnectionStatus();
+            
+            // Update counts
+            updateCounts();
+            
+            // Set up auto-refresh every 30 seconds
+            setInterval(refreshData, 30000);
+            
+            // Auto-close navbar on mobile when links are clicked
             const navbarCollapse = document.querySelector('.navbar-collapse');
             const navLinks = document.querySelectorAll('.nav-link');
             
@@ -818,205 +833,76 @@
             });
         });
 
-        // Sync and backup functions
-        async function pushToServer() {
-            try {
-                const players = getData(DB_KEYS.PLAYERS);
-                const fixtures = getData(DB_KEYS.FIXTURES);
-                const results = getData(DB_KEYS.RESULTS);
-                
-                // Push each player
-                for (const player of players) {
-                    await eflAPI.addPlayer(player);
-                }
-                
-                // Push each fixture
-                for (const fixture of fixtures) {
-                    await eflAPI.addFixture(fixture);
-                }
-                
-                // Push each result
-                for (const result of results) {
-                    await eflAPI.addResult(result);
-                }
-                
-                showNotification('Data pushed to server successfully!', 'success');
-            } catch (error) {
-                showNotification('Failed to push data: ' + error.message, 'error');
-            }
-        }
-
-        async function pullFromServer() {
-            try {
-                await dataSync.manualSync();
-                showNotification('Data pulled from server successfully!', 'success');
-            } catch (error) {
-                showNotification('Failed to pull data: ' + error.message, 'error');
-            }
-        }
-
-        function exportTournamentData() {
-            const players = getData(DB_KEYS.PLAYERS);
-            const fixtures = getData(DB_KEYS.FIXTURES);
-            const results = getData(DB_KEYS.RESULTS);
+        // Connection status management
+        function updateConnectionStatus() {
+            const statusElement = document.getElementById('connection-status');
+            const serverStatusElement = document.getElementById('server-status');
             
-            const data = {
-                players,
-                fixtures,
-                results,
-                exportDate: new Date().toISOString(),
-                tournament: 'eFootball League 2025',
-                version: '1.0'
-            };
-            
-            const dataStr = JSON.stringify(data, null, 2);
-            const dataBlob = new Blob([dataStr], {type: 'application/json'});
-            
-            const url = URL.createObjectURL(dataBlob);
-            const link = document.createElement('a');
-            link.href = url;
-            link.download = `efootball_tournament_${new Date().toISOString().split('T')[0]}.json`;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            
-            showNotification('Tournament data exported successfully!', 'success');
-        }
-
-        function importTournamentData() {
-            const fileInput = document.getElementById('import-file');
-            const file = fileInput.files[0];
-            
-            if (!file) {
-                showNotification('Please select a file to import!', 'error');
-                return;
-            }
-            
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                try {
-                    const data = JSON.parse(e.target.result);
-                    
-                    if (confirm('This will replace all current tournament data. Continue?')) {
-                        if (data.players) saveData(DB_KEYS.PLAYERS, data.players);
-                        if (data.fixtures) saveData(DB_KEYS.FIXTURES, data.fixtures);
-                        if (data.results) saveData(DB_KEYS.RESULTS, data.results);
-                        
-                        showNotification('Tournament data imported successfully!', 'success');
-                        renderAdminPlayers();
-                        renderAdminFixtures();
-                        renderAdminResults();
-                        populatePlayerSelects();
-                        fileInput.value = '';
-                    }
-                } catch (error) {
-                    showNotification('Invalid tournament data file!', 'error');
-                }
-            };
-            reader.readAsText(file);
-        }
-
-        function resetAllResults() {
-            if (confirm('This will clear all match results but keep players and fixtures. Continue?')) {
-                saveData(DB_KEYS.RESULTS, []);
-                
-                // Mark all fixtures as unplayed
-                const fixtures = getData(DB_KEYS.FIXTURES);
-                fixtures.forEach(fixture => {
-                    fixture.played = false;
-                });
-                saveData(DB_KEYS.FIXTURES, fixtures);
-                
-                showNotification('All results have been cleared!', 'success');
-                renderAdminResults();
-                renderAdminFixtures();
-            }
-        }
-
-        function resetTournament() {
-            if (confirm('⚠️ DANGER: This will reset the entire tournament and delete all LOCAL data! This cannot be undone. Continue?')) {
-                localStorage.removeItem(DB_KEYS.PLAYERS);
-                localStorage.removeItem(DB_KEYS.FIXTURES);
-                localStorage.removeItem(DB_KEYS.RESULTS);
-                
-                // Reinitialize with default players
-                initializeDatabase();
-                
-                showNotification('Local tournament data has been reset to default settings!', 'success');
-                renderAdminPlayers();
-                renderAdminFixtures();
-                renderAdminResults();
-                populatePlayerSelects();
-            }
-        }
-
-        // MongoDB Reset Function
-        async function resetMongoDB() {
-            if (confirm('⚠️ DANGER: This will reset the ENTIRE tournament in MongoDB database! This cannot be undone. Continue?')) {
-                try {
-                    showNotification('Resetting MongoDB database...', 'info');
-                    
-                    const response = await fetch('/api/initialize', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        }
-                    });
-
-                    const result = await response.json();
-                    
-                    if (result.success) {
-                        showNotification('MongoDB database reset successfully! Re-syncing data...', 'success');
-                        
-                        // Clear local storage first
-                        localStorage.removeItem(DB_KEYS.PLAYERS);
-                        localStorage.removeItem(DB_KEYS.FIXTURES);
-                        localStorage.removeItem(DB_KEYS.RESULTS);
-                        
-                        // Reinitialize database which will pull from MongoDB
-                        await initializeDatabase();
-                        
-                        // Refresh all admin displays
-                        renderAdminPlayers();
-                        renderAdminFixtures();
-                        renderAdminResults();
-                        populatePlayerSelects();
-                        
-                        showNotification('MongoDB reset complete! All data has been re-synced.', 'success');
-                    } else {
-                        showNotification('Failed to reset MongoDB: ' + result.error, 'error');
-                    }
-                } catch (error) {
-                    console.error('MongoDB reset failed:', error);
-                    showNotification('Failed to reset MongoDB. Server might be offline. Using local data only.', 'error');
-                }
-            }
-        }
-
-        // Update sync status display
-        function updateSyncDisplay() {
-            const lastSync = localStorage.getItem('efl_last_sync');
-            const dataVersion = localStorage.getItem('efl_data_version') || 'v1.0';
-            
-            if (lastSync) {
-                document.getElementById('last-sync-time').textContent = new Date(lastSync).toLocaleString();
-            }
-            document.getElementById('data-version').textContent = dataVersion;
-            
-            if (eflAPI.isOnline) {
-                document.getElementById('server-status').className = 'badge bg-success';
-                document.getElementById('server-status').textContent = 'Online';
+            if (navigator.onLine) {
+                statusElement.className = 'badge bg-success';
+                statusElement.innerHTML = '<i class="fas fa-cloud me-1"></i>Online';
+                serverStatusElement.className = 'badge bg-success';
+                serverStatusElement.textContent = 'Online';
             } else {
-                document.getElementById('server-status').className = 'badge bg-danger';
-                document.getElementById('server-status').textContent = 'Offline';
+                statusElement.className = 'badge bg-danger';
+                statusElement.innerHTML = '<i class="fas fa-cloud-slash me-1"></i>Offline';
+                serverStatusElement.className = 'badge bg-danger';
+                serverStatusElement.textContent = 'Offline';
             }
         }
 
-        // Initialize sync display
-        document.addEventListener('DOMContentLoaded', function() {
-            setInterval(updateSyncDisplay, 5000);
-            updateSyncDisplay();
-        });
+        // Update last refresh time
+        function updateLastRefreshTime() {
+            const lastRefreshElement = document.getElementById('last-refresh-time');
+            lastRefreshElement.textContent = new Date().toLocaleString();
+        }
+
+        // Update counts in the UI
+        function updateCounts() {
+            const players = getData('efl_players') || [];
+            const fixtures = getData('efl_fixtures') || [];
+            const results = getData('efl_results') || [];
+            
+            document.getElementById('players-count').textContent = players.length;
+            document.getElementById('fixtures-count').textContent = fixtures.length;
+            document.getElementById('results-count').textContent = results.length;
+            
+            if (document.getElementById('players-badge')) {
+                document.getElementById('players-badge').textContent = players.length;
+            }
+            if (document.getElementById('fixtures-badge')) {
+                document.getElementById('fixtures-badge').textContent = fixtures.length;
+            }
+            if (document.getElementById('results-badge')) {
+                document.getElementById('results-badge').textContent = results.length;
+            }
+        }
+
+        // Utility functions
+        function getData(key) {
+            const data = localStorage.getItem(key);
+            return data ? JSON.parse(data) : [];
+        }
+
+        function showNotification(message, type = 'info') {
+            // Create notification element
+            const notification = document.createElement('div');
+            notification.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
+            notification.style.cssText = 'top: 20px; right: 20px; z-index: 1050; min-width: 300px;';
+            notification.innerHTML = `
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            
+            document.body.appendChild(notification);
+            
+            // Auto remove after 5 seconds
+            setTimeout(() => {
+                if (notification.parentNode) {
+                    notification.remove();
+                }
+            }, 5000);
+        }
     </script>
 </body>
-                                                    </html>
+    </html>
