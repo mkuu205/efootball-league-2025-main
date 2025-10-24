@@ -179,15 +179,13 @@
     
     <!-- Simple Auth Script -->
     <script>
-        // Replace with your actual Supabase project details
-        const SUPABASE_URL = 'https://zliedzrqzvywlsyfggcq.supabase.co';
-        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpsaWVkenJxenZ5d2xzeWZnZ2NxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjEwOTE4NjYsImV4cCI6MjA3NjY2Nzg2Nn0.NbzEZ4ievehtrlyOxCK_mheb7YU4SnNgC0uXuOKPNOI';
-        const ADMIN_EMAIL = 'support@kishtechsite.online';
-
         // Simple Auth System
         class SimpleAuth {
             constructor() {
-                this.supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+                this.supabase = supabase.createClient(
+                    'https://zliedzrqzvywlsyfggcq.supabase.co',
+                    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpsaWVkenJxenZ5d2xzeWZnZ2NxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjEwOTE4NjYsImV4cCI6MjA3NjY2Nzg2Nn0.NbzEZ4ievehtrlyOxCK_mheb7YU4SnNgC0uXuOKPNOI'
+                );
                 this.setupEventListeners();
                 this.checkExistingSession();
             }
