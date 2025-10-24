@@ -1,55 +1,58 @@
-// public/js/notifications.js
+// ==================== Notifications Manager ====================
 
-const publicVapidKey =
-  "BEOg5DAEgXVUZfVsnaDe72yBrCAJp4mEPs150PwJpaHUbc8kgSOp0Wz9pgzJd8GMuzQfoxbECKCjZ7HGnpsrwhs"; // your public key
+// ✅ Helper to convert VAPID key
+function urlBase64ToUint8Array(base64String) {
+  const padding = "=".repeat((4 - base64String.length % 4) % 4);
+  const base64 = (base64String + padding).replace(/\-/g, "+").replace(/_/g, "/");
+  const rawData = window.atob(base64);
+  return Uint8Array.from([...rawData].map((char) => char.charCodeAt(0)));
+}
 
-// ✅ Register Service Worker & Subscribe
+// ✅ Your public VAPID key (replace with yours if different)
+const VAPID_PUBLIC_KEY = "BEOg5DAEgXVUZfVsnaDe72yBrCAJp4mEPs150PwJpaHUbc8kgSOp0Wz9pgzJd8GMuzQfoxbECKCjZ7HGnpsrwhs";
+
+// ✅ Register Service Worker and subscribe for push notifications
 async function registerPush() {
-  if (!("serviceWorker" in navigator)) {
-    console.warn("Service workers are not supported in this browser.");
-    return;
-  }
-
   try {
-    console.log("Registering service worker...");
+    console.log("Registering Service Worker...");
     const registration = await navigator.serviceWorker.register("/service-worker.js");
-    console.log("Service Worker registered ✅");
+    console.log("Service Worker registered ✅", registration);
 
     console.log("Requesting notification permission...");
     const permission = await Notification.requestPermission();
+
     if (permission !== "granted") {
       console.warn("Notification permission denied ❌");
       return;
     }
 
     console.log("Subscribing to push notifications...");
-    const subscription = await register.pushManager.subscribe({
+    const subscription = await registration.pushManager.subscribe({
       userVisibleOnly: true,
-      applicationServerKey: urlBase64ToUint8Array(publicVapidKey),
+      applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
     });
 
-    console.log("Sending subscription to server...");
+    console.log("Push subscription success ✅", subscription);
+
+    // ✅ Send subscription to your backend
     await fetch("/api/save-subscription", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(subscription),
+      body: JSON.stringify(subscription)
     });
 
-    console.log("✅ Push subscription saved on server");
-  } catch (err) {
-    console.error("Push registration failed ❌", err);
+    console.log("Push subscription saved on server ✅");
+
+  } catch (error) {
+    console.error("Push registration failed ❌", error);
   }
 }
 
-// ✅ Utility: convert VAPID key
-function urlBase64ToUint8Array(base64String) {
-  const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
-  const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
-  const rawData = window.atob(base64);
-  const outputArray = new Uint8Array(rawData.length);
-  for (let i = 0; i < rawData.length; ++i) outputArray[i] = rawData.charCodeAt(i);
-  return outputArray;
-}
-
-// ✅ Auto-register on load
-window.addEventListener("load", registerPush);
+// ✅ Initialize notification setup
+(async () => {
+  if ("serviceWorker" in navigator && "PushManager" in window) {
+    await registerPush();
+  } else {
+    console.warn("Push notifications are not supported on this browser ❌");
+  }
+})();
