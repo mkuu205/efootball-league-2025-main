@@ -221,6 +221,12 @@ async function updateNavigationAuth() {
                     </ul>
                 </li>
             `;
+
+            // Show admin nav item if user is admin
+            const adminNavItem = document.getElementById('admin-nav-item');
+            if (adminNavItem && isAdmin) {
+                adminNavItem.style.display = 'block';
+            }
         } else {
             authNav.innerHTML = `
                 <li class="nav-item">
@@ -276,7 +282,49 @@ async function protectPages() {
     }
 }
 
-// Initialize auth on page load
+// Initialize app features after authentication
+function initializeAppFeatures() {
+    console.log('Initializing app features...');
+    
+    // Initialize any app-specific features that depend on authentication
+    if (typeof dataSync !== 'undefined' && typeof dataSync.initialize === 'function') {
+        dataSync.initialize();
+    }
+    
+    if (typeof imageExporter !== 'undefined' && typeof imageExporter.initialize === 'function') {
+        imageExporter.initialize();
+    }
+    
+    // Initialize tab system
+    const tabLinks = document.querySelectorAll('[data-tab]');
+    tabLinks.forEach(link => {
+        link.addEventListener('click', function(e) {
+            e.preventDefault();
+            const tabId = this.getAttribute('data-tab');
+            
+            // Hide all tab panes
+            document.querySelectorAll('.tab-pane').forEach(pane => {
+                pane.classList.remove('show', 'active');
+            });
+            
+            // Show selected tab pane
+            const targetPane = document.getElementById(tabId);
+            if (targetPane) {
+                targetPane.classList.add('show', 'active');
+            }
+            
+            // Update active nav link
+            document.querySelectorAll('.nav-link').forEach(navLink => {
+                navLink.classList.remove('active');
+            });
+            this.classList.add('active');
+        });
+    });
+    
+    console.log('App features initialized');
+}
+
+// Initialize auth on page load for main site
 document.addEventListener('DOMContentLoaded', async function() {
     console.log('=== AUTH SYSTEM INITIALIZING ===');
     console.log('Current page:', window.location.pathname);
@@ -297,3 +345,4 @@ window.logout = logout;
 window.checkAuth = checkAuth;
 window.checkAdminAuth = checkAdminAuth;
 window.showNotification = showNotification;
+window.initializeAppFeatures = initializeAppFeatures;
