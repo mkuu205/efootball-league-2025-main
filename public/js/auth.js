@@ -10,6 +10,139 @@ const supabase = supabase.createClient(supabaseUrl, supabaseKey);
 // Track redirect state to prevent loops
 let redirectInProgress = false;
 
+// Beautiful Notification System
+function showNotification(message, type = 'info') {
+    // Create notification container if it doesn't exist
+    let container = document.getElementById('notification-container');
+    if (!container) {
+        container = document.createElement('div');
+        container.id = 'notification-container';
+        container.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 9999;
+            max-width: 400px;
+        `;
+        document.body.appendChild(container);
+        
+        // Add CSS animations if not already added
+        if (!document.getElementById('notification-styles')) {
+            const style = document.createElement('style');
+            style.id = 'notification-styles';
+            style.textContent = `
+                @keyframes slideInRight {
+                    from {
+                        transform: translateX(100%);
+                        opacity: 0;
+                    }
+                    to {
+                        transform: translateX(0);
+                        opacity: 1;
+                    }
+                }
+                
+                @keyframes slideOutRight {
+                    from {
+                        transform: translateX(0);
+                        opacity: 1;
+                    }
+                    to {
+                        transform: translateX(100%);
+                        opacity: 0;
+                    }
+                }
+                
+                .notification {
+                    background: linear-gradient(135deg, #ff4444, #cc0000);
+                    color: white;
+                    padding: 16px 20px;
+                    margin-bottom: 10px;
+                    border-radius: 12px;
+                    box-shadow: 0 8px 25px rgba(0,0,0,0.2);
+                    border-left: 4px solid rgba(255,255,255,0.3);
+                    backdrop-filter: blur(10px);
+                    animation: slideInRight 0.3s ease-out;
+                    min-width: 300px;
+                }
+            `;
+            document.head.appendChild(style);
+        }
+    }
+
+    const notification = document.createElement('div');
+    
+    const styles = {
+        success: {
+            background: 'linear-gradient(135deg, #4CAF50, #45a049)',
+            icon: 'fas fa-check-circle',
+            title: 'Success!'
+        },
+        error: {
+            background: 'linear-gradient(135deg, #ff4444, #cc0000)',
+            icon: 'fas fa-exclamation-triangle',
+            title: 'Oops!'
+        },
+        warning: {
+            background: 'linear-gradient(135deg, #ff9800, #f57c00)',
+            icon: 'fas fa-exclamation-circle',
+            title: 'Warning'
+        },
+        info: {
+            background: 'linear-gradient(135deg, #2196F3, #1976D2)',
+            icon: 'fas fa-info-circle',
+            title: 'Info'
+        }
+    };
+
+    const style = styles[type] || styles.info;
+
+    notification.innerHTML = `
+        <div class="notification" style="
+            background: ${style.background};
+            color: white;
+            padding: 16px 20px;
+            margin-bottom: 10px;
+            border-radius: 12px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.2);
+            border-left: 4px solid rgba(255,255,255,0.3);
+            backdrop-filter: blur(10px);
+            animation: slideInRight 0.3s ease-out;
+            min-width: 300px;
+        ">
+            <div style="display: flex; align-items: flex-start; gap: 12px;">
+                <i class="${style.icon}" style="font-size: 20px; margin-top: 2px;"></i>
+                <div style="flex: 1;">
+                    <div style="font-weight: 600; font-size: 14px; margin-bottom: 4px;">${style.title}</div>
+                    <div style="font-size: 13px; line-height: 1.4; opacity: 0.9;">${message}</div>
+                </div>
+                <button onclick="this.parentElement.parentElement.remove()" style="
+                    background: none;
+                    border: none;
+                    color: white;
+                    cursor: pointer;
+                    padding: 4px;
+                    border-radius: 4px;
+                    opacity: 0.7;
+                    transition: opacity 0.2s;
+                " onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.7'">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        </div>
+    `;
+
+    container.appendChild(notification);
+
+    // Auto remove after 5 seconds
+    setTimeout(() => {
+        if (notification.parentElement) {
+            notification.style.animation = 'slideOutRight 0.3s ease-in';
+            setTimeout(() => notification.remove(), 300);
+        }
+    }, 5000);
+}
+
 // Check if user is authenticated
 async function checkAuth() {
     try {
@@ -163,3 +296,4 @@ document.addEventListener('DOMContentLoaded', async function() {
 window.logout = logout;
 window.checkAuth = checkAuth;
 window.checkAdminAuth = checkAdminAuth;
+window.showNotification = showNotification;
