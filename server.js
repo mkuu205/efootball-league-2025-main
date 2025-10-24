@@ -155,14 +155,17 @@ app.post("/api/send-notification", async (req, res) => {
   res.json({ success: true, message: "Notifications sent!", failedCount: failed.length });
 });
 
+
 // ==================== STATIC FILES ====================
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(path.join(__dirname, 'public'))); 
+
 app.use('/css', express.static(path.join(__dirname, 'public/css')));
 app.use('/js', express.static(path.join(__dirname, 'public/js')));
 app.use('/icons', express.static(path.join(__dirname, 'public/icons')));
 
-app.get('/admin.html', (req, res) => res.sendFile(path.join(__dirname, 'public/admin.html')));
-app.get('*', (req, res) => res.sendFile(path.join(__dirname, 'public/index.html')));
+app.get('/admin.html', (req, res) => res.sendFile(path.join(__dirname, 'admin.html')));
+app.get('*', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
+
 
 // ==================== ERROR HANDLING ====================
 app.use((err, req, res, next) => {
