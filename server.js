@@ -139,11 +139,13 @@ require('./api/send-notification')(app);
 
 
 // ==================== STATIC FILES ====================
+app.use(express.static(path.join(__dirname, 'public'))); 
 app.use('/css', express.static(path.join(__dirname, 'public/css')));
 app.use('/js', express.static(path.join(__dirname, 'public/js')));
 app.use('/icons', express.static(path.join(__dirname, 'public/icons')));
 app.get('/admin.html', (req, res) => res.sendFile(path.join(__dirname, 'admin.html')));
 app.get('*', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
+
 
 // Error handling middleware
 app.use((err, req, res, next) => {
