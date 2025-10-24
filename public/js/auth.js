@@ -1,20 +1,31 @@
 // Simple Auth Functions for Main Site
 const ADMIN_EMAIL = 'support@kishtechsite.online';
 
-// Create Supabase client for live domain
+// Create Supabase client
 const supabaseUrl = 'https://zliedzrqzvywlsyfggcq.supabase.co';
 const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpsaWVkenJxenZ5d2xzeWZnZ2NxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjEwOTE4NjYsImV4cCI6MjA3NjY2Nzg2Nn0.NbzEZ4ievehtrlyOxCK_mheb7YU4SnNgC0uXuOKPNOI';
 
 const supabase = supabase.createClient(supabaseUrl, supabaseKey);
 
+// Track redirect state to prevent loops
+let redirectInProgress = false;
+
 // Check if user is authenticated
 async function checkAuth() {
     try {
         const { data: { session }, error } = await supabase.auth.getSession();
+        
         if (error) {
             console.error('Auth check error:', error);
             return false;
         }
+        
+        console.log('Session check:', {
+            hasSession: !!session,
+            user: session?.user?.email,
+            expires: session?.expires_at
+        });
+        
         return !!session;
     } catch (error) {
         console.error('Auth check failed:', error);
@@ -50,7 +61,10 @@ async function logout() {
 // Update navigation based on auth state
 async function updateNavigationAuth() {
     const authNav = document.getElementById('auth-nav');
-    if (!authNav) return;
+    if (!authNav) {
+        console.log('auth-nav element not found');
+        return;
+    }
 
     try {
         const isAuthenticated = await checkAuth();
@@ -95,20 +109,33 @@ async function updateNavigationAuth() {
     }
 }
 
-// Protect pages - but don't redirect on auth.html
+// Protect pages - with loop prevention
 async function protectPages() {
     // Never protect auth.html
     if (window.location.pathname.includes('auth.html')) {
+        console.log('Auth page - skipping protection');
+        return;
+    }
+
+    // Prevent multiple redirects
+    if (redirectInProgress) {
+        console.log('Redirect already in progress, skipping');
         return;
     }
 
     try {
         const isAuthenticated = await checkAuth();
         
-        // Only redirect if we're sure user is not authenticated
         if (!isAuthenticated) {
             console.log('User not authenticated, redirecting to auth page');
-            window.location.href = 'auth.html';
+            redirectInProgress = true;
+            
+            // Use a small delay to allow logs to show
+            setTimeout(() => {
+                window.location.href = 'auth.html';
+            }, 100);
+        } else {
+            console.log('User authenticated, allowing access');
         }
     } catch (error) {
         console.error('Page protection error:', error);
@@ -118,7 +145,8 @@ async function protectPages() {
 
 // Initialize auth on page load
 document.addEventListener('DOMContentLoaded', async function() {
-    console.log('Auth system initializing...');
+    console.log('=== AUTH SYSTEM INITIALIZING ===');
+    console.log('Current page:', window.location.pathname);
     
     // Update navigation (this never redirects)
     await updateNavigationAuth();
@@ -128,7 +156,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         await protectPages();
     }
     
-    console.log('Auth system initialized');
+    console.log('=== AUTH SYSTEM INITIALIZED ===');
 });
 
 // Make functions global
