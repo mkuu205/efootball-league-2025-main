@@ -173,205 +173,241 @@
     
     <!-- Simple Auth Script -->
     <script>
-        // Simple Auth System
-        class SimpleAuth {
-            constructor() {
-                this.supabase = supabase.createClient(
-                    'https://zliedzrqzvywlsyfggcq.supabase.co',
-                    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpsaWVkenJxenZ5d2xzeWZnZ2NxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjEwOTE4NjYsImV4cCI6MjA3NjY2Nzg2Nn0.NbzEZ4ievehtrlyOxCK_mheb7YU4SnNgC0uXuOKPNOI'
-                );
-                this.setupEventListeners();
-                this.checkExistingSession();
-            }
-
-            setupEventListeners() {
-                // Form mode switching
-                document.getElementById('login-mode').addEventListener('change', () => this.showForm('login'));
-                document.getElementById('register-mode').addEventListener('change', () => this.showForm('register'));
-                document.getElementById('forgot-password').addEventListener('click', (e) => {
-                    e.preventDefault();
-                    this.showForm('forgot');
-                });
-                document.querySelector('.back-to-login').addEventListener('click', (e) => {
-                    e.preventDefault();
-                    this.showForm('login');
-                    document.getElementById('login-mode').checked = true;
-                });
-
-                // Form submissions
-                document.getElementById('login-form').addEventListener('submit', (e) => this.handleLogin(e));
-                document.getElementById('register-form').addEventListener('submit', (e) => this.handleRegister(e));
-                document.getElementById('forgot-form').addEventListener('submit', (e) => this.handleForgotPassword(e));
-            }
-
-            showForm(formType) {
-                // Hide all forms
-                document.getElementById('login-form').style.display = 'none';
-                document.getElementById('register-form').style.display = 'none';
-                document.getElementById('forgot-form').style.display = 'none';
-                document.getElementById('success-message').style.display = 'none';
-
-                // Show selected form
-                if (formType === 'login') {
-                    document.getElementById('login-form').style.display = 'block';
-                } else if (formType === 'register') {
-                    document.getElementById('register-form').style.display = 'block';
-                } else if (formType === 'forgot') {
-                    document.getElementById('forgot-form').style.display = 'block';
-                }
-            }
-
-            showLoading() {
-                document.querySelector('.loading-overlay').style.display = 'flex';
-            }
-
-            hideLoading() {
-                document.querySelector('.loading-overlay').style.display = 'none';
-            }
-
-            showSuccess(message) {
-                document.getElementById('success-text').textContent = message;
-                document.getElementById('success-message').style.display = 'block';
-                
-                // Hide success message after 5 seconds
-                setTimeout(() => {
-                    document.getElementById('success-message').style.display = 'none';
-                }, 5000);
-            }
-
-            showError(message) {
-                alert('Error: ' + message);
-            }
-
-            async checkExistingSession() {
-                try {
-                    const { data: { session } } = await this.supabase.auth.getSession();
-                    if (session) {
-                        // Redirect to main site if already logged in
-                        window.location.href = 'index.html';
+    class SimpleAuth {
+        constructor() {
+            // Initialize Supabase with proper configuration
+            this.supabase = supabase.createClient(
+                'https://zliedzrqzvywlsyfggcq.supabase.co',
+                'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpsaWVkenJxenZ5d2xzeWZnZ2NxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjEwOTE4NjYsImV4cCI6MjA3NjY2Nzg2Nn0.NbzEZ4ievehtrlyOxCK_mheb7YU4SnNgC0uXuOKPNOI',
+                {
+                    auth: {
+                        autoRefreshToken: true,
+                        persistSession: true,
+                        detectSessionInUrl: true,
+                        flowType: 'pkce'
                     }
-                } catch (error) {
-                    console.log('No existing session');
                 }
-            }
-
-            async handleLogin(e) {
-    e.preventDefault();
-    this.showLoading();
-
-    const email = document.getElementById('email').value;
-    const password = document.getElementById('password').value;
-
-    try {
-        const { data, error } = await this.supabase.auth.signInWithPassword({
-            email: email,
-            password: password
-        });
-
-        if (error) throw error;
-
-        if (data.user) {
-            if (!data.user.email_confirmed_at) {
-                throw new Error('Please check your email to confirm your account before logging in.');
-            }
-
-            this.showSuccess('Login successful! Redirecting...');
+            );
             
-            // Redirect to main site after successful login
-            setTimeout(() => {
-                window.location.href = 'index.html';
-            }, 1000);
+            this.setupEventListeners();
+            this.checkExistingSession();
+            this.setupAuthStateListener();
         }
 
-    } catch (error) {
-        this.showError(error.message);
-    } finally {
-        this.hideLoading();
-    }
-}
-            async handleRegister(e) {
+        setupAuthStateListener() {
+            // Listen for auth state changes
+            this.supabase.auth.onAuthStateChange((event, session) => {
+                console.log('Auth state changed:', event, session);
+                
+                if (event === 'SIGNED_IN' && session) {
+                    console.log('User signed in:', session.user.email);
+                    // Redirect to main site after successful login
+                    setTimeout(() => {
+                        window.location.href = 'index.html';
+                    }, 1000);
+                }
+                
+                if (event === 'SIGNED_OUT') {
+                    console.log('User signed out');
+                }
+            });
+        }
+
+        setupEventListeners() {
+            // Form mode switching
+            document.getElementById('login-mode').addEventListener('change', () => this.showForm('login'));
+            document.getElementById('register-mode').addEventListener('change', () => this.showForm('register'));
+            document.getElementById('forgot-password').addEventListener('click', (e) => {
                 e.preventDefault();
-                this.showLoading();
+                this.showForm('forgot');
+            });
+            document.querySelector('.back-to-login').addEventListener('click', (e) => {
+                e.preventDefault();
+                this.showForm('login');
+                document.getElementById('login-mode').checked = true;
+            });
 
-                const email = document.getElementById('register-email').value;
-                const password = document.getElementById('register-password').value;
-                const confirmPassword = document.getElementById('confirm-password').value;
+            // Form submissions
+            document.getElementById('login-form').addEventListener('submit', (e) => this.handleLogin(e));
+            document.getElementById('register-form').addEventListener('submit', (e) => this.handleRegister(e));
+            document.getElementById('forgot-form').addEventListener('submit', (e) => this.handleForgotPassword(e));
+        }
 
-                // Basic validation
-                if (password !== confirmPassword) {
-                    this.showError('Passwords do not match');
-                    this.hideLoading();
-                    return;
+        showForm(formType) {
+            // Hide all forms
+            document.getElementById('login-form').style.display = 'none';
+            document.getElementById('register-form').style.display = 'none';
+            document.getElementById('forgot-form').style.display = 'none';
+            document.getElementById('success-message').style.display = 'none';
+
+            // Show selected form
+            if (formType === 'login') {
+                document.getElementById('login-form').style.display = 'block';
+            } else if (formType === 'register') {
+                document.getElementById('register-form').style.display = 'block';
+            } else if (formType === 'forgot') {
+                document.getElementById('forgot-form').style.display = 'block';
+            }
+        }
+
+        showLoading() {
+            document.querySelector('.loading-overlay').style.display = 'flex';
+        }
+
+        hideLoading() {
+            document.querySelector('.loading-overlay').style.display = 'none';
+        }
+
+        showSuccess(message) {
+            document.getElementById('success-text').textContent = message;
+            document.getElementById('success-message').style.display = 'block';
+            
+            // Hide success message after 5 seconds
+            setTimeout(() => {
+                document.getElementById('success-message').style.display = 'none';
+            }, 5000);
+        }
+
+        showError(message) {
+            alert('Error: ' + message);
+        }
+
+        async checkExistingSession() {
+            try {
+                const { data: { session } } = await this.supabase.auth.getSession();
+                if (session) {
+                    console.log('Already logged in as:', session.user.email);
+                    // Redirect to main site if already logged in
+                    window.location.href = 'index.html';
                 }
+            } catch (error) {
+                console.log('No existing session or error:', error);
+            }
+        }
 
-                if (password.length < 6) {
-                    this.showError('Password must be at least 6 characters long');
-                    this.hideLoading();
-                    return;
-                }
+        async handleLogin(e) {
+            e.preventDefault();
+            this.showLoading();
 
-                try {
-                    const { data, error } = await this.supabase.auth.signUp({
-                        email: email,
-                        password: password,
-                        options: {
-                            emailRedirectTo: `${window.location.origin}/auth.html`
-                        }
-                    });
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
 
-                    if (error) throw error;
+            try {
+                const { data, error } = await this.supabase.auth.signInWithPassword({
+                    email: email,
+                    password: password
+                });
 
-                    if (data.user) {
-                        this.showSuccess('Registration successful! Please check your email to confirm your account.');
-                        document.getElementById('register-form').reset();
-                        
-                        // Switch back to login form
-                        setTimeout(() => {
-                            this.showForm('login');
-                            document.getElementById('login-mode').checked = true;
-                        }, 3000);
+                if (error) throw error;
+
+                if (data.user) {
+                    if (!data.user.email_confirmed_at) {
+                        throw new Error('Please check your email to confirm your account before logging in.');
                     }
 
-                } catch (error) {
-                    this.showError(error.message);
-                } finally {
-                    this.hideLoading();
+                    this.showSuccess('Login successful! Redirecting...');
+                    // Auth state listener will handle the redirect
                 }
-            }
 
-            async handleForgotPassword(e) {
-                e.preventDefault();
-                this.showLoading();
-
-                const email = document.getElementById('reset-email').value;
-
-                try {
-                    const { error } = await this.supabase.auth.resetPasswordForEmail(email, {
-                        redirectTo: `${window.location.origin}/auth.html`
-                    });
-
-                    if (error) throw error;
-
-                    this.showSuccess('Password reset link sent! Check your email.');
-                    document.getElementById('forgot-form').reset();
-
-                } catch (error) {
-                    this.showError(error.message);
-                } finally {
-                    this.hideLoading();
-                }
+            } catch (error) {
+                this.showError(error.message);
+            } finally {
+                this.hideLoading();
             }
         }
 
-        // Initialize auth system when page loads
-        document.addEventListener('DOMContentLoaded', () => {
-            new SimpleAuth();
-        });
+        async handleRegister(e) {
+            e.preventDefault();
+            this.showLoading();
 
-        // Handle password reset callback
-        if (window.location.hash.includes('type=recovery')) {
-            alert('Please check your email for password reset instructions.');
+            const email = document.getElementById('register-email').value;
+            const password = document.getElementById('register-password').value;
+            const confirmPassword = document.getElementById('confirm-password').value;
+
+            // Basic validation
+            if (password !== confirmPassword) {
+                this.showError('Passwords do not match');
+                this.hideLoading();
+                return;
+            }
+
+            if (password.length < 6) {
+                this.showError('Password must be at least 6 characters long');
+                this.hideLoading();
+                return;
+            }
+
+            try {
+                const { data, error } = await this.supabase.auth.signUp({
+                    email: email,
+                    password: password,
+                    options: {
+                        emailRedirectTo: `${window.location.origin}/auth.html`
+                    }
+                });
+
+                if (error) {
+                    // Handle specific Supabase errors
+                    if (error.message.includes('User already registered')) {
+                        throw new Error('This email is already registered. Please login instead.');
+                    } else if (error.message.includes('password')) {
+                        throw new Error('Password is too weak. Please use a stronger password.');
+                    } else {
+                        throw error;
+                    }
+                }
+
+                if (data.user) {
+                    this.showSuccess('Registration successful! Please check your email to confirm your account.');
+                    document.getElementById('register-form').reset();
+                    
+                    // Switch back to login form
+                    setTimeout(() => {
+                        this.showForm('login');
+                        document.getElementById('login-mode').checked = true;
+                    }, 3000);
+                }
+
+            } catch (error) {
+                this.showError(error.message);
+            } finally {
+                this.hideLoading();
+            }
         }
-    </script>
+
+        async handleForgotPassword(e) {
+            e.preventDefault();
+            this.showLoading();
+
+            const email = document.getElementById('reset-email').value;
+
+            try {
+                const { error } = await this.supabase.auth.resetPasswordForEmail(email, {
+                    redirectTo: `${window.location.origin}/auth.html`
+                });
+
+                if (error) throw error;
+
+                this.showSuccess('Password reset link sent! Check your email.');
+                document.getElementById('forgot-form').reset();
+
+            } catch (error) {
+                this.showError(error.message);
+            } finally {
+                this.hideLoading();
+            }
+        }
+    }
+
+    // Initialize auth system when page loads
+    document.addEventListener('DOMContentLoaded', () => {
+        new SimpleAuth();
+    });
+
+    // Handle password reset callback
+    if (window.location.hash.includes('type=recovery')) {
+        alert('Please check your email for password reset instructions.');
+    }
+</script>
 </body>
 </html>
