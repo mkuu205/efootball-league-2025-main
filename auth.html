@@ -154,6 +154,12 @@
                 <i class="fas fa-check-circle me-2"></i>
                 <span id="success-text"></span>
             </div>
+
+            <!-- Error Messages -->
+            <div id="error-message" class="alert alert-danger text-center" style="display: none;">
+                <i class="fas fa-exclamation-triangle me-2"></i>
+                <span id="error-text"></span>
+            </div>
         </div>
     </div>
 
@@ -212,6 +218,7 @@
                 document.getElementById('register-form').style.display = 'none';
                 document.getElementById('forgot-form').style.display = 'none';
                 document.getElementById('success-message').style.display = 'none';
+                document.getElementById('error-message').style.display = 'none';
 
                 // Show selected form
                 if (formType === 'login') {
@@ -234,6 +241,7 @@
             showSuccess(message) {
                 document.getElementById('success-text').textContent = message;
                 document.getElementById('success-message').style.display = 'block';
+                document.getElementById('error-message').style.display = 'none';
                 
                 // Hide success message after 5 seconds
                 setTimeout(() => {
@@ -242,7 +250,14 @@
             }
 
             showError(message) {
-                alert('Error: ' + message);
+                document.getElementById('error-text').textContent = message;
+                document.getElementById('error-message').style.display = 'block';
+                document.getElementById('success-message').style.display = 'none';
+                
+                // Hide error message after 5 seconds
+                setTimeout(() => {
+                    document.getElementById('error-message').style.display = 'none';
+                }, 5000);
             }
 
             async checkExistingSession() {
@@ -285,7 +300,7 @@
                     }
 
                 } catch (error) {
-                    this.showError(error.message);
+                    this.showError(this.getErrorMessage(error));
                 } finally {
                     this.hideLoading();
                 }
@@ -313,11 +328,16 @@
                 }
 
                 try {
+                    // Use localhost redirect for development to avoid 500 errors
+                    const redirectTo = window.location.hostname === 'localhost' 
+                        ? `${window.location.origin}/auth.html`
+                        : `https://tournament.kishtechsite.online/auth.html`;
+
                     const { data, error } = await this.supabase.auth.signUp({
                         email: email,
                         password: password,
                         options: {
-                            emailRedirectTo: `${window.location.origin}/auth.html`
+                            emailRedirectTo: redirectTo
                         }
                     });
 
@@ -335,7 +355,7 @@
                     }
 
                 } catch (error) {
-                    this.showError(error.message);
+                    this.showError(this.getErrorMessage(error));
                 } finally {
                     this.hideLoading();
                 }
@@ -348,8 +368,13 @@
                 const email = document.getElementById('reset-email').value;
 
                 try {
+                    // Use localhost redirect for development to avoid 500 errors
+                    const redirectTo = window.location.hostname === 'localhost' 
+                        ? `${window.location.origin}/auth.html`
+                        : `https://tournament.kishtechsite.online/auth.html`;
+
                     const { error } = await this.supabase.auth.resetPasswordForEmail(email, {
-                        redirectTo: `${window.location.origin}/auth.html`
+                        redirectTo: redirectTo
                     });
 
                     if (error) throw error;
@@ -358,10 +383,37 @@
                     document.getElementById('forgot-form').reset();
 
                 } catch (error) {
-                    this.showError(error.message);
+                    this.showError(this.getErrorMessage(error));
                 } finally {
                     this.hideLoading();
                 }
+            }
+
+            getErrorMessage(error) {
+                console.error('Auth Error:', error);
+                
+                // Handle specific error cases
+                if (error.message.includes('500') || error.message.includes('Internal Server Error')) {
+                    return 'Server configuration error. Please check your Supabase project settings.';
+                }
+                
+                if (error.message.includes('Email not confirmed')) {
+                    return 'Please check your email to confirm your account before logging in.';
+                }
+                
+                if (error.message.includes('Invalid login credentials')) {
+                    return 'Invalid email or password. Please try again.';
+                }
+                
+                if (error.message.includes('User already registered')) {
+                    return 'This email is already registered. Please try logging in instead.';
+                }
+                
+                if (error.message.includes('Password should be at least')) {
+                    return 'Password must be at least 6 characters long.';
+                }
+                
+                return error.message || 'An unexpected error occurred. Please try again.';
             }
         }
 
