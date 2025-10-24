@@ -134,6 +134,8 @@ require('./api/fixtures')(app, supabaseAdmin);
 require('./api/results')(app, supabaseAdmin);
 require('./api/league-table')(app, supabaseAdmin);
 require('./api/initialize')(app, supabaseAdmin);
+require('./api/save-subscription')(app);
+require('./api/send-notification')(app);
 
 
 // ==================== STATIC FILES ====================
