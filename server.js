@@ -1,3 +1,4 @@
+// server.js
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
@@ -24,7 +25,7 @@ const supabaseAdmin = createClient(
 // ==================== RESEND EMAIL ====================
 const resend = new Resend(process.env.RESEND_API_KEY);
 
-// ==================== DEFAULT PLAYERS (optional) ====================
+// ==================== DEFAULT PLAYERS ====================
 const DEFAULT_PLAYERS = [
   { id: 1, name: 'alwaysresistance', team: 'Kenya', photo: 'https://i.ibb.co/0jmt3HXf/alwaysresistance.jpg', strength: 3138, team_color: '#000000', default_photo: 'https://i.ibb.co/0jmt3HXf/alwaysresistance.jpg' },
   { id: 2, name: 'lildrip035', team: 'Chelsea', photo: 'https://i.ibb.co/CcXdyfc/lildrip035.jpg', strength: 3100, team_color: '#034694', default_photo: 'https://i.ibb.co/CcXdyfc/lildrip035.jpg' },
@@ -57,7 +58,7 @@ app.post('/api/send-reset-email', async (req, res) => {
       return res.status(400).json({ success: false, message: 'Missing required fields: to_email and reset_link' });
     }
 
-    const admin_email = 'support@kishtechsite.online';
+    const admin_email = process.env.ADMIN_EMAIL;
     if (to_email !== admin_email) {
       return res.status(403).json({ success: false, message: 'Only admin email can request password reset' });
     }
@@ -75,7 +76,7 @@ app.post('/api/send-reset-email', async (req, res) => {
     `;
 
     const emailResponse = await resend.emails.send({
-      from: 'support@kishtechsite.online',
+      from: admin_email,
       to: to_email,
       subject: 'eFootball League 2025 - Password Reset Request',
       html: htmlContent,
@@ -86,147 +87,41 @@ app.post('/api/send-reset-email', async (req, res) => {
 
   } catch (error) {
     console.error('❌ Resend email failed:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to send email via Resend: ' + error.message
-    });
+    res.status(500).json({ success: false, message: 'Failed to send email via Resend: ' + error.message });
   }
 });
 
-// ==================== AUTHENTICATION ROUTES ====================
-
-// Get current user session (for debugging)
-app.get('/api/auth/session', async (req, res) => {
-    try {
-        const { data: { session }, error } = await supabaseAdmin.auth.getSession();
-        
-        if (error) throw error;
-        
-        res.json({
-            success: true,
-            session: session,
-            user: session?.user || null
-        });
-    } catch (error) {
-        res.status(500).json({
-            success: false,
-            error: error.message
-        });
-    }
-});
-
+// ==================== AUTH ROUTES ====================
 // Admin verification endpoint
 app.get('/api/auth/admin', async (req, res) => {
-    try {
-        const { data: { session }, error } = await supabaseAdmin.auth.getSession();
-        
-        if (error) throw error;
-        
-        const isAdmin = session?.user?.email === 'support@kishtechsite.online';
-        
-        res.json({
-            success: true,
-            isAdmin: isAdmin,
-            user: session?.user || null
-        });
-    } catch (error) {
-        res.status(500).json({
-            success: false,
-            error: error.message
-        });
-    }
-});
-
-// ==================== SUPABASE INITIALIZE ====================
-app.post('/api/initialize', async (req, res) => {
   try {
-    res.json({
-      success: true,
-      message: 'Supabase database is ready! Data is managed client-side with Supabase.',
-      database: 'Supabase',
-      timestamp: new Date().toISOString()
-    });
+    const { data: { session }, error } = await supabaseAdmin.auth.getSession();
+    if (error) throw error;
+
+    const isAdmin = session?.user?.email === process.env.ADMIN_EMAIL;
+    res.json({ success: true, isAdmin, user: session?.user || null });
+
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }
 });
 
-// ==================== API ROUTES ====================
-require('./api/players')(app, supabaseAdmin);
-require('./api/fixtures')(app, supabaseAdmin);
-require('./api/results')(app, supabaseAdmin);
-require('./api/league-table')(app, supabaseAdmin);
-require('./api/initialize')(app, supabaseAdmin);
-
-// ==================== PUSH NOTIFICATIONS ====================
-webpush.setVapidDetails(
-  "mailto:support@kishtechsite.online",
-  process.env.VAPID_PUBLIC_KEY,
-  process.env.VAPID_PRIVATE_KEY
-);
-
-// Update 
-app.post("/api/save-subscription", async (req, res) => {
-  try {
-    const subscription = req.body;
-    await supabaseAdmin
-      .from('push_subscriptions')
-      .insert([{ endpoint: subscription.endpoint, keys: subscription.keys }]);
-
-    res.status(201).json({ message: "Subscription saved successfully" });
-  } catch (err) {
-    console.error("Failed to save subscription:", err);
-    res.status(500).json({ message: "Failed to save subscription" });
-  }
-});
-
-// Send notification to all subscribers
-app.post("/api/send-notification", async (req, res) => {
-  const { title, body, url } = req.body;
-  const payload = JSON.stringify({
-    title: title || "eFootball League 2025",
-    body: body || "Match update available!",
-    url: url || "https://tournament.kishtechsite.online/"
+// ==================== SUPABASE INITIALIZE ====================
+app.post('/api/initialize', async (req, res) => {
+  res.json({
+    success: true,
+    message: 'Supabase database is ready!',
+    database: 'Supabase',
+    timestamp: new Date().toISOString()
   });
-
-  const failed = [];
-
-  for (const sub of subscriptions) {
-    try {
-      await webpush.sendNotification(sub, payload);
-    } catch (err) {
-      console.error("❌ Failed to send notification:", err.message);
-      failed.push(sub);
-    }
-  }
-
-  res.json({ success: true, message: "Notifications sent!", failedCount: failed.length });
 });
 
-// ==================== ROUTE HANDLING ====================
-
-// Serve specific pages
-app.get('/auth.html', (req, res) => {
-  res.sendFile(path.join(__dirname, 'auth.html'));
-});
-
-app.get('/admin.html', (req, res) => {
-  res.sendFile(path.join(__dirname, 'admin.html'));
-});
-
-app.get('/index.html', (req, res) => {
-  res.sendFile(path.join(__dirname, 'index.html'));
-});
-
-// Root route - serve main site (auth handled client-side)
-app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'index.html'));
-});
-
-// Catch-all route for SPA
-app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, 'index.html'));
-});
+// ==================== ROUTES ====================
+app.get('/auth.html', (req, res) => res.sendFile(path.join(__dirname, 'auth.html')));
+app.get('/admin.html', (req, res) => res.sendFile(path.join(__dirname, 'admin.html')));
+app.get('/index.html', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
+app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
+app.get('*', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
 
 // ==================== ERROR HANDLING ====================
 app.use((err, req, res, next) => {
@@ -241,9 +136,4 @@ app.use((err, req, res, next) => {
 // ==================== START SERVER ====================
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 Server running on port ${PORT}`);
-  console.log(`📱 Main Site: http://localhost:${PORT}/`);
-  console.log(`🔗 API: http://localhost:${PORT}/api/health`);
-  console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
-  console.log(`🗄️ Database: Supabase (Client-side)`);
-  console.log(`🔐 Authentication: Client-side controlled`);
 });
