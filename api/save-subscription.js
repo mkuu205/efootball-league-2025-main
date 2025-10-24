@@ -1,29 +1,29 @@
-// api/save-subscription.js
-import { createClient } from "@supabase/supabase-js";
-import dotenv from "dotenv";
-dotenv.config();
+const { createClient } = require('@supabase/supabase-js');
+require('dotenv').config();
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_KEY
+  process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
-export default async function handler(req, res) {
-  if (req.method !== "POST") return res.status(405).end();
+module.exports = (app) => {
+  app.post('/api/save-subscription', async (req, res) => {
+    try {
+      const subscription = req.body;
+      if (!subscription) {
+        return res.status(400).json({ success: false, message: 'Missing subscription data' });
+      }
 
-  try {
-    const subscription = req.body;
+      const { error } = await supabase
+        .from('push_subscriptions')
+        .insert([{ subscription }]);
 
-    const { error } = await supabase
-      .from("push_subscriptions")
-      .insert([{ subscription }])
-      .select();
+      if (error) throw error;
 
-    if (error) throw error;
-
-    res.json({ success: true });
-  } catch (err) {
-    console.error("Save subscription failed:", err);
-    res.status(500).json({ success: false, error: err.message });
-  }
-}
+      res.json({ success: true, message: 'Subscription saved successfully' });
+    } catch (err) {
+      console.error('❌ Save subscription failed:', err);
+      res.status(500).json({ success: false, error: err.message });
+    }
+  });
+};
