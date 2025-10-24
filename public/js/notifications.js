@@ -12,7 +12,7 @@ async function registerPush() {
 
   try {
     console.log("Registering service worker...");
-    const register = await navigator.serviceWorker.register("/service-worker.js");
+    const register = await navigator.serviceWorker.register("/public/service-worker.js");
     console.log("Service Worker registered ✅");
 
     console.log("Requesting notification permission...");
