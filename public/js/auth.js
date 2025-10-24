@@ -183,7 +183,7 @@ async function logout() {
         await supabase.auth.signOut();
         showNotification('Logged out successfully', 'success');
         setTimeout(() => {
-            window.location.href = 'auth.html';
+            window.location.href = 'https://tournament.kishtechsite.online/auth.html';
         }, 1000);
     } catch (error) {
         console.error('Logout error:', error);
@@ -230,7 +230,7 @@ async function updateNavigationAuth() {
         } else {
             authNav.innerHTML = `
                 <li class="nav-item">
-                    <a class="nav-link" href="auth.html">
+                    <a class="nav-link" href="https://tournament.kishtechsite.online/auth.html">
                         <i class="fas fa-sign-in-alt me-1"></i>Login
                     </a>
                 </li>
@@ -240,7 +240,7 @@ async function updateNavigationAuth() {
         console.error('Navigation update error:', error);
         authNav.innerHTML = `
             <li class="nav-item">
-                <a class="nav-link" href="auth.html">
+                <a class="nav-link" href="https://tournament.kishtechsite.online/auth.html">
                     <i class="fas fa-sign-in-alt me-1"></i>Login
                 </a>
             </li>
@@ -251,7 +251,8 @@ async function updateNavigationAuth() {
 // Protect pages - with loop prevention
 async function protectPages() {
     // Never protect auth.html
-    if (window.location.pathname.includes('auth.html')) {
+    if (window.location.pathname.includes('auth.html') || 
+        window.location.href.includes('auth.html')) {
         console.log('Auth page - skipping protection');
         return;
     }
@@ -271,7 +272,7 @@ async function protectPages() {
             
             // Use a small delay to allow logs to show
             setTimeout(() => {
-                window.location.href = 'auth.html';
+                window.location.href = 'https://tournament.kishtechsite.online/auth.html';
             }, 100);
         } else {
             console.log('User authenticated, allowing access');
