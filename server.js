@@ -93,6 +93,55 @@ app.post('/api/send-reset-email', async (req, res) => {
   }
 });
 
+// ==================== AUTHENTICATION ROUTES ====================
+
+// Get current user session
+app.get('/api/auth/session', async (req, res) => {
+    try {
+        const { data: { session }, error } = await supabaseAdmin.auth.getSession();
+        
+        if (error) throw error;
+        
+        res.json({
+            success: true,
+            session: session,
+            user: session?.user || null
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
+});
+
+// Admin verification endpoint
+app.get('/api/auth/admin', async (req, res) => {
+    try {
+        const { data: { session }, error } = await supabaseAdmin.auth.getSession();
+        
+        if (error) throw error;
+        
+        const isAdmin = session?.user?.email === 'support@kishtechsite.online';
+        
+        res.json({
+            success: true,
+            isAdmin: isAdmin,
+            user: session?.user || null
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
+});
+
+// Serve auth page (always accessible)
+app.get('/auth.html', (req, res) => {
+    res.sendFile(path.join(__dirname, 'auth.html'));
+});
+
 // ==================== SUPABASE INITIALIZE ====================
 app.post('/api/initialize', async (req, res) => {
   try {
@@ -155,7 +204,6 @@ app.post("/api/send-notification", async (req, res) => {
   res.json({ success: true, message: "Notifications sent!", failedCount: failed.length });
 });
 
-
 // ==================== STATIC FILES ====================
 app.use(express.static(path.join(__dirname, 'public'))); 
 
@@ -163,9 +211,14 @@ app.use('/css', express.static(path.join(__dirname, 'public/css')));
 app.use('/js', express.static(path.join(__dirname, 'public/js')));
 app.use('/icons', express.static(path.join(__dirname, 'public/icons')));
 
+// Serve all pages (auth handled client-side only)
 app.get('/admin.html', (req, res) => res.sendFile(path.join(__dirname, 'admin.html')));
-app.get('*', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
+app.get('/index.html', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
 
+// Root route - redirect to auth page initially
+app.get('/', (req, res) => {
+    res.redirect('/auth.html');
+});
 
 // ==================== ERROR HANDLING ====================
 app.use((err, req, res, next) => {
@@ -180,8 +233,9 @@ app.use((err, req, res, next) => {
 // ==================== START SERVER ====================
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 Server running on port ${PORT}`);
-  console.log(`📱 Frontend: http://localhost:${PORT}`);
+  console.log(`🔐 Auth: http://localhost:${PORT}/auth.html`);
   console.log(`🔗 API: http://localhost:${PORT}/api/health`);
   console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
   console.log(`🗄️ Database: Supabase (Client-side)`);
+  console.log(`🔐 Authentication: Client-side controlled`);
 });
