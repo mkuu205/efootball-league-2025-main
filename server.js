@@ -13,7 +13,7 @@ const PORT = process.env.PORT || 3000;
 // Middleware
 app.use(cors());
 app.use(express.json());
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static('public')); // Single static directory
 
 // ==================== SUPABASE ====================
 const supabaseAdmin = createClient(
@@ -95,7 +95,7 @@ app.post('/api/send-reset-email', async (req, res) => {
 
 // ==================== AUTHENTICATION ROUTES ====================
 
-// Get current user session
+// Get current user session (for debugging)
 app.get('/api/auth/session', async (req, res) => {
     try {
         const { data: { session }, error } = await supabaseAdmin.auth.getSession();
@@ -137,11 +137,6 @@ app.get('/api/auth/admin', async (req, res) => {
     }
 });
 
-// Serve auth page (always accessible)
-app.get('/auth.html', (req, res) => {
-    res.sendFile(path.join(__dirname, 'auth.html'));
-});
-
 // ==================== SUPABASE INITIALIZE ====================
 app.post('/api/initialize', async (req, res) => {
   try {
@@ -170,15 +165,19 @@ webpush.setVapidDetails(
   process.env.VAPID_PRIVATE_KEY
 );
 
-// Temporary in-memory storage
-let subscriptions = [];
+// Update 
+app.post("/api/save-subscription", async (req, res) => {
+  try {
+    const subscription = req.body;
+    await supabaseAdmin
+      .from('push_subscriptions')
+      .insert([{ endpoint: subscription.endpoint, keys: subscription.keys }]);
 
-// Save subscription
-app.post("/api/save-subscription", (req, res) => {
-  const subscription = req.body;
-  subscriptions.push(subscription);
-  console.log("✅ New push subscription saved");
-  res.status(201).json({ message: "Subscription saved successfully" });
+    res.status(201).json({ message: "Subscription saved successfully" });
+  } catch (err) {
+    console.error("Failed to save subscription:", err);
+    res.status(500).json({ message: "Failed to save subscription" });
+  }
 });
 
 // Send notification to all subscribers
@@ -204,20 +203,29 @@ app.post("/api/send-notification", async (req, res) => {
   res.json({ success: true, message: "Notifications sent!", failedCount: failed.length });
 });
 
-// ==================== STATIC FILES ====================
-app.use(express.static(path.join(__dirname, 'public'))); 
+// ==================== ROUTE HANDLING ====================
 
-app.use('/css', express.static(path.join(__dirname, 'public/css')));
-app.use('/js', express.static(path.join(__dirname, 'public/js')));
-app.use('/icons', express.static(path.join(__dirname, 'public/icons')));
+// Serve specific pages
+app.get('/auth.html', (req, res) => {
+  res.sendFile(path.join(__dirname, 'auth.html'));
+});
 
-// Serve all pages (auth handled client-side only)
-app.get('/admin.html', (req, res) => res.sendFile(path.join(__dirname, 'admin.html')));
-app.get('/index.html', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
+app.get('/admin.html', (req, res) => {
+  res.sendFile(path.join(__dirname, 'admin.html'));
+});
 
-// Root route - redirect to auth page initially
+app.get('/index.html', (req, res) => {
+  res.sendFile(path.join(__dirname, 'index.html'));
+});
+
+// Root route - serve main site (auth handled client-side)
 app.get('/', (req, res) => {
-    res.redirect('/auth.html');
+  res.sendFile(path.join(__dirname, 'index.html'));
+});
+
+// Catch-all route for SPA
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, 'index.html'));
 });
 
 // ==================== ERROR HANDLING ====================
@@ -233,7 +241,7 @@ app.use((err, req, res, next) => {
 // ==================== START SERVER ====================
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 Server running on port ${PORT}`);
-  console.log(`🔐 Auth: http://localhost:${PORT}/auth.html`);
+  console.log(`📱 Main Site: http://localhost:${PORT}/`);
   console.log(`🔗 API: http://localhost:${PORT}/api/health`);
   console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
   console.log(`🗄️ Database: Supabase (Client-side)`);
