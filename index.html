@@ -299,47 +299,86 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
     <!-- Bootstrap JS (CDN) -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js" defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
 
-    <!-- App Scripts (defer to load after HTML) -->
-    <script src="/js/database.js" defer></script>
-    <script src="/js/api.js" defer></script>
-    <script src="/js/auth.js" defer></script>
-    <script src="/js/advanced-stats.js" defer></script>
-    <script src="/js/bulk-operations.js" defer></script>
-    <script src="/js/notifications.js" defer></script>
-    <script src="/js/export.js" defer></script>
-    <script src="/js/app.js" defer></script>
+    <!-- App Scripts -->
+    <script src="/js/auth.js"></script>
+    <script src="/js/database.js"></script>
+    <script src="/js/api.js"></script>
+    <script src="/js/advanced-stats.js"></script>
+    <script src="/js/bulk-operations.js"></script>
+    <script src="/js/notifications.js"></script>
+    <script src="/js/export.js"></script>
+    <script src="/js/app.js"></script>
 
     <!-- Authentication Check Script -->
     <script>
         // Check authentication status when page loads
-        document.addEventListener('DOMContentLoaded', async function() {
+        async function initializeApp() {
             console.log('Checking authentication status...');
             
-            // Wait for auth.js to load and initialize
-            setTimeout(async () => {
-                try {
-                    const isAuthenticated = await checkAuth();
-                    
-                    if (isAuthenticated) {
-                        console.log('User is authenticated, showing main content');
-                        // Hide loading screen
-                        document.getElementById('loading-screen').style.display = 'none';
-                        // Show main content
-                        document.getElementById('main-content').style.display = 'block';
-                        // Update navigation
-                        await updateNavigationAuth();
-                    } else {
-                        console.log('User not authenticated, redirecting to auth page');
-                        window.location.href = 'auth.html';
+            try {
+                // Wait for auth.js functions to be available
+                let retries = 0;
+                const maxRetries = 10;
+                
+                while (retries < maxRetries) {
+                    if (typeof checkAuth === 'function' && typeof updateNavigationAuth === 'function') {
+                        console.log('Auth functions loaded, proceeding with authentication check');
+                        break;
                     }
-                } catch (error) {
-                    console.error('Authentication check failed:', error);
-                    // If there's an error, still redirect to auth page
+                    await new Promise(resolve => setTimeout(resolve, 200));
+                    retries++;
+                }
+                
+                if (retries >= maxRetries) {
+                    console.error('Auth functions not loaded after timeout');
+                    window.location.href = 'auth.html';
+                    return;
+                }
+                
+                const isAuthenticated = await checkAuth();
+                
+                if (isAuthenticated) {
+                    console.log('User is authenticated, showing main content');
+                    // Hide loading screen
+                    document.getElementById('loading-screen').style.display = 'none';
+                    // Show main content
+                    document.getElementById('main-content').style.display = 'block';
+                    // Update navigation
+                    await updateNavigationAuth();
+                    
+                    // Initialize the rest of the app
+                    if (typeof initializeAppFeatures === 'function') {
+                        initializeAppFeatures();
+                    }
+                } else {
+                    console.log('User not authenticated, redirecting to auth page');
                     window.location.href = 'auth.html';
                 }
-            }, 1000); // Wait 1 second for auth.js to initialize
+            } catch (error) {
+                console.error('Authentication check failed:', error);
+                // Show a user-friendly error and don't redirect to avoid loops
+                document.getElementById('loading-screen').innerHTML = `
+                    <div class="text-center">
+                        <i class="fas fa-exclamation-triangle text-warning mb-3" style="font-size: 3rem;"></i>
+                        <h4>Authentication Error</h4>
+                        <p>Unable to verify your login status. Please try refreshing the page.</p>
+                        <button class="btn btn-primary mt-3" onclick="window.location.reload()">
+                            <i class="fas fa-refresh me-2"></i>Refresh Page
+                        </button>
+                        <button class="btn btn-outline-light mt-3 ms-2" onclick="window.location.href='auth.html'">
+                            <i class="fas fa-sign-in-alt me-2"></i>Go to Login
+                        </button>
+                    </div>
+                `;
+            }
+        }
+
+        // Wait for DOM and all scripts to load
+        window.addEventListener('load', function() {
+            console.log('Window loaded, initializing app...');
+            setTimeout(initializeApp, 500);
         });
 
         // Right-click disable script
