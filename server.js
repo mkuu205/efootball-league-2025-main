@@ -1,4 +1,3 @@
-// server.js
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
@@ -14,7 +13,7 @@ const PORT = process.env.PORT || 3000;
 // Middleware
 app.use(cors());
 app.use(express.json());
-app.use(express.static('public')); // Single static directory
+app.use(express.static(path.join(__dirname, 'public')));
 
 // ==================== SUPABASE ====================
 const supabaseAdmin = createClient(
@@ -25,7 +24,7 @@ const supabaseAdmin = createClient(
 // ==================== RESEND EMAIL ====================
 const resend = new Resend(process.env.RESEND_API_KEY);
 
-// ==================== DEFAULT PLAYERS ====================
+// ==================== DEFAULT PLAYERS (optional) ====================
 const DEFAULT_PLAYERS = [
   { id: 1, name: 'alwaysresistance', team: 'Kenya', photo: 'https://i.ibb.co/0jmt3HXf/alwaysresistance.jpg', strength: 3138, team_color: '#000000', default_photo: 'https://i.ibb.co/0jmt3HXf/alwaysresistance.jpg' },
   { id: 2, name: 'lildrip035', team: 'Chelsea', photo: 'https://i.ibb.co/CcXdyfc/lildrip035.jpg', strength: 3100, team_color: '#034694', default_photo: 'https://i.ibb.co/CcXdyfc/lildrip035.jpg' },
@@ -33,7 +32,7 @@ const DEFAULT_PLAYERS = [
   { id: 4, name: 'skangaKe254', team: 'Liverpool', photo: 'https://i.ibb.co/Wv5nbZRy/skanga-Ke254.jpg', strength: 2700, team_color: '#c8102e', default_photo: 'https://i.ibb.co/Wv5nbZRy/skanga-Ke254.jpg' },
   { id: 5, name: 'Drexas', team: 'Everton', photo: 'https://i.ibb.co/2mzRJVn/drexas.jpg', strength: 2792, team_color: '#003399', default_photo: 'https://i.ibb.co/2mzRJVn/drexas.jpg' },
   { id: 6, name: 'Collo leevan', team: 'Manchester United', photo: 'https://i.ibb.co/nqyFvzvf/collo-leevan.jpg', strength: 2448, team_color: '#da291c', default_photo: 'https://i.ibb.co/nqyFvzvf/collo-leevan.jpg' },
-  { id: 7, name: 'captainkenn', team: 'West Ham', photo: 'https://i.ibb.co/35kMmxjW/captainkenn.jpg', strength: 3110, team_color: '#7c2c3b', default_photo: 'https://i.ibb.co/35kMmxjW/captainkenn.jpg' },
+  { id: 7, name: 'captainkenn', team: 'West Ham', photo: 'https://i.ibb.co/35kMmxjW/captainkenn.jpg', strength: 3110, team_color: '#7c2c3b', default_photo: 'https://i.ibb.co/35kMmxjW/captionkenn.jpg' },
   { id: 8, name: 'Bora kesho', team: 'Man U', photo: 'https://i.ibb.co/7NXyjhWR/Bora-20kesho.jpg', strength: 3177, team_color: '#DA291C', default_photo: 'https://i.ibb.co/7NXyjhWR/Bora-20kesho.jpg' }
 ];
 
@@ -58,8 +57,7 @@ app.post('/api/send-reset-email', async (req, res) => {
       return res.status(400).json({ success: false, message: 'Missing required fields: to_email and reset_link' });
     }
 
-    const admin_email = process.env.ADMIN_EMAIL;
-    if (to_email !== admin_email) {
+    if (to_email !== ADMIN_EMAIL) {
       return res.status(403).json({ success: false, message: 'Only admin email can request password reset' });
     }
 
@@ -76,7 +74,7 @@ app.post('/api/send-reset-email', async (req, res) => {
     `;
 
     const emailResponse = await resend.emails.send({
-      from: admin_email,
+      from: 'support@kishtechsite.online',
       to: to_email,
       subject: 'eFootball League 2025 - Password Reset Request',
       html: htmlContent,
@@ -87,41 +85,183 @@ app.post('/api/send-reset-email', async (req, res) => {
 
   } catch (error) {
     console.error('❌ Resend email failed:', error);
-    res.status(500).json({ success: false, message: 'Failed to send email via Resend: ' + error.message });
+    res.status(500).json({
+      success: false,
+      message: 'Failed to send email via Resend: ' + error.message
+    });
   }
 });
 
-// ==================== AUTH ROUTES ====================
+// ==================== AUTHENTICATION ROUTES ====================
+
+// Get current user session
+app.get('/api/auth/session', async (req, res) => {
+    try {
+        const { data: { session }, error } = await supabaseAdmin.auth.getSession();
+        
+        if (error) throw error;
+        
+        res.json({
+            success: true,
+            session: session,
+            user: session?.user || null
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
+});
+
 // Admin verification endpoint
 app.get('/api/auth/admin', async (req, res) => {
+    try {
+        const { data: { session }, error } = await supabaseAdmin.auth.getSession();
+        
+        if (error) throw error;
+        
+        const isAdmin = session?.user?.email === ADMIN_EMAIL;
+        
+        res.json({
+            success: true,
+            isAdmin: isAdmin,
+            user: session?.user || null
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
+});
+
+// Protect ALL routes - redirect to auth if not authenticated
+app.use(['/', '/index.html'], async (req, res, next) => {
+    try {
+        const { data: { session }, error } = await supabaseAdmin.auth.getSession();
+        
+        if (error) throw error;
+        
+        // If no session, redirect to auth page
+        if (!session) {
+            return res.redirect('/auth.html');
+        }
+        
+        next();
+    } catch (error) {
+        console.error('Auth check error:', error);
+        res.redirect('/auth.html');
+    }
+});
+
+// Protect admin routes
+app.use('/admin.html', async (req, res, next) => {
+    try {
+        const { data: { session }, error } = await supabaseAdmin.auth.getSession();
+        
+        if (error) throw error;
+        
+        const isAdmin = session?.user?.email === ADMIN_EMAIL;
+        
+        if (!isAdmin) {
+            return res.redirect('/auth.html');
+        }
+        
+        next();
+    } catch (error) {
+        console.error('Admin route protection error:', error);
+        res.redirect('/auth.html');
+    }
+});
+
+// Serve auth page (always accessible)
+app.get('/auth.html', (req, res) => {
+    res.sendFile(path.join(__dirname, 'auth.html'));
+});
+
+// Logout route
+app.get('/logout', (req, res) => {
+    res.redirect('/auth.html');
+});
+
+// ==================== SUPABASE INITIALIZE ====================
+app.post('/api/initialize', async (req, res) => {
   try {
-    const { data: { session }, error } = await supabaseAdmin.auth.getSession();
-    if (error) throw error;
-
-    const isAdmin = session?.user?.email === process.env.ADMIN_EMAIL;
-    res.json({ success: true, isAdmin, user: session?.user || null });
-
+    res.json({
+      success: true,
+      message: 'Supabase database is ready! Data is managed client-side with Supabase.',
+      database: 'Supabase',
+      timestamp: new Date().toISOString()
+    });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }
 });
 
-// ==================== SUPABASE INITIALIZE ====================
-app.post('/api/initialize', async (req, res) => {
-  res.json({
-    success: true,
-    message: 'Supabase database is ready!',
-    database: 'Supabase',
-    timestamp: new Date().toISOString()
-  });
+// ==================== API ROUTES ====================
+require('./api/players')(app, supabaseAdmin);
+require('./api/fixtures')(app, supabaseAdmin);
+require('./api/results')(app, supabaseAdmin);
+require('./api/league-table')(app, supabaseAdmin);
+require('./api/initialize')(app, supabaseAdmin);
+
+// ==================== PUSH NOTIFICATIONS ====================
+webpush.setVapidDetails(
+  "mailto:support@kishtechsite.online",
+  process.env.VAPID_PUBLIC_KEY,
+  process.env.VAPID_PRIVATE_KEY
+);
+
+// Temporary in-memory storage
+let subscriptions = [];
+
+// Save subscription
+app.post("/api/save-subscription", (req, res) => {
+  const subscription = req.body;
+  subscriptions.push(subscription);
+  console.log("✅ New push subscription saved");
+  res.status(201).json({ message: "Subscription saved successfully" });
 });
 
-// ==================== ROUTES ====================
-app.get('/auth.html', (req, res) => res.sendFile(path.join(__dirname, 'auth.html')));
-app.get('/admin.html', (req, res) => res.sendFile(path.join(__dirname, 'admin.html')));
+// Send notification to all subscribers
+app.post("/api/send-notification", async (req, res) => {
+  const { title, body, url } = req.body;
+  const payload = JSON.stringify({
+    title: title || "eFootball League 2025",
+    body: body || "Match update available!",
+    url: url || "https://tournament.kishtechsite.online/"
+  });
+
+  const failed = [];
+
+  for (const sub of subscriptions) {
+    try {
+      await webpush.sendNotification(sub, payload);
+    } catch (err) {
+      console.error("❌ Failed to send notification:", err.message);
+      failed.push(sub);
+    }
+  }
+
+  res.json({ success: true, message: "Notifications sent!", failedCount: failed.length });
+});
+
+// ==================== STATIC FILES ====================
+app.use(express.static(path.join(__dirname, 'public'))); 
+
+app.use('/css', express.static(path.join(__dirname, 'public/css')));
+app.use('/js', express.static(path.join(__dirname, 'public/js')));
+app.use('/icons', express.static(path.join(__dirname, 'public/icons')));
+
+// Serve main site only if authenticated (handled by middleware above)
 app.get('/index.html', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
-app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
-app.get('*', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
+app.get('/admin.html', (req, res) => res.sendFile(path.join(__dirname, 'admin.html')));
+
+// Root route redirects to auth
+app.get('/', (req, res) => {
+    res.redirect('/auth.html');
+});
 
 // ==================== ERROR HANDLING ====================
 app.use((err, req, res, next) => {
@@ -136,4 +276,9 @@ app.use((err, req, res, next) => {
 // ==================== START SERVER ====================
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 Server running on port ${PORT}`);
+  console.log(`🔗 API: http://localhost:${PORT}/api/health`);
+  console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
+  console.log(`🗄️ Database: Supabase (Client-side)`);
+  console.log(`🔐 Authentication: Required for all pages`);
+  console.log(`📧 Admin Email: ${ADMIN_EMAIL}`);
 });
