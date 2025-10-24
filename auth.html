@@ -12,37 +12,53 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     
     <style>
+        /* Auth Page Specific Styles */
         .auth-container {
             min-height: 80vh;
             display: flex;
             align-items: center;
             justify-content: center;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
         }
+        
         .auth-card {
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            border-radius: 15px;
-            padding: 2rem;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 20px;
+            padding: 2.5rem;
             width: 100%;
-            max-width: 400px;
+            max-width: 450px;
             margin: 2rem;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
         }
+        
+        .auth-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 25px 80px rgba(0, 0, 0, 0.15);
+        }
+        
         .auth-logo {
-            width: 80px;
-            height: 80px;
+            width: 100px;
+            height: 100px;
             border-radius: 50%;
             object-fit: cover;
-            border: 3px solid #6a11cb;
-            margin: 0 auto 1rem;
+            border: 4px solid #6a11cb;
+            margin: 0 auto 1.5rem;
             display: block;
+            box-shadow: 0 8px 25px rgba(106, 17, 203, 0.3);
         }
+        
         .form-switch-container {
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: 10px;
-            padding: 0.5rem;
-            margin-bottom: 1.5rem;
+            background: rgba(106, 17, 203, 0.1);
+            border-radius: 15px;
+            padding: 0.75rem;
+            margin-bottom: 2rem;
+            border: 1px solid rgba(106, 17, 203, 0.2);
         }
+        
         .loading-overlay {
             display: none;
             position: fixed;
@@ -50,10 +66,198 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0, 0, 0, 0.7);
+            background: rgba(0, 0, 0, 0.8);
             z-index: 9999;
             align-items: center;
             justify-content: center;
+            backdrop-filter: blur(10px);
+        }
+        
+        .auth-title {
+            color: #2c3e50;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            text-align: center;
+        }
+        
+        .auth-subtitle {
+            color: #7f8c8d;
+            text-align: center;
+            margin-bottom: 2rem;
+            font-size: 1.1rem;
+        }
+        
+        .form-control {
+            border-radius: 12px;
+            padding: 12px 16px;
+            border: 2px solid #e9ecef;
+            transition: all 0.3s ease;
+            font-size: 1rem;
+        }
+        
+        .form-control:focus {
+            border-color: #6a11cb;
+            box-shadow: 0 0 0 0.2rem rgba(106, 17, 203, 0.1);
+        }
+        
+        .form-label {
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 0.5rem;
+        }
+        
+        .btn {
+            border-radius: 12px;
+            padding: 12px 24px;
+            font-weight: 600;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            border: none;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(106, 17, 203, 0.3);
+        }
+        
+        .btn-success {
+            background: linear-gradient(135deg, #00b09b 0%, #96c93d 100%);
+        }
+        
+        .btn-success:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 176, 155, 0.3);
+        }
+        
+        .btn-warning {
+            background: linear-gradient(135deg, #f46b45 0%, #eea849 100%);
+        }
+        
+        .btn-warning:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(244, 107, 69, 0.3);
+        }
+        
+        .btn-outline-primary {
+            border: 2px solid #6a11cb;
+            color: #6a11cb;
+            background: transparent;
+        }
+        
+        .btn-outline-primary:hover, .btn-check:checked + .btn-outline-primary {
+            background: #6a11cb;
+            color: white;
+            border-color: #6a11cb;
+        }
+        
+        .forgot-link {
+            color: #6a11cb;
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.3s ease;
+        }
+        
+        .forgot-link:hover {
+            color: #2575fc;
+            text-decoration: underline;
+        }
+        
+        .back-link {
+            color: #6a11cb;
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.3s ease;
+        }
+        
+        .back-link:hover {
+            color: #2575fc;
+            text-decoration: underline;
+        }
+        
+        /* Notification Styles */
+        #notification-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 9999;
+            max-width: 400px;
+        }
+        
+        .notification {
+            background: linear-gradient(135deg, #ff4444, #cc0000);
+            color: white;
+            padding: 16px 20px;
+            margin-bottom: 10px;
+            border-radius: 12px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.2);
+            border-left: 4px solid rgba(255,255,255,0.3);
+            backdrop-filter: blur(10px);
+            animation: slideInRight 0.3s ease-out;
+            min-width: 300px;
+        }
+        
+        @keyframes slideInRight {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+        
+        @keyframes slideOutRight {
+            from {
+                transform: translateX(0);
+                opacity: 1;
+            }
+            to {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+        }
+        
+        /* Navigation Styles */
+        .navbar {
+            background: linear-gradient(135deg, #2c3e50 0%, #3498db 100%) !important;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+        
+        .nav-link {
+            color: white !important;
+            font-weight: 500;
+            transition: color 0.3s ease;
+        }
+        
+        .nav-link:hover {
+            color: #f8f9fa !important;
+        }
+        
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .auth-card {
+                margin: 1rem;
+                padding: 2rem;
+            }
+            
+            .auth-container {
+                padding: 10px;
+            }
+            
+            #notification-container {
+                right: 10px;
+                left: 10px;
+                max-width: none;
+            }
+            
+            .notification {
+                min-width: auto;
+            }
         }
     </style>
 </head>
@@ -67,7 +271,7 @@
             </div>
             
             <div class="navbar-nav ms-auto">
-                <a class="nav-link" href="index.html">
+                <a class="nav-link" href="https://tournament.kishtechsite.online/index.html">
                     <i class="fas fa-arrow-left me-1"></i> Back to Site
                 </a>
             </div>
@@ -79,30 +283,38 @@
             <!-- Logo and Title -->
             <div class="text-center mb-4">
                 <img src="https://i.ibb.co/NgGdC1gX/efootball-profile.jpg" alt="eFootball League" class="auth-logo">
-                <h3 class="text-warning mb-2">Welcome</h3>
-                <p class="text-muted">Sign in to your account</p>
+                <h3 class="auth-title">Welcome Back!</h3>
+                <p class="auth-subtitle">Sign in to your account to continue</p>
             </div>
 
             <!-- Form Switch -->
             <div class="form-switch-container text-center">
                 <div class="btn-group w-100" role="group">
                     <input type="radio" class="btn-check" name="auth-mode" id="login-mode" autocomplete="off" checked>
-                    <label class="btn btn-outline-primary" for="login-mode">Login</label>
+                    <label class="btn btn-outline-primary" for="login-mode">
+                        <i class="fas fa-sign-in-alt me-2"></i>Login
+                    </label>
                     
                     <input type="radio" class="btn-check" name="auth-mode" id="register-mode" autocomplete="off">
-                    <label class="btn btn-outline-primary" for="register-mode">Register</label>
+                    <label class="btn btn-outline-primary" for="register-mode">
+                        <i class="fas fa-user-plus me-2"></i>Register
+                    </label>
                 </div>
             </div>
 
             <!-- Login Form -->
             <form id="login-form">
                 <div class="mb-3">
-                    <label for="email" class="form-label">Email Address</label>
+                    <label for="email" class="form-label">
+                        <i class="fas fa-envelope me-2"></i>Email Address
+                    </label>
                     <input type="email" class="form-control" id="email" placeholder="Enter your email" required>
                 </div>
                 
                 <div class="mb-3">
-                    <label for="password" class="form-label">Password</label>
+                    <label for="password" class="form-label">
+                        <i class="fas fa-lock me-2"></i>Password
+                    </label>
                     <input type="password" class="form-control" id="password" placeholder="Enter your password" required>
                 </div>
 
@@ -111,24 +323,32 @@
                 </button>
 
                 <div class="text-center">
-                    <a href="#" id="forgot-password" class="text-info small">Forgot your password?</a>
+                    <a href="#" id="forgot-password" class="forgot-link">
+                        <i class="fas fa-key me-1"></i>Forgot your password?
+                    </a>
                 </div>
             </form>
 
             <!-- Register Form -->
             <form id="register-form" style="display: none;">
                 <div class="mb-3">
-                    <label for="register-email" class="form-label">Email Address</label>
+                    <label for="register-email" class="form-label">
+                        <i class="fas fa-envelope me-2"></i>Email Address
+                    </label>
                     <input type="email" class="form-control" id="register-email" placeholder="Enter your email" required>
                 </div>
                 
                 <div class="mb-3">
-                    <label for="register-password" class="form-label">Password</label>
+                    <label for="register-password" class="form-label">
+                        <i class="fas fa-lock me-2"></i>Password
+                    </label>
                     <input type="password" class="form-control" id="register-password" placeholder="Create a password (min 6 characters)" minlength="6" required>
                 </div>
 
                 <div class="mb-3">
-                    <label for="confirm-password" class="form-label">Confirm Password</label>
+                    <label for="confirm-password" class="form-label">
+                        <i class="fas fa-lock me-2"></i>Confirm Password
+                    </label>
                     <input type="password" class="form-control" id="confirm-password" placeholder="Confirm your password" required>
                 </div>
 
@@ -140,7 +360,9 @@
             <!-- Forgot Password Form -->
             <form id="forgot-form" style="display: none;">
                 <div class="mb-3">
-                    <label for="reset-email" class="form-label">Email Address</label>
+                    <label for="reset-email" class="form-label">
+                        <i class="fas fa-envelope me-2"></i>Email Address
+                    </label>
                     <input type="email" class="form-control" id="reset-email" placeholder="Enter your email" required>
                 </div>
 
@@ -149,7 +371,9 @@
                 </button>
 
                 <div class="text-center">
-                    <a href="#" class="text-info small back-to-login">Back to Login</a>
+                    <a href="#" class="back-link back-to-login">
+                        <i class="fas fa-arrow-left me-1"></i>Back to Login
+                    </a>
                 </div>
             </form>
 
@@ -164,10 +388,11 @@
     <!-- Loading Spinner -->
     <div class="loading-overlay">
         <div class="text-center text-light">
-            <div class="spinner-border text-primary mb-3" role="status">
+            <div class="spinner-border text-primary mb-3" style="width: 3rem; height: 3rem;" role="status">
                 <span class="visually-hidden">Loading...</span>
             </div>
-            <p>Processing...</p>
+            <h4>Processing...</h4>
+            <p>Please wait while we handle your request</p>
         </div>
     </div>
 
@@ -176,225 +401,311 @@
     
     <!-- Auth Script -->
     <script>
-    class SimpleAuth {
-        constructor() {
-            this.supabase = supabase.createClient(
-                'https://zliedzrqzvywlsyfggcq.supabase.co',
-                'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpsaWVkenJxenZ5d2xzeWZnZ2NxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjEwOTE4NjYsImV4cCI6MjA3NjY2Nzg2Nn0.NbzEZ4ievehtrlyOxCK_mheb7YU4SnNgC0uXuOKPNOI'
-            );
-            this.setupEventListeners();
-            this.checkExistingSession();
-        }
-
-        setupEventListeners() {
-            // Form mode switching
-            document.getElementById('login-mode').addEventListener('change', () => this.showForm('login'));
-            document.getElementById('register-mode').addEventListener('change', () => this.showForm('register'));
-            document.getElementById('forgot-password').addEventListener('click', (e) => {
-                e.preventDefault();
-                this.showForm('forgot');
-            });
-            document.querySelector('.back-to-login').addEventListener('click', (e) => {
-                e.preventDefault();
-                this.showForm('login');
-                document.getElementById('login-mode').checked = true;
-            });
-
-            // Form submissions
-            document.getElementById('login-form').addEventListener('submit', (e) => this.handleLogin(e));
-            document.getElementById('register-form').addEventListener('submit', (e) => this.handleRegister(e));
-            document.getElementById('forgot-form').addEventListener('submit', (e) => this.handleForgotPassword(e));
-        }
-
-        showForm(formType) {
-            document.getElementById('login-form').style.display = 'none';
-            document.getElementById('register-form').style.display = 'none';
-            document.getElementById('forgot-form').style.display = 'none';
-            document.getElementById('success-message').style.display = 'none';
-
-            if (formType === 'login') {
-                document.getElementById('login-form').style.display = 'block';
-            } else if (formType === 'register') {
-                document.getElementById('register-form').style.display = 'block';
-            } else if (formType === 'forgot') {
-                document.getElementById('forgot-form').style.display = 'block';
+        // Simple Auth System with Beautiful Notifications
+        class SimpleAuth {
+            constructor() {
+                this.supabase = supabase.createClient(
+                    'https://zliedzrqzvywlsyfggcq.supabase.co',
+                    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpsaWVkenJxenZ5d2xzeWZnZ2NxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjEwOTE4NjYsImV4cCI6MjA3NjY2Nzg2Nn0.NbzEZ4ievehtrlyOxCK_mheb7YU4SnNgC0uXuOKPNOI'
+                );
+                this.redirectChecked = false;
+                this.setupEventListeners();
+                this.setupNotificationContainer();
+                setTimeout(() => this.checkExistingSession(), 500);
             }
-        }
 
-        showLoading() {
-            document.querySelector('.loading-overlay').style.display = 'flex';
-        }
-
-        hideLoading() {
-            document.querySelector('.loading-overlay').style.display = 'none';
-        }
-
-        showSuccess(message) {
-            document.getElementById('success-text').textContent = message;
-            document.getElementById('success-message').style.display = 'block';
-            setTimeout(() => {
-                document.getElementById('success-message').style.display = 'none';
-            }, 5000);
-        }
-
-        showError(message) {
-            console.error('Auth Error:', message);
-            alert('Error: ' + message);
-        }
-
-        async checkExistingSession() {
-            try {
-                const { data: { session }, error } = await this.supabase.auth.getSession();
-                if (error) {
-                    console.error('Session check error:', error);
-                    return;
-                }
-                
-                if (session) {
-                    console.log('User already logged in, redirecting to main page');
-                    window.location.href = 'index.html';
-                }
-            } catch (error) {
-                console.log('No existing session:', error.message);
-            }
-        }
-
-        async handleLogin(e) {
-            e.preventDefault();
-            this.showLoading();
-
-            const email = document.getElementById('email').value;
-            const password = document.getElementById('password').value;
-
-            try {
-                console.log('Attempting login for:', email);
-                const { data, error } = await this.supabase.auth.signInWithPassword({
-                    email: email,
-                    password: password
+            setupEventListeners() {
+                // Form mode switching
+                document.getElementById('login-mode').addEventListener('change', () => this.showForm('login'));
+                document.getElementById('register-mode').addEventListener('change', () => this.showForm('register'));
+                document.getElementById('forgot-password').addEventListener('click', (e) => {
+                    e.preventDefault();
+                    this.showForm('forgot');
+                });
+                document.querySelector('.back-to-login').addEventListener('click', (e) => {
+                    e.preventDefault();
+                    this.showForm('login');
+                    document.getElementById('login-mode').checked = true;
                 });
 
-                if (error) throw error;
+                // Form submissions
+                document.getElementById('login-form').addEventListener('submit', (e) => this.handleLogin(e));
+                document.getElementById('register-form').addEventListener('submit', (e) => this.handleRegister(e));
+                document.getElementById('forgot-form').addEventListener('submit', (e) => this.handleForgotPassword(e));
+            }
 
-                console.log('Login successful, redirecting...');
-                this.showSuccess('Login successful! Redirecting...');
+            // Create notification container
+            setupNotificationContainer() {
+                const notificationContainer = document.createElement('div');
+                notificationContainer.id = 'notification-container';
+                document.body.appendChild(notificationContainer);
+            }
+
+            // Show beautiful notification
+            showNotification(message, type = 'info') {
+                const container = document.getElementById('notification-container');
+                const notification = document.createElement('div');
                 
+                const styles = {
+                    success: {
+                        background: 'linear-gradient(135deg, #4CAF50, #45a049)',
+                        icon: 'fas fa-check-circle',
+                        title: 'Success!'
+                    },
+                    error: {
+                        background: 'linear-gradient(135deg, #ff4444, #cc0000)',
+                        icon: 'fas fa-exclamation-triangle',
+                        title: 'Oops!'
+                    },
+                    warning: {
+                        background: 'linear-gradient(135deg, #ff9800, #f57c00)',
+                        icon: 'fas fa-exclamation-circle',
+                        title: 'Warning'
+                    },
+                    info: {
+                        background: 'linear-gradient(135deg, #2196F3, #1976D2)',
+                        icon: 'fas fa-info-circle',
+                        title: 'Info'
+                    }
+                };
+
+                const style = styles[type] || styles.info;
+
+                notification.innerHTML = `
+                    <div class="notification" style="
+                        background: ${style.background};
+                        color: white;
+                        padding: 16px 20px;
+                        margin-bottom: 10px;
+                        border-radius: 12px;
+                        box-shadow: 0 8px 25px rgba(0,0,0,0.2);
+                        border-left: 4px solid rgba(255,255,255,0.3);
+                        backdrop-filter: blur(10px);
+                        animation: slideInRight 0.3s ease-out;
+                        min-width: 300px;
+                    ">
+                        <div style="display: flex; align-items: flex-start; gap: 12px;">
+                            <i class="${style.icon}" style="font-size: 20px; margin-top: 2px;"></i>
+                            <div style="flex: 1;">
+                                <div style="font-weight: 600; font-size: 14px; margin-bottom: 4px;">${style.title}</div>
+                                <div style="font-size: 13px; line-height: 1.4; opacity: 0.9;">${message}</div>
+                            </div>
+                            <button onclick="this.parentElement.parentElement.remove()" style="
+                                background: none;
+                                border: none;
+                                color: white;
+                                cursor: pointer;
+                                padding: 4px;
+                                border-radius: 4px;
+                                opacity: 0.7;
+                                transition: opacity 0.2s;
+                            " onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.7'">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                    </div>
+                `;
+
+                container.appendChild(notification);
+
+                // Auto remove after 5 seconds
                 setTimeout(() => {
-                    window.location.href = 'index.html';
-                }, 1000);
-
-            } catch (error) {
-                console.error('Login error:', error);
-                this.showError(error.message);
-            } finally {
-                this.hideLoading();
-            }
-        }
-
-        async handleRegister(e) {
-            e.preventDefault();
-            this.showLoading();
-
-            const email = document.getElementById('register-email').value;
-            const password = document.getElementById('register-password').value;
-            const confirmPassword = document.getElementById('confirm-password').value;
-
-            if (password !== confirmPassword) {
-                this.showError('Passwords do not match');
-                this.hideLoading();
-                return;
-            }
-
-            if (password.length < 6) {
-                this.showError('Password must be at least 6 characters long');
-                this.hideLoading();
-                return;
-            }
-
-            try {
-                console.log('Attempting registration for:', email);
-                
-                const { data, error } = await this.supabase.auth.signUp({
-                    email: email,
-                    password: password,
-                    options: {
-                        emailRedirectTo: 'https://tournament.kishtechsite.online/auth.html'
+                    if (notification.parentElement) {
+                        notification.style.animation = 'slideOutRight 0.3s ease-in';
+                        setTimeout(() => notification.remove(), 300);
                     }
-                });
+                }, 5000);
+            }
 
-                if (error) {
-                    // If user already exists, that's fine - they can login
-                    if (error.message.includes('already registered')) {
-                        this.showSuccess('Email already registered. You can now login.');
-                        document.getElementById('register-form').reset();
-                        setTimeout(() => {
-                            this.showForm('login');
-                            document.getElementById('login-mode').checked = true;
-                        }, 2000);
-                        return;
-                    }
-                    throw error;
+            showForm(formType) {
+                document.getElementById('login-form').style.display = 'none';
+                document.getElementById('register-form').style.display = 'none';
+                document.getElementById('forgot-form').style.display = 'none';
+                document.getElementById('success-message').style.display = 'none';
+
+                if (formType === 'login') {
+                    document.getElementById('login-form').style.display = 'block';
+                } else if (formType === 'register') {
+                    document.getElementById('register-form').style.display = 'block';
+                } else if (formType === 'forgot') {
+                    document.getElementById('forgot-form').style.display = 'block';
                 }
+            }
 
-                console.log('Registration response:', data);
+            showLoading() {
+                document.querySelector('.loading-overlay').style.display = 'flex';
+            }
+
+            hideLoading() {
+                document.querySelector('.loading-overlay').style.display = 'none';
+            }
+
+            showSuccess(message) {
+                this.showNotification(message, 'success');
+            }
+
+            showError(message) {
+                console.error('Auth Error:', message);
                 
-                if (data.user) {
-                    this.showSuccess('Registration successful! Please check your email to confirm your account.');
-                    document.getElementById('register-form').reset();
+                // User-friendly error messages
+                let userMessage = message;
+                let type = 'error';
+                
+                if (message.includes('Invalid login credentials')) {
+                    userMessage = 'The email or password you entered is incorrect. Please try again.';
+                    type = 'error';
+                } else if (message.includes('Email not confirmed')) {
+                    userMessage = 'Please check your email to confirm your account before logging in.';
+                    type = 'warning';
+                } else if (message.includes('already registered')) {
+                    userMessage = 'This email is already registered. Please try logging in instead.';
+                    type = 'warning';
+                } else if (message.includes('Password should be at least')) {
+                    userMessage = 'Password must be at least 6 characters long. Please choose a stronger password.';
+                    type = 'warning';
+                } else if (message.includes('User already registered')) {
+                    userMessage = 'An account with this email already exists. Please try logging in.';
+                    type = 'warning';
+                } else if (message.includes('Error sending confirmation email')) {
+                    userMessage = 'Registration completed! However, we encountered an issue sending the confirmation email. You can try logging in.';
+                    type = 'warning';
+                } else {
+                    userMessage = 'An unexpected error occurred. Please try again.';
+                    type = 'error';
+                }
+                
+                this.showNotification(userMessage, type);
+            }
+
+            async checkExistingSession() {
+                if (this.redirectChecked) return;
+                this.redirectChecked = true;
+
+                try {
+                    const { data: { session }, error } = await this.supabase.auth.getSession();
+                    
+                    if (error) return;
+                    
+                    if (session) {
+                        this.showNotification(`Welcome back, ${session.user?.email || 'User'}!`, 'info');
+                        setTimeout(() => {
+                            window.location.href = 'https://tournament.kishtechsite.online/index.html';
+                        }, 1500);
+                    }
+                } catch (error) {
+                    console.log('Session check failed:', error.message);
+                }
+            }
+
+            async handleLogin(e) {
+                e.preventDefault();
+                this.showLoading();
+
+                const email = document.getElementById('email').value;
+                const password = document.getElementById('password').value;
+
+                try {
+                    const { data, error } = await this.supabase.auth.signInWithPassword({
+                        email: email,
+                        password: password
+                    });
+
+                    if (error) throw error;
+
+                    this.showSuccess(`Welcome back! Redirecting you to the dashboard...`);
                     
                     setTimeout(() => {
-                        this.showForm('login');
-                        document.getElementById('login-mode').checked = true;
-                    }, 3000);
+                        window.location.href = 'https://tournament.kishtechsite.online/index.html';
+                    }, 1500);
+
+                } catch (error) {
+                    this.showError(error.message);
+                } finally {
+                    this.hideLoading();
+                }
+            }
+
+            async handleRegister(e) {
+                e.preventDefault();
+                this.showLoading();
+
+                const email = document.getElementById('register-email').value;
+                const password = document.getElementById('register-password').value;
+                const confirmPassword = document.getElementById('confirm-password').value;
+
+                if (password !== confirmPassword) {
+                    this.showError('Passwords do not match. Please make sure both passwords are identical.');
+                    this.hideLoading();
+                    return;
                 }
 
-            } catch (error) {
-                console.error('Registration error:', error);
-                this.showError(error.message);
-            } finally {
-                this.hideLoading();
+                if (password.length < 6) {
+                    this.showError('Password must be at least 6 characters long for security.');
+                    this.hideLoading();
+                    return;
+                }
+
+                try {
+                    const { data, error } = await this.supabase.auth.signUp({
+                        email: email,
+                        password: password,
+                        options: {
+                            emailRedirectTo: 'https://tournament.kishtechsite.online/auth.html'
+                        }
+                    });
+
+                    if (error) throw error;
+
+                    if (data.user) {
+                        if (data.user.identities && data.user.identities.length === 0) {
+                            this.showError('This email is already registered. Please try logging in.');
+                        } else {
+                            this.showSuccess('🎉 Account created successfully! You can now log in with your credentials.');
+                            document.getElementById('register-form').reset();
+                            
+                            setTimeout(() => {
+                                this.showForm('login');
+                                document.getElementById('login-mode').checked = true;
+                                document.getElementById('email').value = email;
+                            }, 2000);
+                        }
+                    }
+
+                } catch (error) {
+                    this.showError(error.message);
+                } finally {
+                    this.hideLoading();
+                }
+            }
+
+            async handleForgotPassword(e) {
+                e.preventDefault();
+                this.showLoading();
+
+                const email = document.getElementById('reset-email').value;
+
+                try {
+                    const { error } = await this.supabase.auth.resetPasswordForEmail(email, {
+                        redirectTo: 'https://tournament.kishtechsite.online/auth.html'
+                    });
+
+                    if (error) throw error;
+
+                    this.showSuccess('📧 Password reset link sent! Check your email inbox and spam folder.');
+                    document.getElementById('forgot-form').reset();
+
+                } catch (error) {
+                    this.showError(error.message);
+                } finally {
+                    this.hideLoading();
+                }
             }
         }
 
-        async handleForgotPassword(e) {
-            e.preventDefault();
-            this.showLoading();
-
-            const email = document.getElementById('reset-email').value;
-
-            try {
-                const { error } = await this.supabase.auth.resetPasswordForEmail(email, {
-                    redirectTo: 'https://tournament.kishtechsite.online/auth.html'
-                });
-
-                if (error) throw error;
-
-                this.showSuccess('Password reset link sent! Check your email.');
-                document.getElementById('forgot-form').reset();
-
-            } catch (error) {
-                this.showError(error.message);
-            } finally {
-                this.hideLoading();
-            }
-        }
-    }
-
-    // Initialize auth system when page loads
-    document.addEventListener('DOMContentLoaded', () => {
-        new SimpleAuth();
-    });
-
-    // Handle email confirmation callback
-    document.addEventListener('DOMContentLoaded', function() {
-        const urlParams = new URLSearchParams(window.location.search);
-        const type = urlParams.get('type');
-        
-        if (type === 'signup') {
-            alert('Email confirmed successfully! You can now log in.');
-            // Clean URL
-            window.history.replaceState({}, document.title, window.location.pathname);
-        }
-    });
-</script>
+        // Initialize auth system when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            new SimpleAuth();
+        });
+    </script>
 </body>
 </html>
