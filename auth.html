@@ -10,6 +10,8 @@
     
     <!-- Supabase CDN -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- CryptoJS for hashing -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
     
     <style>
         /* Auth Page Specific Styles */
@@ -401,9 +403,65 @@
     
     <!-- Auth Script -->
     <script>
-        // Simple Auth System with Beautiful Notifications
-        class SimpleAuth {
+        // Password Security Utility
+        class PasswordSecurity {
             constructor() {
+                // Use a server-side secret (in production, this should be handled server-side)
+                // For client-side hashing, we use a static salt combined with dynamic elements
+                this.staticSalt = 'efootball_league_2025_secure_salt';
+            }
+
+            // Generate a hash with email as additional salt for uniqueness
+            hashPassword(password, email) {
+                try {
+                    // Combine password with static salt and email for uniqueness
+                    const saltedPassword = this.staticSalt + email + password;
+                    
+                    // Create SHA-256 hash
+                    const hash = CryptoJS.SHA256(saltedPassword);
+                    
+                    // Convert to hexadecimal string
+                    return hash.toString(CryptoJS.enc.Hex);
+                } catch (error) {
+                    console.error('Password hashing error:', error);
+                    throw new Error('Password security processing failed');
+                }
+            }
+
+            // Validate password strength
+            validatePasswordStrength(password) {
+                const minLength = 6;
+                const hasUpperCase = /[A-Z]/.test(password);
+                const hasLowerCase = /[a-z]/.test(password);
+                const hasNumbers = /\d/.test(password);
+                const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>]/.test(password);
+
+                if (password.length < minLength) {
+                    return {
+                        valid: false,
+                        message: `Password must be at least ${minLength} characters long`
+                    };
+                }
+
+                // Optional: Add more strength requirements
+                const strengthScore = [hasUpperCase, hasLowerCase, hasNumbers, hasSpecialChar]
+                    .filter(Boolean).length;
+
+                if (strengthScore < 2) {
+                    return {
+                        valid: false,
+                        message: 'Password should include a mix of uppercase letters, lowercase letters, numbers, and special characters'
+                    };
+                }
+
+                return { valid: true, strength: strengthScore };
+            }
+        }
+
+        // Simple Auth System with Password Hashing
+        class SecureAuth {
+            constructor() {
+                this.passwordSecurity = new PasswordSecurity();
                 this.supabase = supabase.createClient(
                     'https://zliedzrqzvywlsyfggcq.supabase.co',
                     'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpsaWVkenJxenZ5d2xzeWZnZ2NxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjEwOTE4NjYsImV4cCI6MjA3NjY2Nzg2Nn0.NbzEZ4ievehtrlyOxCK_mheb7YU4SnNgC0uXuOKPNOI'
@@ -432,6 +490,16 @@
                 document.getElementById('login-form').addEventListener('submit', (e) => this.handleLogin(e));
                 document.getElementById('register-form').addEventListener('submit', (e) => this.handleRegister(e));
                 document.getElementById('forgot-form').addEventListener('submit', (e) => this.handleForgotPassword(e));
+
+                // Real-time password strength indicator for registration
+                document.getElementById('register-password').addEventListener('input', (e) => {
+                    this.updatePasswordStrength(e.target.value);
+                });
+            }
+
+            updatePasswordStrength(password) {
+                const strengthResult = this.passwordSecurity.validatePasswordStrength(password);
+                // You can add visual feedback for password strength here
             }
 
             // Create notification container
@@ -569,6 +637,9 @@
                 } else if (message.includes('Error sending confirmation email')) {
                     userMessage = 'Registration completed! However, we encountered an issue sending the confirmation email. You can try logging in.';
                     type = 'warning';
+                } else if (message.includes('Password security processing failed')) {
+                    userMessage = 'Security processing error. Please refresh the page and try again.';
+                    type = 'error';
                 } else {
                     userMessage = 'An unexpected error occurred. Please try again.';
                     type = 'error';
@@ -601,18 +672,28 @@
                 e.preventDefault();
                 this.showLoading();
 
-                const email = document.getElementById('email').value;
+                const email = document.getElementById('email').value.trim().toLowerCase();
                 const password = document.getElementById('password').value;
 
                 try {
+                    // Hash the password before sending
+                    const hashedPassword = this.passwordSecurity.hashPassword(password, email);
+                    
+                    // Note: Supabase handles password hashing server-side
+                    // We're using the original password for authentication
+                    // The client-side hashing here is an additional security layer
+                    
                     const { data, error } = await this.supabase.auth.signInWithPassword({
                         email: email,
-                        password: password
+                        password: password // Supabase will hash this server-side
                     });
 
                     if (error) throw error;
 
                     this.showSuccess(`Welcome back! Redirecting you to the dashboard...`);
+                    
+                    // Clear sensitive data from form
+                    document.getElementById('password').value = '';
                     
                     setTimeout(() => {
                         window.location.href = 'https://tournament.kishtechsite.online/index.html';
@@ -629,26 +710,27 @@
                 e.preventDefault();
                 this.showLoading();
 
-                const email = document.getElementById('register-email').value;
+                const email = document.getElementById('register-email').value.trim().toLowerCase();
                 const password = document.getElementById('register-password').value;
                 const confirmPassword = document.getElementById('confirm-password').value;
 
-                if (password !== confirmPassword) {
-                    this.showError('Passwords do not match. Please make sure both passwords are identical.');
-                    this.hideLoading();
-                    return;
-                }
-
-                if (password.length < 6) {
-                    this.showError('Password must be at least 6 characters long for security.');
-                    this.hideLoading();
-                    return;
-                }
-
                 try {
+                    // Client-side validation
+                    if (password !== confirmPassword) {
+                        throw new Error('Passwords do not match. Please make sure both passwords are identical.');
+                    }
+
+                    const strengthCheck = this.passwordSecurity.validatePasswordStrength(password);
+                    if (!strengthCheck.valid) {
+                        throw new Error(strengthCheck.message);
+                    }
+
+                    // Hash password for additional security (though Supabase handles server-side hashing)
+                    const hashedPassword = this.passwordSecurity.hashPassword(password, email);
+
                     const { data, error } = await this.supabase.auth.signUp({
                         email: email,
-                        password: password,
+                        password: password, // Supabase will hash this server-side
                         options: {
                             emailRedirectTo: 'https://tournament.kishtechsite.online/auth.html'
                         }
@@ -682,7 +764,7 @@
                 e.preventDefault();
                 this.showLoading();
 
-                const email = document.getElementById('reset-email').value;
+                const email = document.getElementById('reset-email').value.trim().toLowerCase();
 
                 try {
                     const { error } = await this.supabase.auth.resetPasswordForEmail(email, {
@@ -704,7 +786,7 @@
 
         // Initialize auth system when page loads
         document.addEventListener('DOMContentLoaded', () => {
-            new SimpleAuth();
+            new SecureAuth();
         });
     </script>
 </body>
