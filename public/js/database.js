@@ -1,15 +1,17 @@
-// ==================== Database and Data Management System with Supabase ====================
+// Database and Data Management System with Supabase
+console.log('🚀 database.js STARTED loading...');
 
 // Database table keys
-const DB_KEYS = {
+export const DB_KEYS = {
     PLAYERS: 'players',
     FIXTURES: 'fixtures',
     RESULTS: 'results',
-    TOURNAMENT_UPDATES: 'tournament_updates'
+    TOURNAMENT_UPDATES: 'tournament_updates',
+    ADMIN_CONFIG: 'admin_config'
 };
 
 // Default balanced teams configuration
-const BALANCED_TEAMS = [
+export const BALANCED_TEAMS = [
     { name: 'Kenya', strength: 85, color: '#000000' },
     { name: 'Chelsea', strength: 88, color: '#034694' },
     { name: 'Liverpool', strength: 87, color: '#c8102e' },
@@ -23,7 +25,7 @@ const BALANCED_TEAMS = [
 ];
 
 // Default players data
-const DEFAULT_PLAYERS = [
+export const DEFAULT_PLAYERS = [
     { 
         id: 1, 
         name: 'alwaysresistance', 
@@ -98,25 +100,34 @@ const DEFAULT_PLAYERS = [
     }
 ];
 
-// ==================== Supabase Client Initialization ====================
-if (!window.supabase) {
-    console.error('Supabase JS SDK not found! Please include it in your HTML before this script.');
-}
+// Supabase Client Initialization
+console.log('🔧 Initializing Supabase client...');
 
 const SUPABASE_URL = 'https://zliedzrqzvywlsyfggcq.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpsaWVkenJxenZ5d2xzeWZnZ2NxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjEwOTE4NjYsImV4cCI6MjA3NjY2Nzg2Nn0.NbzEZ4ievehtrlyOxCK_mheb7YU4SnNgC0uXuOKPNOI'; // Replace with your Supabase anon key
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpsaWVkenJxenZ5d2xzeWZnZ2NxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjEwOTE4NjYsImV4cCI6MjA3NjY2Nzg2Nn0.NbzEZ4ievehtrlyOxCK_mheb7YU4SnNgC0uXuOKPNOI';
 
-const supabase = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
-
-if (!supabase) {
-    console.error('Supabase client failed to initialize');
+let supabase;
+try {
+    if (window.supabase) {
+        supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        console.log('✅ Supabase client initialized successfully');
+    } else {
+        console.error('❌ Supabase JS SDK not found!');
+        supabase = null;
+    }
+} catch (error) {
+    console.error('❌ Supabase client initialization failed:', error);
+    supabase = null;
 }
 
-// ==================== Core Database Functions ====================
+// Core Database Functions
 
 // Get data from Supabase
-async function getData(tableName) {
-    if (!supabase) return [];
+export async function getData(tableName) {
+    if (!supabase) {
+        console.error('Supabase not available for getData');
+        return [];
+    }
     try {
         const { data, error } = await supabase.from(tableName).select('*');
         if (error) {
@@ -131,8 +142,11 @@ async function getData(tableName) {
 }
 
 // Save data to Supabase
-async function saveData(tableName, data) {
-    if (!supabase) return [];
+export async function saveData(tableName, data) {
+    if (!supabase) {
+        console.error('Supabase not available for saveData');
+        return [];
+    }
     try {
         if (Array.isArray(data) && data.length > 0) {
             const { data: result, error } = await supabase.from(tableName).insert(data).select();
@@ -150,9 +164,12 @@ async function saveData(tableName, data) {
 }
 
 // Initialize database with default players
-async function initializeDatabase() {
+export async function initializeDatabase() {
     console.log('⚙️ Initializing Supabase database...');
-    if (!supabase) return;
+    if (!supabase) {
+        console.error('Cannot initialize database: Supabase not available');
+        return;
+    }
 
     try {
         const existingPlayers = await getData(DB_KEYS.PLAYERS);
@@ -160,7 +177,7 @@ async function initializeDatabase() {
         if (!existingPlayers || existingPlayers.length === 0) {
             console.log('Setting up default players in Supabase...');
             const insertedPlayers = await saveData(DB_KEYS.PLAYERS, DEFAULT_PLAYERS);
-            console.log(`✅ Default players inserted: ${insertedPlayers.length}`);
+            console.log(`✅ Default players inserted: ${insertedPlayers ? insertedPlayers.length : 0}`);
             await generateSampleFixtures();
         } else {
             console.log(`✅ Database already initialized with ${existingPlayers.length} players`);
@@ -170,8 +187,8 @@ async function initializeDatabase() {
     }
 }
 
-// ==================== Player Management ====================
-async function addPlayer(playerData) {
+// Player Management
+export async function addPlayer(playerData) {
     const players = await getData(DB_KEYS.PLAYERS);
     const isDuplicate = players.some(p => p.name.toLowerCase() === playerData.name.toLowerCase() && p.team.toLowerCase() === playerData.team.toLowerCase());
     if (isDuplicate) throw new Error(`Player "${playerData.name}" already exists in team ${playerData.team}`);
@@ -192,7 +209,7 @@ async function addPlayer(playerData) {
     return inserted[0];
 }
 
-async function updatePlayer(player) {
+export async function updatePlayer(player) {
     if (!supabase) return null;
     try {
         const { data, error } = await supabase.from(DB_KEYS.PLAYERS).update({ ...player, updated_at: new Date().toISOString() }).eq('id', player.id).select();
@@ -205,7 +222,7 @@ async function updatePlayer(player) {
     }
 }
 
-async function deletePlayer(playerId) {
+export async function deletePlayer(playerId) {
     if (!supabase) return false;
     try {
         await supabase.from(DB_KEYS.PLAYERS).delete().eq('id', playerId);
@@ -219,7 +236,7 @@ async function deletePlayer(playerId) {
     }
 }
 
-// ==================== Fixture Management ====================
+// Fixture Management
 async function generateSampleFixtures() {
     const players = await getData(DB_KEYS.PLAYERS);
     if (!players || players.length < 2) return;
@@ -257,11 +274,11 @@ async function generateSampleFixtures() {
     console.log('✅ Generated', fixtures.length, 'fixtures');
 }
 
-async function addFixture(fixture) {
+export async function addFixture(fixture) {
     return await saveData(DB_KEYS.FIXTURES, [fixture]);
 }
 
-async function updateFixture(fixture) {
+export async function updateFixture(fixture) {
     if (!supabase) return null;
     const { data, error } = await supabase.from(DB_KEYS.FIXTURES).update({ ...fixture, updated_at: new Date().toISOString() }).eq('id', fixture.id).select();
     if (error) throw error;
@@ -269,7 +286,7 @@ async function updateFixture(fixture) {
     return data[0];
 }
 
-async function deleteFixture(fixtureId) {
+export async function deleteFixture(fixtureId) {
     if (!supabase) return false;
     const { error } = await supabase.from(DB_KEYS.FIXTURES).delete().eq('id', fixtureId);
     if (error) throw error;
@@ -277,8 +294,8 @@ async function deleteFixture(fixtureId) {
     return true;
 }
 
-// ==================== Result Management ====================
-async function addResult(result) {
+// Result Management
+export async function addResult(result) {
     const inserted = await saveData(DB_KEYS.RESULTS, [result]);
     // Mark corresponding fixture as played
     const fixtures = await getData(DB_KEYS.FIXTURES);
@@ -288,7 +305,7 @@ async function addResult(result) {
     return inserted[0];
 }
 
-async function updateResult(result) {
+export async function updateResult(result) {
     if (!supabase) return null;
     const { data, error } = await supabase.from(DB_KEYS.RESULTS).update({ ...result, updated_at: new Date().toISOString() }).eq('id', result.id).select();
     if (error) throw error;
@@ -296,7 +313,7 @@ async function updateResult(result) {
     return data[0];
 }
 
-async function deleteResult(resultId) {
+export async function deleteResult(resultId) {
     if (!supabase) return false;
     const { error } = await supabase.from(DB_KEYS.RESULTS).delete().eq('id', resultId);
     if (error) throw error;
@@ -304,23 +321,23 @@ async function deleteResult(resultId) {
     return true;
 }
 
-// ==================== Helper Functions ====================
-async function getPlayerById(playerId) {
+// Helper Functions
+export async function getPlayerById(playerId) {
     const players = await getData(DB_KEYS.PLAYERS);
     return players.find(p => p.id === playerId);
 }
 
-async function getFixtureById(fixtureId) {
+export async function getFixtureById(fixtureId) {
     const fixtures = await getData(DB_KEYS.FIXTURES);
     return fixtures.find(f => f.id === fixtureId);
 }
 
-async function getResultById(resultId) {
+export async function getResultById(resultId) {
     const results = await getData(DB_KEYS.RESULTS);
     return results.find(r => r.id === resultId);
 }
 
-function getDefaultStats() {
+export function getDefaultStats() {
     return { 
         played: 0, 
         wins: 0, 
@@ -333,8 +350,8 @@ function getDefaultStats() {
     };
 }
 
-// ==================== Statistics & League Table ====================
-async function calculatePlayerStats(playerId) {
+// Statistics & League Table
+export async function calculatePlayerStats(playerId) {
     try {
         const results = await getData(DB_KEYS.RESULTS);
         
@@ -377,7 +394,7 @@ async function calculatePlayerStats(playerId) {
     }
 }
 
-async function getRecentForm(playerId, matches = 5) {
+export async function getRecentForm(playerId, matches = 5) {
     try {
         const results = await getData(DB_KEYS.RESULTS);
         
@@ -408,17 +425,15 @@ async function getRecentForm(playerId, matches = 5) {
     }
 }
 
-async function getLeagueTable() {
+export async function getLeagueTable() {
     try {
         const players = await getData(DB_KEYS.PLAYERS);
         
-        // Ensure players is an array
         if (!Array.isArray(players)) {
             console.error('Players data is not an array:', players);
             return [];
         }
 
-        // Check if we have players
         if (players.length === 0) {
             console.log('No players found for league table');
             return [];
@@ -441,8 +456,8 @@ async function getLeagueTable() {
     }
 }
 
-// ==================== Refresh UI & Subscriptions ====================
-async function refreshAllDisplays() {
+// Refresh UI & Subscriptions
+export async function refreshAllDisplays() {
     if (typeof renderLeagueTable === 'function') await renderLeagueTable();
     if (typeof renderPlayers === 'function') await renderPlayers();
     if (typeof renderHomePage === 'function') await renderHomePage();
@@ -455,7 +470,7 @@ async function refreshAllDisplays() {
 }
 
 // Subscribe to database changes
-function subscribeToChanges(callback) {
+export function subscribeToChanges(callback) {
     if (!supabase) return null;
     return supabase.channel('schema-db-changes')
         .on('postgres_changes', { event: '*', schema: 'public' }, payload => {
@@ -465,13 +480,13 @@ function subscribeToChanges(callback) {
         }).subscribe();
 }
 
-// ==================== Utilities ====================
-function formatDisplayDate(dateString) {
+// Utilities
+export function formatDisplayDate(dateString) {
     if (!dateString) return 'TBD';
     return new Date(dateString).toLocaleDateString('en-US', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' });
 }
 
-function showNotification(message, type = 'info') {
+export function showNotification(message, type = 'info') {
     const notification = document.createElement('div');
     notification.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
     notification.style.cssText = `top:20px; right:20px; z-index:1060; min-width:300px; max-width:400px;`;
@@ -480,36 +495,16 @@ function showNotification(message, type = 'info') {
     setTimeout(() => { if (notification.parentNode) notification.parentNode.removeChild(notification); }, 5000);
 }
 
-// ==================== Global Access ====================
-window.getData = getData;
-window.saveData = saveData;
-window.addPlayer = addPlayer;
-window.updatePlayer = updatePlayer;
-window.deletePlayer = deletePlayer;
-window.addFixture = addFixture;
-window.updateFixture = updateFixture;
-window.deleteFixture = deleteFixture;
-window.addResult = addResult;
-window.updateResult = updateResult;
-window.deleteResult = deleteResult;
-window.getPlayerById = getPlayerById;
-window.getFixtureById = getFixtureById;
-window.getResultById = getResultById;
-window.calculatePlayerStats = calculatePlayerStats;
-window.getRecentForm = getRecentForm;
-window.getLeagueTable = getLeagueTable;
-window.refreshAllDisplays = refreshAllDisplays;
-window.formatDisplayDate = formatDisplayDate;
-window.showNotification = showNotification;
-window.DB_KEYS = DB_KEYS;
-window.BALANCED_TEAMS = BALANCED_TEAMS;
-window.DEFAULT_PLAYERS = DEFAULT_PLAYERS;
-window.initializeDatabase = initializeDatabase;
-
-// ==================== Initialize Database on DOM Loaded ====================
+// Initialize Database on DOM Loaded
 document.addEventListener('DOMContentLoaded', async function() {
-    if (!supabase) return;
+    console.log('📦 DOM loaded, initializing database...');
+    if (!supabase) {
+        console.error('❌ Supabase not available, skipping database initialization');
+        return;
+    }
     await initializeDatabase();
     subscribeToChanges(payload => console.log('DB change detected', payload));
     console.log('✅ Supabase database system initialized');
 });
+
+console.log('✅ database.js COMPLETED loading - all functions available');
