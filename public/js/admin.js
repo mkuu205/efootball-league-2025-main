@@ -553,19 +553,3 @@ document.addEventListener('DOMContentLoaded', async function() {
         });
     });
 });
-
-// Export all functions
-export {
-    checkAdminAuth,
-    populatePlayerSelects,
-    updateAdminStatistics,
-    renderAdminPlayers,
-    renderAdminFixtures,
-    renderAdminResults,
-    editPlayer,
-    deletePlayer,
-    deleteFixture,
-    deleteResult,
-    addFixtureResult,
-    setupAdminEventListeners
-};
