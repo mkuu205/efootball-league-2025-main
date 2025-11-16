@@ -1,43 +1,41 @@
+import { 
+    getData, 
+    getPlayerById, 
+    getLeagueTable, 
+    calculatePlayerStats,
+    formatDisplayDate,
+    DB_KEYS,
+    refreshAllDisplays
+} from './database.js';
+
 // Cache and Version Control
-const APP_VERSION = '2.0.0'; // Updated version for Supabase migration
+const APP_VERSION = '3.0.0';
 
 async function initializeApp() {
-    // No need for localStorage version control with Supabase
-    console.log(' Initializing app with Supabase...');
-    
-    // Initialize database
-    await initializeDatabase();
-    
-    // Set last update time
+    console.log('⚡ Initializing app with Supabase...');
+    await refreshAllDisplays();
     localStorage.setItem('efl_last_update', new Date().toISOString());
 }
 
 // Initialize app
 initializeApp();
 
-// UI Rendering functions for main site - Updated for async Supabase
-async function renderHomePage() {
+// UI Rendering functions
+export async function renderHomePage() {
     await renderUpcomingMatches();
     await renderTopScorers();
     await renderRecentForm();
     await renderQuickStats();
     
-    // Initialize advanced stats if on that tab
     if (typeof advancedStats !== 'undefined' && currentTab === 'advanced-stats') {
         await advancedStats.loadAdvancedStatsDashboard();
     }
-    
-    // Initialize updates if on that tab
-    if (typeof tournamentUpdates !== 'undefined' && currentTab === 'updates') {
-        await tournamentUpdates.loadUpdatesDashboard();
-    }
 }
 
-async function renderUpcomingMatches() {
+export async function renderUpcomingMatches() {
     const fixtures = await getData(DB_KEYS.FIXTURES);
     const players = await getData(DB_KEYS.PLAYERS);
     
-    // Ensure data is arrays
     if (!Array.isArray(fixtures) || !Array.isArray(players)) {
         console.error('Invalid data format for fixtures or players');
         return;
@@ -78,17 +76,15 @@ async function renderUpcomingMatches() {
     }).join('');
 }
 
-async function renderTopScorers() {
+export async function renderTopScorers() {
     const players = await getData(DB_KEYS.PLAYERS);
     const results = await getData(DB_KEYS.RESULTS);
     
-    // Ensure data is arrays
     if (!Array.isArray(players) || !Array.isArray(results)) {
         console.error('Invalid data format for players or results');
         return;
     }
     
-    // Calculate goals for each player
     const playerGoals = players.map((player) => {
         let goals = 0;
         results.forEach(result => {
@@ -102,7 +98,6 @@ async function renderTopScorers() {
         return { ...player, goals };
     });
     
-    // Sort by goals (descending)
     playerGoals.sort((a, b) => b.goals - a.goals);
     
     const container = document.getElementById('top-scorers');
@@ -124,24 +119,21 @@ async function renderTopScorers() {
     `).join('');
 }
 
-async function renderRecentForm() {
+export async function renderRecentForm() {
     const players = await getData(DB_KEYS.PLAYERS);
     const results = await getData(DB_KEYS.RESULTS);
     
-    // Ensure data is arrays
     if (!Array.isArray(players) || !Array.isArray(results)) {
         console.error('Invalid data format for players or results');
         return;
     }
     
-    // Sort results by date (newest first)
     const sortedResults = [...results].sort((a, b) => new Date(b.date) - new Date(a.date));
     
     const container = document.getElementById('recent-form');
     if (!container) return;
     
     const formHTML = await Promise.all(players.slice(0, 5).map(async (player) => {
-        // Get last 5 matches for this player
         const playerResults = sortedResults.filter(r => 
             r.home_player_id === player.id || r.away_player_id === player.id
         ).slice(0, 5);
@@ -154,7 +146,7 @@ async function renderRecentForm() {
             if (playerScore > opponentScore) return 'W';
             if (playerScore === opponentScore) return 'D';
             return 'L';
-        }).reverse(); // Show in chronological order
+        }).reverse();
         
         const formBadges = form.map(result => {
             const badgeClass = result === 'W' ? 'bg-success' : result === 'D' ? 'bg-warning' : 'bg-danger';
@@ -177,8 +169,7 @@ async function renderRecentForm() {
     container.innerHTML = formHTML.join('');
 }
 
-// Enhanced Home Tab with Quick Stats
-async function renderQuickStats() {
+export async function renderQuickStats() {
     const players = await getData(DB_KEYS.PLAYERS);
     const fixtures = await getData(DB_KEYS.FIXTURES);
     const results = await getData(DB_KEYS.RESULTS);
@@ -213,7 +204,7 @@ async function renderQuickStats() {
     `;
 }
 
-async function renderFixtures() {
+export async function renderFixtures() {
     const fixtures = await getData(DB_KEYS.FIXTURES);
     const players = await getData(DB_KEYS.PLAYERS);
     
@@ -258,11 +249,10 @@ async function renderFixtures() {
     }).join('');
 }
 
-async function renderResults() {
+export async function renderResults() {
     const results = await getData(DB_KEYS.RESULTS);
     const players = await getData(DB_KEYS.PLAYERS);
     
-    // Sort by date (newest first)
     const sortedResults = [...results].sort((a, b) => new Date(b.date) - new Date(a.date));
     
     const container = document.getElementById('results-container');
@@ -297,8 +287,7 @@ async function renderResults() {
     }).join('');
 }
 
-// Enhanced League Table with Form
-async function renderLeagueTable() {
+export async function renderLeagueTable() {
     try {
         const tableData = await getLeagueTable();
         const players = await getData(DB_KEYS.PLAYERS);
@@ -309,7 +298,6 @@ async function renderLeagueTable() {
         const tbody = container.querySelector('tbody');
         if (!tbody) return;
         
-        // Ensure players is an array
         if (!Array.isArray(players)) {
             console.error('Players data is not an array:', players);
             tbody.innerHTML = '<tr><td colspan="11" class="text-center text-danger">Error loading player data</td></tr>';
@@ -370,7 +358,7 @@ async function renderLeagueTable() {
     }
 }
 
-async function renderPlayers() {
+export async function renderPlayers() {
     const players = await getData(DB_KEYS.PLAYERS);
     const tableData = await getLeagueTable();
     
@@ -418,7 +406,7 @@ async function renderPlayers() {
 }
 
 // Fixed Countdown Timer
-async function updateCountdown() {
+export async function updateCountdown() {
     const fixtures = await getData(DB_KEYS.FIXTURES);
     const upcomingFixtures = fixtures.filter(f => !f.played);
     
@@ -428,7 +416,6 @@ async function updateCountdown() {
         return;
     }
     
-    // Find the next fixture by date and time
     const now = new Date();
     let nextFixture = null;
     let smallestDiff = Infinity;
@@ -492,22 +479,19 @@ async function updateCountdown() {
 }
 
 // Navigation
-let currentTab = 'home';
+export let currentTab = 'home';
 
-async function showTab(tabName) {
+export async function showTab(tabName) {
     currentTab = tabName;
     
-    // Hide all tabs
     document.querySelectorAll('.tab-pane').forEach(tab => {
         tab.classList.remove('show', 'active');
     });
     
-    // Show selected tab
     const tab = document.getElementById(tabName);
     if (tab) {
         tab.classList.add('show', 'active');
         
-        // Render content for the tab if needed
         switch(tabName) {
             case 'home':
                 await renderHomePage();
@@ -529,25 +513,18 @@ async function showTab(tabName) {
                     await advancedStats.loadAdvancedStatsDashboard();
                 }
                 break;
-            case 'updates':
-                if (typeof tournamentUpdates !== 'undefined') {
-                    await tournamentUpdates.loadUpdatesDashboard();
-                }
-                break;
         }
     }
 }
 
 // Event Listeners for main site
-function setupEventListeners() {
-    // Navigation
+export function setupEventListeners() {
     document.querySelectorAll('[data-tab]').forEach(link => {
         link.addEventListener('click', function(e) {
             e.preventDefault();
             const tabName = this.getAttribute('data-tab');
             showTab(tabName);
             
-            // Update active nav link
             document.querySelectorAll('.nav-link').forEach(navLink => {
                 navLink.classList.remove('active');
             });
@@ -555,7 +532,6 @@ function setupEventListeners() {
         });
     });
     
-    // Set up countdown timer
     setInterval(updateCountdown, 1000);
     updateCountdown();
 }
