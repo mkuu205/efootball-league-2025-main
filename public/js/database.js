@@ -508,34 +508,3 @@ document.addEventListener('DOMContentLoaded', async function() {
 });
 
 console.log('✅ database.js COMPLETED loading - all functions available');
-
-// Export all functions
-export {
-    getData,
-    saveData,
-    initializeDatabase,
-    addPlayer,
-    updatePlayer,
-    deletePlayer,
-    addFixture,
-    updateFixture,
-    deleteFixture,
-    addResult,
-    updateResult,
-    deleteResult,
-    getPlayerById,
-    getFixtureById,
-    getResultById,
-    getDefaultStats,
-    calculatePlayerStats,
-    getRecentForm,
-    getLeagueTable,
-    refreshAllDisplays,
-    subscribeToChanges,
-    formatDisplayDate,
-    showNotification,
-    DB_KEYS,
-    BALANCED_TEAMS,
-    DEFAULT_PLAYERS,
-    supabase
-};
