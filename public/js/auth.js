@@ -1,351 +1,561 @@
-// Simple Auth Functions for Main Site
+// Authentication functions using Supabase Auth with Resend Email
+import { supabase, getData, saveData, showNotification } from './database.js';
+
 const ADMIN_EMAIL = 'support@kishtechsite.online';
 
+// Debug current authentication state
+console.log('🔐 Auth System Loading...');
 
-// Supabase setup
-const supabaseUrl = 'https://zliedzrqzvywlsyfggcq.supabase.co';
-const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpsaWVkenJxenZ5d2xzeWZnZ2NxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjEwOTE4NjYsImV4cCI6MjA3NjY2Nzg2Nn0.NbzEZ4ievehtrlyOxCK_mheb7YU4SnNgC0uXuOKPNOI'; // Use the anon public key
-const supabase = supabase.createClient(supabaseUrl, supabaseKey);
-
-
-
-// Track redirect state to prevent loops
-let redirectInProgress = false;
-
-// Beautiful Notification System
-function showNotification(message, type = 'info') {
-    // Create notification container if it doesn't exist
-    let container = document.getElementById('notification-container');
-    if (!container) {
-        container = document.createElement('div');
-        container.id = 'notification-container';
-        container.style.cssText = `
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            z-index: 9999;
-            max-width: 400px;
-        `;
-        document.body.appendChild(container);
-        
-        // Add CSS animations if not already added
-        if (!document.getElementById('notification-styles')) {
-            const style = document.createElement('style');
-            style.id = 'notification-styles';
-            style.textContent = `
-                @keyframes slideInRight {
-                    from {
-                        transform: translateX(100%);
-                        opacity: 0;
-                    }
-                    to {
-                        transform: translateX(0);
-                        opacity: 1;
-                    }
-                }
-                
-                @keyframes slideOutRight {
-                    from {
-                        transform: translateX(0);
-                        opacity: 1;
-                    }
-                    to {
-                        transform: translateX(100%);
-                        opacity: 0;
-                    }
-                }
-                
-                .notification {
-                    background: linear-gradient(135deg, #ff4444, #cc0000);
-                    color: white;
-                    padding: 16px 20px;
-                    margin-bottom: 10px;
-                    border-radius: 12px;
-                    box-shadow: 0 8px 25px rgba(0,0,0,0.2);
-                    border-left: 4px solid rgba(255,255,255,0.3);
-                    backdrop-filter: blur(10px);
-                    animation: slideInRight 0.3s ease-out;
-                    min-width: 300px;
-                }
-            `;
-            document.head.appendChild(style);
-        }
-    }
-
-    const notification = document.createElement('div');
-    
-    const styles = {
-        success: {
-            background: 'linear-gradient(135deg, #4CAF50, #45a049)',
-            icon: 'fas fa-check-circle',
-            title: 'Success!'
-        },
-        error: {
-            background: 'linear-gradient(135deg, #ff4444, #cc0000)',
-            icon: 'fas fa-exclamation-triangle',
-            title: 'Oops!'
-        },
-        warning: {
-            background: 'linear-gradient(135deg, #ff9800, #f57c00)',
-            icon: 'fas fa-exclamation-circle',
-            title: 'Warning'
-        },
-        info: {
-            background: 'linear-gradient(135deg, #2196F3, #1976D2)',
-            icon: 'fas fa-info-circle',
-            title: 'Info'
-        }
-    };
-
-    const style = styles[type] || styles.info;
-
-    notification.innerHTML = `
-        <div class="notification" style="
-            background: ${style.background};
-            color: white;
-            padding: 16px 20px;
-            margin-bottom: 10px;
-            border-radius: 12px;
-            box-shadow: 0 8px 25px rgba(0,0,0,0.2);
-            border-left: 4px solid rgba(255,255,255,0.3);
-            backdrop-filter: blur(10px);
-            animation: slideInRight 0.3s ease-out;
-            min-width: 300px;
-        ">
-            <div style="display: flex; align-items: flex-start; gap: 12px;">
-                <i class="${style.icon}" style="font-size: 20px; margin-top: 2px;"></i>
-                <div style="flex: 1;">
-                    <div style="font-weight: 600; font-size: 14px; margin-bottom: 4px;">${style.title}</div>
-                    <div style="font-size: 13px; line-height: 1.4; opacity: 0.9;">${message}</div>
-                </div>
-                <button onclick="this.parentElement.parentElement.remove()" style="
-                    background: none;
-                    border: none;
-                    color: white;
-                    cursor: pointer;
-                    padding: 4px;
-                    border-radius: 4px;
-                    opacity: 0.7;
-                    transition: opacity 0.2s;
-                " onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.7'">
-                    <i class="fas fa-times"></i>
-                </button>
-            </div>
-        </div>
-    `;
-
-    container.appendChild(notification);
-
-    // Auto remove after 5 seconds
-    setTimeout(() => {
-        if (notification.parentElement) {
-            notification.style.animation = 'slideOutRight 0.3s ease-in';
-            setTimeout(() => notification.remove(), 300);
-        }
-    }, 5000);
+// Password reset functionality
+function generateResetToken() {
+    return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
 }
 
-// Check if user is authenticated
-async function checkAuth() {
+async function saveResetToken(email, token) {
     try {
-        const { data: { session }, error } = await supabase.auth.getSession();
+        const resetData = {
+            email: email,
+            token: token,
+            expires: new Date(Date.now() + (60 * 60 * 1000)).toISOString(), // 1 hour expiry
+            created_at: new Date().toISOString()
+        };
         
-        if (error) {
-            console.error('Auth check error:', error);
+        await saveData('password_resets', [resetData]);
+        return true;
+    } catch (error) {
+        console.error('Error saving reset token:', error);
+        return false;
+    }
+}
+
+async function validateResetToken(email, token) {
+    try {
+        const resetTokens = await getData('password_resets');
+        const tokenData = resetTokens.find(t => t.email === email && t.token === token);
+        
+        if (!tokenData) {
             return false;
         }
         
-        console.log('Session check:', {
-            hasSession: !!session,
-            user: session?.user?.email,
-            expires: session?.expires_at
-        });
+        if (new Date() > new Date(tokenData.expires)) {
+            // Token expired, delete it
+            await supabase.from('password_resets').delete().eq('email', email);
+            return false;
+        }
         
-        return !!session;
+        return true;
     } catch (error) {
-        console.error('Auth check failed:', error);
+        console.error('Error validating reset token:', error);
         return false;
     }
 }
 
-// Check if user is admin
+async function clearResetToken(email) {
+    try {
+        await supabase.from('password_resets').delete().eq('email', email);
+        return true;
+    } catch (error) {
+        console.error('Error clearing reset token:', error);
+        return false;
+    }
+}
+
+// Real email sending function using Resend
+async function sendPasswordResetEmail(email, resetLink) {
+    try {
+        console.log('🔧 Sending reset email via Resend to:', email);
+
+        const response = await fetch('/api/send-reset-email', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                to_email: email,
+                reset_link: resetLink
+            })
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const result = await response.json();
+        console.log('📧 Resend email result:', result);
+
+        if (result.success) {
+            console.log('✅ Password reset email sent successfully via Resend');
+            showNotification('Password reset link has been sent to your email!', 'success');
+            return true;
+        } else {
+            console.error('❌ Failed to send email via Resend:', result.message);
+            showNotification('Failed to send reset email. Please try again.', 'error');
+            return false;
+        }
+
+    } catch (error) {
+        console.error('❌ Email sending error:', error);
+        showNotification('Email service temporarily unavailable. Please try again later.', 'error');
+        return false;
+    }
+}
+
+// Test email functionality
+async function sendTestEmail(email) {
+    try {
+        console.log('🧪 Sending test email to:', email);
+
+        const response = await fetch('/api/test-email', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                to_email: email
+            })
+        });
+
+        const result = await response.json();
+        
+        if (result.success) {
+            showNotification('Test email sent successfully!', 'success');
+            return true;
+        } else {
+            showNotification('Failed to send test email: ' + result.message, 'error');
+            return false;
+        }
+
+    } catch (error) {
+        console.error('Test email error:', error);
+        showNotification('Failed to send test email.', 'error');
+        return false;
+    }
+}
+
+async function requestPasswordReset(email) {
+    // Validate email - only allow the specific support email
+    if (!email || email !== ADMIN_EMAIL) {
+        showNotification('Only the admin support email (support@kishtechsite.online) can request password resets.', 'error');
+        return false;
+    }
+    
+    // Show loading state
+    const submitBtn = document.querySelector('#forgot-password-form button[type="submit"]');
+    const originalText = submitBtn.innerHTML;
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Sending...';
+    submitBtn.disabled = true;
+    
+    try {
+        // Generate reset token
+        const resetToken = generateResetToken();
+        await saveResetToken(email, resetToken);
+        
+        // Create reset link
+        const resetLink = `${window.location.origin}${window.location.pathname}?reset_token=${resetToken}&email=${encodeURIComponent(email)}`;
+        
+        console.log('🔄 Sending reset email with link:', resetLink);
+        
+        // Send email using Resend
+        let emailSent = await sendPasswordResetEmail(email, resetLink);
+        
+        if (emailSent) {
+            return true;
+        } else {
+            return false;
+        }
+        
+    } catch (error) {
+        console.error('Password reset request failed:', error);
+        showNotification('An error occurred while sending the reset email. Please try again.', 'error');
+        return false;
+    } finally {
+        // Restore button state
+        submitBtn.innerHTML = originalText;
+        submitBtn.disabled = false;
+    }
+}
+
+async function resetPassword(email, token, newPassword) {
+    // Validate token
+    if (!await validateResetToken(email, token)) {
+        showNotification('Invalid or expired reset token.', 'error');
+        return false;
+    }
+    
+    // Update password in Supabase
+    try {
+        const hashedPassword = await hashPassword(newPassword);
+        const adminConfig = {
+            email: email,
+            password_hash: hashedPassword,
+            updated_at: new Date().toISOString()
+        };
+        
+        // Check if admin config exists
+        const existingConfig = await getData('admin_config');
+        const config = existingConfig.find(c => c.email === ADMIN_EMAIL);
+        
+        if (config) {
+            // Update existing config
+            await supabase.from('admin_config').update(adminConfig).eq('email', email);
+        } else {
+            // Create new config
+            await saveData('admin_config', [adminConfig]);
+        }
+        
+        await clearResetToken(email);
+        showNotification('Password reset successfully! You can now login with your new password.', 'success');
+        return true;
+    } catch (error) {
+        console.error('Error resetting password:', error);
+        showNotification('Password reset failed.', 'error');
+        return false;
+    }
+}
+
+// Password hash function using Web Crypto API
+async function hashPassword(password) {
+    const encoder = new TextEncoder();
+    const data = encoder.encode(password);
+    const hash = await crypto.subtle.digest('SHA-256', data);
+    return Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+async function verifyPassword(password, hashedPassword) {
+    const newHash = await hashPassword(password);
+    return newHash === hashedPassword;
+}
+
+async function getCurrentPassword() {
+    try {
+        const adminConfig = await getData('admin_config');
+        const config = adminConfig.find(c => c.email === ADMIN_EMAIL);
+        return config ? config.password_hash : null;
+    } catch (error) {
+        console.error('Error getting admin password:', error);
+        return null;
+    }
+}
+
 async function checkAdminAuth() {
     try {
-        const { data: { session } } = await supabase.auth.getSession();
-        return session?.user?.email === ADMIN_EMAIL;
+        const session = await getData('admin_sessions');
+        const currentSession = session.find(s => s.email === ADMIN_EMAIL && new Date(s.expires) > new Date());
+        return !!currentSession;
     } catch (error) {
-        console.error('Admin auth check failed:', error);
+        console.error('Error checking admin auth:', error);
         return false;
     }
 }
 
-// Simple logout function
+async function setAdminAuth(authenticated) {
+    try {
+        if (authenticated) {
+            const sessionData = {
+                email: ADMIN_EMAIL,
+                created_at: new Date().toISOString(),
+                expires: new Date(Date.now() + (24 * 60 * 60 * 1000)).toISOString(), // 24 hours
+                session_token: generateResetToken()
+            };
+            await saveData('admin_sessions', [sessionData]);
+        } else {
+            await supabase.from('admin_sessions').delete().eq('email', ADMIN_EMAIL);
+        }
+        console.log('🔐 Admin auth set to:', authenticated);
+        return true;
+    } catch (error) {
+        console.error('Error setting admin auth:', error);
+        return false;
+    }
+}
+
 async function logout() {
-    try {
-        await supabase.auth.signOut();
-        showNotification('Logged out successfully', 'success');
-        setTimeout(() => {
-            window.location.href = 'https://tournament.kishtechsite.online/auth.html';
-        }, 1000);
-    } catch (error) {
-        console.error('Logout error:', error);
-        showNotification('Logout failed', 'error');
-    }
+    console.log('🔐 Logging out admin');
+    await setAdminAuth(false);
+    window.location.href = 'admin.html';
 }
 
-// Update navigation based on auth state
-async function updateNavigationAuth() {
-    const authNav = document.getElementById('auth-nav');
-    if (!authNav) {
-        console.log('auth-nav element not found');
-        return;
-    }
-
+// Initialize default admin password if not exists
+async function initializeAdminAuth() {
     try {
-        const isAuthenticated = await checkAuth();
-
-        if (isAuthenticated) {
-            const { data: { session } } = await supabase.auth.getSession();
-            const userEmail = session?.user?.email || 'User';
-            const isAdmin = userEmail === ADMIN_EMAIL;
-
-            authNav.innerHTML = `
-                <li class="nav-item dropdown">
-                    <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
-                        <i class="fas fa-user me-1"></i>${userEmail} ${isAdmin ? '(Admin)' : ''}
-                    </a>
-                    <ul class="dropdown-menu dropdown-menu-dark">
-                        ${isAdmin ? `
-                            <li><a class="dropdown-item" href="admin.html"><i class="fas fa-cog me-2"></i>Admin Panel</a></li>
-                            <li><hr class="dropdown-divider"></li>
-                        ` : ''}
-                        <li><a class="dropdown-item" href="#" onclick="logout()"><i class="fas fa-sign-out-alt me-2"></i>Logout</a></li>
-                    </ul>
-                </li>
-            `;
-
-            // Show admin nav item if user is admin
-            const adminNavItem = document.getElementById('admin-nav-item');
-            if (adminNavItem && isAdmin) {
-                adminNavItem.style.display = 'block';
-            }
-        } else {
-            authNav.innerHTML = `
-                <li class="nav-item">
-                    <a class="nav-link" href="https://tournament.kishtechsite.online/auth.html">
-                        <i class="fas fa-sign-in-alt me-1"></i>Login
-                    </a>
-                </li>
-            `;
-        }
-    } catch (error) {
-        console.error('Navigation update error:', error);
-        authNav.innerHTML = `
-            <li class="nav-item">
-                <a class="nav-link" href="https://tournament.kishtechsite.online/auth.html">
-                    <i class="fas fa-sign-in-alt me-1"></i>Login
-                </a>
-            </li>
-        `;
-    }
-}
-
-// Protect pages - with loop prevention
-async function protectPages() {
-    // Never protect auth.html
-    if (window.location.pathname.includes('auth.html') || 
-        window.location.href.includes('auth.html')) {
-        console.log('Auth page - skipping protection');
-        return;
-    }
-
-    // Prevent multiple redirects
-    if (redirectInProgress) {
-        console.log('Redirect already in progress, skipping');
-        return;
-    }
-
-    try {
-        const isAuthenticated = await checkAuth();
+        const adminConfig = await getData('admin_config');
+        const config = adminConfig.find(c => c.email === ADMIN_EMAIL);
         
-        if (!isAuthenticated) {
-            console.log('User not authenticated, redirecting to auth page');
-            redirectInProgress = true;
+        if (!config) {
+            // Set default password
+            const defaultPassword = 'Brashokish2425';
+            const hashedPassword = await hashPassword(defaultPassword);
             
-            // Use a small delay to allow logs to show
-            setTimeout(() => {
-                window.location.href = 'https://tournament.kishtechsite.online/auth.html';
-            }, 100);
-        } else {
-            console.log('User authenticated, allowing access');
+            const defaultConfig = {
+                email: ADMIN_EMAIL,
+                password_hash: hashedPassword,
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString()
+            };
+            
+            await saveData('admin_config', [defaultConfig]);
+            console.log('✅ Default admin password initialized');
         }
     } catch (error) {
-        console.error('Page protection error:', error);
-        // Don't redirect on error to avoid loops
+        console.error('Error initializing admin auth:', error);
     }
 }
 
-// Initialize app features after authentication
-function initializeAppFeatures() {
-    console.log('Initializing app features...');
+// Check for reset token in URL
+function checkResetTokenInURL() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const resetToken = urlParams.get('reset_token');
+    const email = urlParams.get('email');
     
-    // Initialize any app-specific features that depend on authentication
-    if (typeof dataSync !== 'undefined' && typeof dataSync.initialize === 'function') {
-        dataSync.initialize();
+    if (resetToken && email) {
+        console.log('🔄 Reset token detected in URL');
+        // Show reset password form
+        showResetPasswordForm(decodeURIComponent(email), resetToken);
+        
+        // Clean URL
+        const cleanUrl = window.location.origin + window.location.pathname;
+        window.history.replaceState({}, document.title, cleanUrl);
+    }
+}
+
+function showResetPasswordForm(email, token) {
+    const loginSection = document.getElementById('login-section');
+    const resetSection = document.getElementById('reset-password-section');
+    
+    if (loginSection && resetSection) {
+        loginSection.classList.add('d-none');
+        resetSection.classList.remove('d-none');
+        
+        // Set email and token in form
+        document.getElementById('reset-email').value = email;
+        document.getElementById('reset-token').value = token;
+    }
+}
+
+function showForgotPasswordForm() {
+    const loginSection = document.getElementById('login-section');
+    const forgotSection = document.getElementById('forgot-password-section');
+    
+    if (loginSection && forgotSection) {
+        loginSection.classList.add('d-none');
+        forgotSection.classList.remove('d-none');
+        
+        // Pre-fill the email field
+        document.getElementById('forgot-email').value = ADMIN_EMAIL;
+    }
+}
+
+function showLoginForm() {
+    const loginSection = document.getElementById('login-section');
+    const forgotSection = document.getElementById('forgot-password-section');
+    const resetSection = document.getElementById('reset-password-section');
+    
+    if (loginSection) loginSection.classList.remove('d-none');
+    if (forgotSection) forgotSection.classList.add('d-none');
+    if (resetSection) resetSection.classList.add('d-none');
+}
+
+// Password strength indicator
+function checkPasswordStrength(password) {
+    let strength = 0;
+    
+    if (password.length >= 6) strength++;
+    if (password.length >= 8) strength++;
+    if (/[A-Z]/.test(password)) strength++;
+    if (/[0-9]/.test(password)) strength++;
+    if (/[^A-Za-z0-9]/.test(password)) strength++;
+    
+    return strength;
+}
+
+function updatePasswordStrengthIndicator(password) {
+    const strengthBar = document.getElementById('password-strength-bar');
+    const strengthText = document.getElementById('password-strength-text');
+    
+    if (!strengthBar || !strengthText) return;
+    
+    const strength = checkPasswordStrength(password);
+    
+    // Reset classes
+    strengthBar.className = 'password-strength';
+    strengthText.className = 'small mt-1';
+    
+    if (password.length === 0) {
+        strengthBar.style.width = '0%';
+        strengthBar.style.backgroundColor = 'transparent';
+        strengthText.textContent = '';
+        return;
     }
     
-    if (typeof imageExporter !== 'undefined' && typeof imageExporter.initialize === 'function') {
-        imageExporter.initialize();
-    }
+    // Set width based on strength
+    const widthPercent = Math.min((strength / 5) * 100, 100);
+    strengthBar.style.width = widthPercent + '%';
     
-    // Initialize tab system
-    const tabLinks = document.querySelectorAll('[data-tab]');
-    tabLinks.forEach(link => {
-        link.addEventListener('click', function(e) {
-            e.preventDefault();
-            const tabId = this.getAttribute('data-tab');
+    if (strength < 2) {
+        strengthBar.style.backgroundColor = '#dc3545';
+        strengthText.textContent = 'Weak';
+        strengthText.style.color = '#dc3545';
+    } else if (strength < 4) {
+        strengthBar.style.backgroundColor = '#ffc107';
+        strengthText.textContent = 'Medium';
+        strengthText.style.color = '#ffc107';
+    } else {
+        strengthBar.style.backgroundColor = '#28a745';
+        strengthText.textContent = 'Strong';
+        strengthText.style.color = '#28a745';
+    }
+}
+
+// Add test email button to admin panel
+function addTestEmailButton() {
+    const notificationsTab = document.getElementById('admin-notifications');
+    if (notificationsTab) {
+        const testButton = document.createElement('button');
+        testButton.className = 'btn btn-outline-info btn-sm ms-2';
+        testButton.innerHTML = '<i class="fas fa-envelope me-1"></i> Test Email';
+        testButton.onclick = () => sendTestEmail(ADMIN_EMAIL);
+        
+        const header = notificationsTab.querySelector('.card-header');
+        if (header) {
+            header.appendChild(testButton);
+        }
+    }
+}
+
+// Auto-redirect if already authenticated on admin page
+document.addEventListener('DOMContentLoaded', async function() {
+    console.log('🔐 Admin page loaded');
+    
+    // Initialize admin auth system
+    await initializeAdminAuth();
+    
+    if (window.location.pathname.includes('admin.html')) {
+        // Check for reset token in URL first
+        checkResetTokenInURL();
+        
+        const isAuthenticated = await checkAdminAuth();
+        console.log('🔐 Initial auth check:', isAuthenticated);
+        
+        if (isAuthenticated) {
+            document.getElementById('login-section').classList.add('d-none');
+            document.getElementById('admin-dashboard').classList.remove('d-none');
+            console.log('🔐 Auto-redirected to dashboard');
             
-            // Hide all tab panes
-            document.querySelectorAll('.tab-pane').forEach(pane => {
-                pane.classList.remove('show', 'active');
+            // Add test email button to notifications tab
+            addTestEmailButton();
+        }
+        
+        // Setup logout button
+        const logoutBtn = document.getElementById('logout-btn');
+        if (logoutBtn) {
+            logoutBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                console.log('🔐 Logout button clicked');
+                logout();
             });
-            
-            // Show selected tab pane
-            const targetPane = document.getElementById(tabId);
-            if (targetPane) {
-                targetPane.classList.add('show', 'active');
+        }
+        
+        // Setup login form
+        const loginForm = document.getElementById('login-form');
+        if (loginForm) {
+            loginForm.addEventListener('submit', async function(e) {
+                e.preventDefault();
+                const password = document.getElementById('admin-password').value;
+                const hashedPassword = await getCurrentPassword();
+                
+                console.log('🔐 Login attempt');
+                
+                if (hashedPassword && await verifyPassword(password, hashedPassword)) {
+                    await setAdminAuth(true);
+                    document.getElementById('login-section').classList.add('d-none');
+                    document.getElementById('admin-dashboard').classList.remove('d-none');
+                    showNotification('Login successful!', 'success');
+                    console.log('🔐 Login successful');
+                    
+                    // Add test email button after login
+                    addTestEmailButton();
+                } else {
+                    showNotification('Invalid password!', 'error');
+                    console.log('🔐 Login failed - password mismatch');
+                }
+            });
+        }
+        
+        // Setup forgot password form
+        const forgotForm = document.getElementById('forgot-password-form');
+        if (forgotForm) {
+            forgotForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                const email = document.getElementById('forgot-email').value;
+                console.log('🔐 Forgot password request for:', email);
+                requestPasswordReset(email);
+            });
+        }
+        
+        // Setup reset password form
+        const resetForm = document.getElementById('reset-password-form');
+        if (resetForm) {
+            // Password strength indicator
+            const newPasswordInput = document.getElementById('new-password');
+            if (newPasswordInput) {
+                newPasswordInput.addEventListener('input', function() {
+                    updatePasswordStrengthIndicator(this.value);
+                });
             }
             
-            // Update active nav link
-            document.querySelectorAll('.nav-link').forEach(navLink => {
-                navLink.classList.remove('active');
+            resetForm.addEventListener('submit', async function(e) {
+                e.preventDefault();
+                const email = document.getElementById('reset-email').value;
+                const token = document.getElementById('reset-token').value;
+                const newPassword = document.getElementById('new-password').value;
+                const confirmPassword = document.getElementById('confirm-password').value;
+                
+                if (newPassword !== confirmPassword) {
+                    showNotification('Passwords do not match!', 'error');
+                    return;
+                }
+                
+                if (newPassword.length < 6) {
+                    showNotification('Password must be at least 6 characters long!', 'error');
+                    return;
+                }
+                
+                if (await resetPassword(email, token, newPassword)) {
+                    // Redirect to login after successful reset
+                    setTimeout(() => {
+                        showLoginForm();
+                    }, 2000);
+                }
             });
-            this.classList.add('active');
+        }
+        
+        // Setup back to login links
+        const backToLoginLinks = document.querySelectorAll('.back-to-login');
+        backToLoginLinks.forEach(link => {
+            link.addEventListener('click', function(e) {
+                e.preventDefault();
+                console.log('🔐 Back to login clicked');
+                showLoginForm();
+            });
         });
-    });
-    
-    console.log('App features initialized');
-}
-
-// Initialize auth on page load for main site
-document.addEventListener('DOMContentLoaded', async function() {
-    console.log('=== AUTH SYSTEM INITIALIZING ===');
-    console.log('Current page:', window.location.pathname);
-    
-    // Update navigation (this never redirects)
-    await updateNavigationAuth();
-    
-    // Only protect pages if not on auth page
-    if (!window.location.pathname.includes('auth.html')) {
-        await protectPages();
+        
+        // Setup forgot password link
+        const forgotPasswordLink = document.getElementById('forgot-password-link');
+        if (forgotPasswordLink) {
+            forgotPasswordLink.addEventListener('click', function(e) {
+                e.preventDefault();
+                console.log('🔐 Forgot password link clicked');
+                showForgotPasswordForm();
+            });
+        }
     }
-    
-    console.log('=== AUTH SYSTEM INITIALIZED ===');
 });
 
-// Make functions global
-window.logout = logout;
-window.checkAuth = checkAuth;
-window.checkAdminAuth = checkAdminAuth;
-window.showNotification = showNotification;
-window.initializeAppFeatures = initializeAppFeatures;
+export {
+    checkAdminAuth,
+    setAdminAuth,
+    logout,
+    ADMIN_EMAIL,
+    initializeAdminAuth,
+    sendTestEmail
+};
