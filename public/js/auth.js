@@ -237,7 +237,7 @@ async function getCurrentPassword() {
     }
 }
 
-async function checkAdminAuth() {
+export async function checkAdminAuth() {
     try {
         const session = await getData('admin_sessions');
         const currentSession = session.find(s => s.email === ADMIN_EMAIL && new Date(s.expires) > new Date());
@@ -248,7 +248,7 @@ async function checkAdminAuth() {
     }
 }
 
-async function setAdminAuth(authenticated) {
+export async function setAdminAuth(authenticated) {
     try {
         if (authenticated) {
             const sessionData = {
@@ -269,14 +269,14 @@ async function setAdminAuth(authenticated) {
     }
 }
 
-async function logout() {
+export async function logout() {
     console.log('🔐 Logging out admin');
     await setAdminAuth(false);
     window.location.href = 'admin.html';
 }
 
 // Initialize default admin password if not exists
-async function initializeAdminAuth() {
+export async function initializeAdminAuth() {
     try {
         const adminConfig = await getData('admin_config');
         const config = adminConfig.find(c => c.email === ADMIN_EMAIL);
