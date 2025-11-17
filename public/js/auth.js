@@ -1,8 +1,8 @@
-// Authentication functions using Supabase Auth with Resend Email
+// Authentication functions using Supabase Auth with Email System
 import { supabase, getData, saveData } from './database.js';
 
 const ADMIN_EMAIL = 'support@kishtechsite.online';
-const RESEND_API_KEY = 're_fs89Vr5N_NptzSUizvpouSBA21JBkB1';
+const EMAIL_API_URL = 'https://reset-email-system.netlify.app/.netlify/functions/send-email';
 
 // Debug current authentication state
 console.log('🔐 Auth System Loading...');
@@ -62,88 +62,39 @@ async function clearResetToken(email) {
     }
 }
 
-// Real email sending function using Resend
+// Real email sending function using your Netlify function
 async function sendPasswordResetEmail(email, resetLink) {
     try {
         console.log('🔧 Sending reset email to:', email);
+        console.log('📧 Using email API:', EMAIL_API_URL);
 
-        if (!RESEND_API_KEY) {
-            console.error('❌ Resend API key not found');
-            showNotification('Email service not configured. Please contact administrator.', 'error');
-            return false;
-        }
-
-        const resendResponse = await fetch('https://api.resend.com/emails', {
+        const response = await fetch(EMAIL_API_URL, {
             method: 'POST',
             headers: {
-                'Authorization': `Bearer ${RESEND_API_KEY}`,
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-                from: 'eFootball League <noreply@kishtechsite.online>',
-                to: [email],
-                subject: 'Password Reset - eFootball League 2025',
-                html: `
-                    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #f8f9fa; padding: 20px; border-radius: 10px;">
-                        <div style="background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%); padding: 20px; border-radius: 10px 10px 0 0; text-align: center;">
-                            <h1 style="color: white; margin: 0; font-size: 24px;">eFootball League 2025</h1>
-                            <p style="color: rgba(255,255,255,0.8); margin: 5px 0 0 0;">Admin Password Reset</p>
-                        </div>
-                        <div style="background: white; padding: 30px; border-radius: 0 0 10px 10px;">
-                            <h2 style="color: #333; margin-top: 0;">Hello Admin,</h2>
-                            <p style="color: #666; line-height: 1.6;">You requested a password reset for your eFootball League admin account.</p>
-                            <p style="color: #666; line-height: 1.6;">Click the button below to reset your password. This link will expire in 1 hour.</p>
-                            
-                            <div style="text-align: center; margin: 30px 0;">
-                                <a href="${resetLink}" 
-                                   style="background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%); 
-                                          color: white; 
-                                          padding: 15px 30px; 
-                                          text-decoration: none; 
-                                          border-radius: 25px; 
-                                          display: inline-block; 
-                                          font-weight: bold;
-                                          font-size: 16px;
-                                          box-shadow: 0 4px 15px rgba(106, 17, 203, 0.3);">
-                                    Reset Password
-                                </a>
-                            </div>
-                            
-                            <p style="color: #999; font-size: 14px; text-align: center;">
-                                Or copy and paste this link in your browser:
-                            </p>
-                            <p style="background: #f8f9fa; padding: 15px; border-radius: 8px; 
-                                      word-break: break-all; font-family: monospace; 
-                                      color: #666; font-size: 12px; border-left: 4px solid #6a11cb;">
-                                ${resetLink}
-                            </p>
-                            
-                            <div style="border-top: 1px solid #eee; margin-top: 30px; padding-top: 20px;">
-                                <p style="color: #999; font-size: 12px; margin: 0;">
-                                    <strong>Note:</strong> If you didn't request this password reset, please ignore this email. 
-                                    Your account security is important to us.
-                                </p>
-                            </div>
-                        </div>
-                        <div style="text-align: center; padding: 20px; color: #999; font-size: 12px;">
-                            <p style="margin: 0;">eFootball League 2025 Admin System</p>
-                            <p style="margin: 5px 0 0 0;">Support: support@kishtechsite.online</p>
-                            <p style="margin: 5px 0 0 0;">${new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
-                        </div>
-                    </div>
-                `
+                to_email: email,
+                reset_link: resetLink,
+                email_type: 'reset',
+                subject: 'Password Reset - eFootball League 2025'
             })
         });
 
-        if (resendResponse.ok) {
-            const result = await resendResponse.json();
-            console.log('✅ Email sent successfully via Resend:', result);
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const result = await response.json();
+        console.log('📧 Email API response:', result);
+
+        if (result.success) {
+            console.log('✅ Email sent successfully');
             showNotification('Password reset link has been sent to your email!', 'success');
             return true;
         } else {
-            const error = await resendResponse.json();
-            console.error('❌ Resend API error:', error);
-            showNotification('Failed to send email. Please try again.', 'error');
+            console.error('❌ Email sending failed:', result.message);
+            showNotification('Failed to send email: ' + (result.message || 'Unknown error'), 'error');
             return false;
         }
 
@@ -159,56 +110,32 @@ export async function sendTestEmail(email) {
     try {
         console.log('🧪 Sending test email to:', email);
 
-        if (!RESEND_API_KEY) {
-            showNotification('Resend API key not configured', 'error');
-            return false;
-        }
-
-        const testEmailContent = `
-            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #f8f9fa; padding: 20px; border-radius: 10px;">
-                <div style="background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%); padding: 20px; border-radius: 10px 10px 0 0; text-align: center;">
-                    <h1 style="color: white; margin: 0; font-size: 24px;">eFootball League 2025</h1>
-                    <p style="color: rgba(255,255,255,0.8); margin: 5px 0 0 0;">Test Email</p>
-                </div>
-                <div style="background: white; padding: 30px; border-radius: 0 0 10px 10px;">
-                    <h2 style="color: #333; margin-top: 0;">Test Email Successful! 🎉</h2>
-                    <p style="color: #666; line-height: 1.6;">This is a test email from your eFootball League admin system.</p>
-                    <p style="color: #666; line-height: 1.6;">If you're receiving this, your email configuration is working correctly!</p>
-                    
-                    <div style="background: #e8f5e8; padding: 15px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #28a745;">
-                        <p style="color: #2d5016; margin: 0; font-weight: bold;">✅ Email System Status: Operational</p>
-                    </div>
-                </div>
-                <div style="text-align: center; padding: 20px; color: #999; font-size: 12px;">
-                    <p style="margin: 0;">eFootball League 2025 Admin System</p>
-                    <p style="margin: 5px 0 0 0;">Sent: ${new Date().toLocaleString()}</p>
-                </div>
-            </div>
-        `;
-
-        const resendResponse = await fetch('https://api.resend.com/emails', {
+        const response = await fetch(EMAIL_API_URL, {
             method: 'POST',
             headers: {
-                'Authorization': `Bearer ${RESEND_API_KEY}`,
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-                from: 'eFootball League <noreply@kishtechsite.online>',
-                to: [email],
-                subject: 'Test Email - eFootball League 2025',
-                html: testEmailContent
+                to_email: email,
+                email_type: 'test',
+                subject: 'Test Email - eFootball League 2025'
             })
         });
 
-        if (resendResponse.ok) {
-            const result = await resendResponse.json();
-            console.log('✅ Test email sent successfully:', result);
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const result = await response.json();
+        console.log('📧 Test email response:', result);
+
+        if (result.success) {
+            console.log('✅ Test email sent successfully');
             showNotification('Test email sent successfully!', 'success');
             return true;
         } else {
-            const error = await resendResponse.json();
-            console.error('❌ Test email failed:', error);
-            showNotification('Failed to send test email: ' + (error.message || 'Unknown error'), 'error');
+            console.error('❌ Test email failed:', result.message);
+            showNotification('Failed to send test email: ' + (result.message || 'Unknown error'), 'error');
             return false;
         }
 
