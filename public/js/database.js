@@ -7,7 +7,8 @@ export const DB_KEYS = {
     FIXTURES: 'fixtures',
     RESULTS: 'results',
     TOURNAMENT_UPDATES: 'tournament_updates',
-    ADMIN_CONFIG: 'admin_config'
+    ADMIN_CONFIG: 'admin_config',
+    PASSWORD_RESET_TOKENS: 'password_reset_tokens'
 };
 
 // Default balanced teams configuration
@@ -92,13 +93,28 @@ export const DEFAULT_PLAYERS = [
     { 
         id: 8,
         name: 'Bora kesho',
-        team: 'Man U',
+        team: 'Manchester United', // Fixed from 'Man U' to 'Manchester United'
         photo: 'https://i.ibb.co/7NXyjhWR/Bora-20kesho.jpg',
         strength: 3177,
         team_color: '#DA291C',
         default_photo: 'https://i.ibb.co/7NXyjhWR/Bora-20kesho.jpg'
     }
 ];
+
+// Default admin configuration
+export const DEFAULT_ADMIN_CONFIG = {
+    id: 1,
+    tournament_name: 'Premier League Tournament',
+    season: '2024',
+    max_players_per_team: 2,
+    points_for_win: 3,
+    points_for_draw: 1,
+    allow_player_registration: true,
+    show_leaderboard: true,
+    maintenance_mode: false,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
+};
 
 // Supabase Client Initialization
 console.log('🔧 Initializing Supabase client...');
@@ -110,12 +126,20 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 export let supabase;
 
 try {
-    if (window.supabase) {
+    // Use the global supabase if available, otherwise create a new client
+    if (typeof window !== 'undefined' && window.supabase) {
         supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-        console.log('✅ Supabase client initialized successfully');
+        console.log('✅ Supabase client initialized successfully using window.supabase');
     } else {
-        console.error('❌ Supabase JS SDK not found!');
-        supabase = null;
+        // Fallback: try to import from @supabase/supabase-js
+        import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2').then(module => {
+            const { createClient } = module;
+            supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+            console.log('✅ Supabase client initialized successfully via CDN');
+        }).catch(error => {
+            console.error('❌ Failed to load Supabase from CDN:', error);
+            supabase = null;
+        });
     }
 } catch (error) {
     console.error('❌ Supabase client initialization failed:', error);
@@ -165,7 +189,7 @@ export async function saveData(tableName, data) {
     }
 }
 
-// Initialize database with default players
+// Initialize database with default data
 export async function initializeDatabase() {
     console.log('⚙️ Initializing Supabase database...');
     if (!supabase) {
@@ -174,26 +198,84 @@ export async function initializeDatabase() {
     }
 
     try {
+        // Initialize players
         const existingPlayers = await getData(DB_KEYS.PLAYERS);
-
         if (!existingPlayers || existingPlayers.length === 0) {
             console.log('Setting up default players in Supabase...');
             const insertedPlayers = await saveData(DB_KEYS.PLAYERS, DEFAULT_PLAYERS);
             console.log(`✅ Default players inserted: ${insertedPlayers ? insertedPlayers.length : 0}`);
-            await generateSampleFixtures();
         } else {
-            console.log(`✅ Database already initialized with ${existingPlayers.length} players`);
+            console.log(`✅ Players already initialized with ${existingPlayers.length} players`);
         }
+
+        // Initialize admin config
+        const existingConfig = await getData(DB_KEYS.ADMIN_CONFIG);
+        if (!existingConfig || existingConfig.length === 0) {
+            console.log('Setting up default admin configuration...');
+            await saveData(DB_KEYS.ADMIN_CONFIG, [DEFAULT_ADMIN_CONFIG]);
+            console.log('✅ Default admin configuration inserted');
+        } else {
+            console.log('✅ Admin configuration already exists');
+        }
+
+        // Generate fixtures if none exist
+        const existingFixtures = await getData(DB_KEYS.FIXTURES);
+        if (!existingFixtures || existingFixtures.length === 0) {
+            await generateSampleFixtures();
+        }
+
     } catch (error) {
         console.error('Database initialization failed:', error);
+    }
+}
+
+// Admin Configuration Management
+export async function getAdminConfig() {
+    try {
+        const config = await getData(DB_KEYS.ADMIN_CONFIG);
+        return config && config.length > 0 ? config[0] : DEFAULT_ADMIN_CONFIG;
+    } catch (error) {
+        console.error('Error getting admin config:', error);
+        return DEFAULT_ADMIN_CONFIG;
+    }
+}
+
+export async function updateAdminConfig(updates) {
+    if (!supabase) return null;
+    try {
+        const currentConfig = await getAdminConfig();
+        const updatedConfig = {
+            ...currentConfig,
+            ...updates,
+            updated_at: new Date().toISOString()
+        };
+        
+        const { data, error } = await supabase
+            .from(DB_KEYS.ADMIN_CONFIG)
+            .upsert(updatedConfig)
+            .select();
+            
+        if (error) throw error;
+        
+        await refreshAllDisplays();
+        return data[0];
+    } catch (err) {
+        console.error('Error updating admin config:', err);
+        throw err;
     }
 }
 
 // Player Management
 export async function addPlayer(playerData) {
     const players = await getData(DB_KEYS.PLAYERS);
-    const isDuplicate = players.some(p => p.name.toLowerCase() === playerData.name.toLowerCase() && p.team.toLowerCase() === playerData.team.toLowerCase());
-    if (isDuplicate) throw new Error(`Player "${playerData.name}" already exists in team ${playerData.team}`);
+    const isDuplicate = players.some(p => 
+        p.name.toLowerCase() === playerData.name.toLowerCase() && 
+        p.team.toLowerCase() === playerData.team.toLowerCase()
+    );
+    
+    if (isDuplicate) {
+        throw new Error(`Player "${playerData.name}" already exists in team ${playerData.team}`);
+    }
 
     const maxId = players.length > 0 ? Math.max(...players.map(p => p.id || 0)) : 0;
     const newPlayer = {
@@ -214,7 +296,15 @@ export async function addPlayer(playerData) {
 export async function updatePlayer(player) {
     if (!supabase) return null;
     try {
-        const { data, error } = await supabase.from(DB_KEYS.PLAYERS).update({ ...player, updated_at: new Date().toISOString() }).eq('id', player.id).select();
+        const { data, error } = await supabase
+            .from(DB_KEYS.PLAYERS)
+            .update({ 
+                ...player, 
+                updated_at: new Date().toISOString() 
+            })
+            .eq('id', player.id)
+            .select();
+            
         if (error) throw error;
         await refreshAllDisplays();
         return data[0];
@@ -227,9 +317,19 @@ export async function updatePlayer(player) {
 export async function deletePlayer(playerId) {
     if (!supabase) return false;
     try {
+        // Delete player
         await supabase.from(DB_KEYS.PLAYERS).delete().eq('id', playerId);
-        await supabase.from(DB_KEYS.FIXTURES).delete().or(`home_player_id.eq.${playerId},away_player_id.eq.${playerId}`);
-        await supabase.from(DB_KEYS.RESULTS).delete().or(`home_player_id.eq.${playerId},away_player_id.eq.${playerId}`);
+        
+        // Delete related fixtures
+        await supabase.from(DB_KEYS.FIXTURES)
+            .delete()
+            .or(`home_player_id.eq.${playerId},away_player_id.eq.${playerId}`);
+            
+        // Delete related results
+        await supabase.from(DB_KEYS.RESULTS)
+            .delete()
+            .or(`home_player_id.eq.${playerId},away_player_id.eq.${playerId}`);
+            
         await refreshAllDisplays();
         return true;
     } catch (err) {
@@ -248,12 +348,14 @@ async function generateSampleFixtures() {
     const startDate = new Date();
     const matchPairs = [];
 
+    // Generate all possible match pairs
     for (let i = 0; i < players.length; i++) {
         for (let j = i + 1; j < players.length; j++) {
             matchPairs.push([players[i], players[j]]);
         }
     }
 
+    // Create fixtures for each pair
     matchPairs.forEach(([p1, p2], idx) => {
         const matchDate = new Date(startDate);
         matchDate.setDate(matchDate.getDate() + idx * 2);
@@ -282,7 +384,15 @@ export async function addFixture(fixture) {
 
 export async function updateFixture(fixture) {
     if (!supabase) return null;
-    const { data, error } = await supabase.from(DB_KEYS.FIXTURES).update({ ...fixture, updated_at: new Date().toISOString() }).eq('id', fixture.id).select();
+    const { data, error } = await supabase
+        .from(DB_KEYS.FIXTURES)
+        .update({ 
+            ...fixture, 
+            updated_at: new Date().toISOString() 
+        })
+        .eq('id', fixture.id)
+        .select();
+        
     if (error) throw error;
     await refreshAllDisplays();
     return data[0];
@@ -299,17 +409,33 @@ export async function deleteFixture(fixtureId) {
 // Result Management
 export async function addResult(result) {
     const inserted = await saveData(DB_KEYS.RESULTS, [result]);
+    
     // Mark corresponding fixture as played
     const fixtures = await getData(DB_KEYS.FIXTURES);
-    const fixture = fixtures.find(f => f.home_player_id === result.home_player_id && f.away_player_id === result.away_player_id);
-    if (fixture) await updateFixture({ ...fixture, played: true });
+    const fixture = fixtures.find(f => 
+        f.home_player_id === result.home_player_id && 
+        f.away_player_id === result.away_player_id
+    );
+    
+    if (fixture) {
+        await updateFixture({ ...fixture, played: true });
+    }
+    
     await refreshAllDisplays();
     return inserted[0];
 }
 
 export async function updateResult(result) {
     if (!supabase) return null;
-    const { data, error } = await supabase.from(DB_KEYS.RESULTS).update({ ...result, updated_at: new Date().toISOString() }).eq('id', result.id).select();
+    const { data, error } = await supabase
+        .from(DB_KEYS.RESULTS)
+        .update({ 
+            ...result, 
+            updated_at: new Date().toISOString() 
+        })
+        .eq('id', result.id)
+        .select();
+        
     if (error) throw error;
     await refreshAllDisplays();
     return data[0];
@@ -362,7 +488,9 @@ export async function calculatePlayerStats(playerId) {
             return getDefaultStats();
         }
 
-        const playerResults = results.filter(r => r && (r.home_player_id === playerId || r.away_player_id === playerId));
+        const playerResults = results.filter(r => 
+            r && (r.home_player_id === playerId || r.away_player_id === playerId)
+        );
 
         let stats = getDefaultStats();
         
@@ -460,53 +588,95 @@ export async function getLeagueTable() {
 
 // Refresh UI & Subscriptions
 export async function refreshAllDisplays() {
-    if (typeof renderLeagueTable === 'function') await renderLeagueTable();
-    if (typeof renderPlayers === 'function') await renderPlayers();
-    if (typeof renderHomePage === 'function') await renderHomePage();
-    if (typeof renderFixtures === 'function') await renderFixtures();
-    if (typeof renderResults === 'function') await renderResults();
-    if (typeof renderAdminPlayers === 'function') await renderAdminPlayers();
-    if (typeof renderAdminFixtures === 'function') await renderAdminFixtures();
-    if (typeof renderAdminResults === 'function') await renderAdminResults();
-    if (typeof populatePlayerSelects === 'function') await populatePlayerSelects();
+    // Check if functions exist before calling them
+    const functions = [
+        'renderLeagueTable', 'renderPlayers', 'renderHomePage', 
+        'renderFixtures', 'renderResults', 'renderAdminPlayers',
+        'renderAdminFixtures', 'renderAdminResults', 'populatePlayerSelects'
+    ];
+    
+    functions.forEach(funcName => {
+        if (typeof window[funcName] === 'function') {
+            try {
+                window[funcName]();
+            } catch (error) {
+                console.error(`Error calling ${funcName}:`, error);
+            }
+        }
+    });
 }
 
 // Subscribe to database changes
 export function subscribeToChanges(callback) {
     if (!supabase) return null;
-    return supabase.channel('schema-db-changes')
-        .on('postgres_changes', { event: '*', schema: 'public' }, payload => {
-            console.log('DB change detected', payload);
-            if (callback) callback(payload);
-            refreshAllDisplays();
-        }).subscribe();
+    
+    try {
+        return supabase.channel('schema-db-changes')
+            .on('postgres_changes', 
+                { event: '*', schema: 'public' }, 
+                payload => {
+                    console.log('DB change detected', payload);
+                    if (callback) callback(payload);
+                    refreshAllDisplays();
+                }
+            ).subscribe();
+    } catch (error) {
+        console.error('Error setting up database subscription:', error);
+        return null;
+    }
 }
 
 // Utilities
 export function formatDisplayDate(dateString) {
     if (!dateString) return 'TBD';
-    return new Date(dateString).toLocaleDateString('en-US', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' });
+    try {
+        return new Date(dateString).toLocaleDateString('en-US', { 
+            weekday: 'short', 
+            year: 'numeric', 
+            month: 'short', 
+            day: 'numeric' 
+        });
+    } catch (error) {
+        console.error('Error formatting date:', error);
+        return 'Invalid Date';
+    }
 }
 
 export function showNotification(message, type = 'info') {
+    if (typeof document === 'undefined') return;
+    
     const notification = document.createElement('div');
     notification.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
     notification.style.cssText = `top:20px; right:20px; z-index:1060; min-width:300px; max-width:400px;`;
     notification.innerHTML = `${message}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>`;
     document.body.appendChild(notification);
-    setTimeout(() => { if (notification.parentNode) notification.parentNode.removeChild(notification); }, 5000);
+    
+    setTimeout(() => { 
+        if (notification.parentNode) {
+            notification.parentNode.removeChild(notification);
+        }
+    }, 5000);
 }
 
 // Initialize Database on DOM Loaded
-document.addEventListener('DOMContentLoaded', async function() {
-    console.log('📦 DOM loaded, initializing database...');
-    if (!supabase) {
-        console.error('❌ Supabase not available, skipping database initialization');
-        return;
-    }
-    await initializeDatabase();
-    subscribeToChanges(payload => console.log('DB change detected', payload));
-    console.log('✅ Supabase database system initialized');
-});
+if (typeof document !== 'undefined') {
+    document.addEventListener('DOMContentLoaded', async function() {
+        console.log('📦 DOM loaded, initializing database...');
+        
+        // Wait a bit for supabase to initialize if it was loaded via CDN
+        if (!supabase) {
+            await new Promise(resolve => setTimeout(resolve, 1000));
+        }
+        
+        if (!supabase) {
+            console.error('❌ Supabase not available, skipping database initialization');
+            return;
+        }
+        
+        await initializeDatabase();
+        subscribeToChanges(payload => console.log('DB change detected', payload));
+        console.log('✅ Supabase database system initialized');
+    });
+}
 
 console.log('✅ database.js COMPLETED loading - all functions available');
