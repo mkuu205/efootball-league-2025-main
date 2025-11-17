@@ -101,7 +101,7 @@ async function sendPasswordResetEmail(email, resetLink) {
 }
 
 // Test email functionality
-async function sendTestEmail(email) {
+export async function sendTestEmail(email) {
     try {
         console.log('🧪 Sending test email to:', email);
 
@@ -591,12 +591,3 @@ document.addEventListener('DOMContentLoaded', async function() {
         }
     }
 });
-
-export {
-    checkAdminAuth,
-    setAdminAuth,
-    logout,
-    ADMIN_EMAIL,
-    initializeAdminAuth,
-    sendTestEmail
-};
