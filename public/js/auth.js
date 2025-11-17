@@ -3,7 +3,7 @@
 import { supabase, getData, saveData } from './database.js';
 
 const ADMIN_EMAIL = 'support@kishtechsite.online';
-const EMAIL_API_URL = 'https://reset-email-system.netlify.app';
+const EMAIL_API_URL = 'https://reset-email-system.netlify.app/.netlify/functions/send-email';
 
 console.log('🔐 Auth System Loading...');
 
