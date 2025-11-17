@@ -2,6 +2,7 @@
 import { supabase, getData, saveData } from './database.js';
 
 const ADMIN_EMAIL = 'support@kishtechsite.online';
+const RESEND_API_KEY = 're_fs89Vr5N_NptzSUizvpouSBA21JBkB1';
 
 // Debug current authentication state
 console.log('🔐 Auth System Loading...');
@@ -20,7 +21,8 @@ async function saveResetToken(email, token) {
             created_at: new Date().toISOString()
         };
         
-        await saveData('password_resets', [resetData]);
+        // Use password_reset_tokens table
+        await saveData('password_reset_tokens', [resetData]);
         return true;
     } catch (error) {
         console.error('Error saving reset token:', error);
@@ -39,7 +41,7 @@ async function validateResetToken(email, token) {
         
         if (new Date() > new Date(tokenData.expires)) {
             // Token expired, delete it
-            await supabase.from('password_resets').delete().eq('email', email);
+            await supabase.from('password_reset_tokens').delete().eq('email', email);
             return false;
         }
         
@@ -52,7 +54,7 @@ async function validateResetToken(email, token) {
 
 async function clearResetToken(email) {
     try {
-        await supabase.from('password_resets').delete().eq('email', email);
+        await supabase.from('password_reset_tokens').delete().eq('email', email);
         return true;
     } catch (error) {
         console.error('Error clearing reset token:', error);
@@ -63,33 +65,85 @@ async function clearResetToken(email) {
 // Real email sending function using Resend
 async function sendPasswordResetEmail(email, resetLink) {
     try {
-        console.log('🔧 Sending reset email via Resend to:', email);
+        console.log('🔧 Sending reset email to:', email);
 
-        const response = await fetch('/api/send-reset-email', {
+        if (!RESEND_API_KEY) {
+            console.error('❌ Resend API key not found');
+            showNotification('Email service not configured. Please contact administrator.', 'error');
+            return false;
+        }
+
+        const resendResponse = await fetch('https://api.resend.com/emails', {
             method: 'POST',
             headers: {
+                'Authorization': `Bearer ${RESEND_API_KEY}`,
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-                to_email: email,
-                reset_link: resetLink
+                from: 'eFootball League <noreply@kishtechsite.online>',
+                to: [email],
+                subject: 'Password Reset - eFootball League 2025',
+                html: `
+                    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #f8f9fa; padding: 20px; border-radius: 10px;">
+                        <div style="background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%); padding: 20px; border-radius: 10px 10px 0 0; text-align: center;">
+                            <h1 style="color: white; margin: 0; font-size: 24px;">eFootball League 2025</h1>
+                            <p style="color: rgba(255,255,255,0.8); margin: 5px 0 0 0;">Admin Password Reset</p>
+                        </div>
+                        <div style="background: white; padding: 30px; border-radius: 0 0 10px 10px;">
+                            <h2 style="color: #333; margin-top: 0;">Hello Admin,</h2>
+                            <p style="color: #666; line-height: 1.6;">You requested a password reset for your eFootball League admin account.</p>
+                            <p style="color: #666; line-height: 1.6;">Click the button below to reset your password. This link will expire in 1 hour.</p>
+                            
+                            <div style="text-align: center; margin: 30px 0;">
+                                <a href="${resetLink}" 
+                                   style="background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%); 
+                                          color: white; 
+                                          padding: 15px 30px; 
+                                          text-decoration: none; 
+                                          border-radius: 25px; 
+                                          display: inline-block; 
+                                          font-weight: bold;
+                                          font-size: 16px;
+                                          box-shadow: 0 4px 15px rgba(106, 17, 203, 0.3);">
+                                    Reset Password
+                                </a>
+                            </div>
+                            
+                            <p style="color: #999; font-size: 14px; text-align: center;">
+                                Or copy and paste this link in your browser:
+                            </p>
+                            <p style="background: #f8f9fa; padding: 15px; border-radius: 8px; 
+                                      word-break: break-all; font-family: monospace; 
+                                      color: #666; font-size: 12px; border-left: 4px solid #6a11cb;">
+                                ${resetLink}
+                            </p>
+                            
+                            <div style="border-top: 1px solid #eee; margin-top: 30px; padding-top: 20px;">
+                                <p style="color: #999; font-size: 12px; margin: 0;">
+                                    <strong>Note:</strong> If you didn't request this password reset, please ignore this email. 
+                                    Your account security is important to us.
+                                </p>
+                            </div>
+                        </div>
+                        <div style="text-align: center; padding: 20px; color: #999; font-size: 12px;">
+                            <p style="margin: 0;">eFootball League 2025 Admin System</p>
+                            <p style="margin: 5px 0 0 0;">Support: support@kishtechsite.online</p>
+                            <p style="margin: 5px 0 0 0;">${new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
+                        </div>
+                    </div>
+                `
             })
         });
 
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
-        const result = await response.json();
-        console.log('📧 Resend email result:', result);
-
-        if (result.success) {
-            console.log('✅ Password reset email sent successfully via Resend');
+        if (resendResponse.ok) {
+            const result = await resendResponse.json();
+            console.log('✅ Email sent successfully via Resend:', result);
             showNotification('Password reset link has been sent to your email!', 'success');
             return true;
         } else {
-            console.error('❌ Failed to send email via Resend:', result.message);
-            showNotification('Failed to send reset email. Please try again.', 'error');
+            const error = await resendResponse.json();
+            console.error('❌ Resend API error:', error);
+            showNotification('Failed to send email. Please try again.', 'error');
             return false;
         }
 
@@ -105,29 +159,62 @@ export async function sendTestEmail(email) {
     try {
         console.log('🧪 Sending test email to:', email);
 
-        const response = await fetch('/api/test-email', {
+        if (!RESEND_API_KEY) {
+            showNotification('Resend API key not configured', 'error');
+            return false;
+        }
+
+        const testEmailContent = `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #f8f9fa; padding: 20px; border-radius: 10px;">
+                <div style="background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%); padding: 20px; border-radius: 10px 10px 0 0; text-align: center;">
+                    <h1 style="color: white; margin: 0; font-size: 24px;">eFootball League 2025</h1>
+                    <p style="color: rgba(255,255,255,0.8); margin: 5px 0 0 0;">Test Email</p>
+                </div>
+                <div style="background: white; padding: 30px; border-radius: 0 0 10px 10px;">
+                    <h2 style="color: #333; margin-top: 0;">Test Email Successful! 🎉</h2>
+                    <p style="color: #666; line-height: 1.6;">This is a test email from your eFootball League admin system.</p>
+                    <p style="color: #666; line-height: 1.6;">If you're receiving this, your email configuration is working correctly!</p>
+                    
+                    <div style="background: #e8f5e8; padding: 15px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #28a745;">
+                        <p style="color: #2d5016; margin: 0; font-weight: bold;">✅ Email System Status: Operational</p>
+                    </div>
+                </div>
+                <div style="text-align: center; padding: 20px; color: #999; font-size: 12px;">
+                    <p style="margin: 0;">eFootball League 2025 Admin System</p>
+                    <p style="margin: 5px 0 0 0;">Sent: ${new Date().toLocaleString()}</p>
+                </div>
+            </div>
+        `;
+
+        const resendResponse = await fetch('https://api.resend.com/emails', {
             method: 'POST',
             headers: {
+                'Authorization': `Bearer ${RESEND_API_KEY}`,
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-                to_email: email
+                from: 'eFootball League <noreply@kishtechsite.online>',
+                to: [email],
+                subject: 'Test Email - eFootball League 2025',
+                html: testEmailContent
             })
         });
 
-        const result = await response.json();
-        
-        if (result.success) {
+        if (resendResponse.ok) {
+            const result = await resendResponse.json();
+            console.log('✅ Test email sent successfully:', result);
             showNotification('Test email sent successfully!', 'success');
             return true;
         } else {
-            showNotification('Failed to send test email: ' + result.message, 'error');
+            const error = await resendResponse.json();
+            console.error('❌ Test email failed:', error);
+            showNotification('Failed to send test email: ' + (error.message || 'Unknown error'), 'error');
             return false;
         }
 
     } catch (error) {
         console.error('Test email error:', error);
-        showNotification('Failed to send test email.', 'error');
+        showNotification('Failed to send test email: ' + error.message, 'error');
         return false;
     }
 }
@@ -141,37 +228,47 @@ async function requestPasswordReset(email) {
     
     // Show loading state
     const submitBtn = document.querySelector('#forgot-password-form button[type="submit"]');
-    const originalText = submitBtn.innerHTML;
-    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Sending...';
-    submitBtn.disabled = true;
+    const originalText = submitBtn?.innerHTML || 'Send Reset Link';
+    if (submitBtn) {
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Sending...';
+        submitBtn.disabled = true;
+    }
     
     try {
         // Generate reset token
         const resetToken = generateResetToken();
-        await saveResetToken(email, resetToken);
+        const saved = await saveResetToken(email, resetToken);
+        
+        if (!saved) {
+            showNotification('Failed to save reset token', 'error');
+            return false;
+        }
         
         // Create reset link
         const resetLink = `${window.location.origin}${window.location.pathname}?reset_token=${resetToken}&email=${encodeURIComponent(email)}`;
         
         console.log('🔄 Sending reset email with link:', resetLink);
         
-        // Send email using Resend
+        // Send email
         let emailSent = await sendPasswordResetEmail(email, resetLink);
         
         if (emailSent) {
             return true;
         } else {
+            showNotification('Failed to send email. Please try again or contact support.', 'error');
             return false;
         }
         
     } catch (error) {
         console.error('Password reset request failed:', error);
-        showNotification('An error occurred while sending the reset email. Please try again.', 'error');
+        showNotification('An error occurred while processing your request. Please try again.', 'error');
         return false;
     } finally {
         // Restore button state
-        submitBtn.innerHTML = originalText;
-        submitBtn.disabled = false;
+        if (submitBtn) {
+            submitBtn.innerHTML = originalText;
+            submitBtn.disabled = false;
+        }
     }
 }
 
@@ -230,7 +327,14 @@ async function getCurrentPassword() {
     try {
         const adminConfig = await getData('admin_config');
         const config = adminConfig.find(c => c.email === ADMIN_EMAIL);
-        return config ? config.password_hash : null;
+        
+        if (!config) {
+            console.log('❌ No admin config found in database');
+            return null;
+        }
+        
+        console.log('✅ Found admin config with password hash');
+        return config.password_hash;
     } catch (error) {
         console.error('Error getting admin password:', error);
         return null;
@@ -239,9 +343,11 @@ async function getCurrentPassword() {
 
 export async function checkAdminAuth() {
     try {
-        const session = await getData('admin_sessions');
-        const currentSession = session.find(s => s.email === ADMIN_EMAIL && new Date(s.expires) > new Date());
-        return !!currentSession;
+        // Use sessionStorage as auth check
+        const isAuthenticated = sessionStorage.getItem('admin_session') === 'true';
+        console.log('🔐 Session auth check:', isAuthenticated);
+        return isAuthenticated;
+        
     } catch (error) {
         console.error('Error checking admin auth:', error);
         return false;
@@ -251,17 +357,12 @@ export async function checkAdminAuth() {
 export async function setAdminAuth(authenticated) {
     try {
         if (authenticated) {
-            const sessionData = {
-                email: ADMIN_EMAIL,
-                created_at: new Date().toISOString(),
-                expires: new Date(Date.now() + (24 * 60 * 60 * 1000)).toISOString(), // 24 hours
-                session_token: generateResetToken()
-            };
-            await saveData('admin_sessions', [sessionData]);
+            sessionStorage.setItem('admin_session', 'true');
+            console.log('🔐 Admin auth set to: true');
         } else {
-            await supabase.from('admin_sessions').delete().eq('email', ADMIN_EMAIL);
+            sessionStorage.removeItem('admin_session');
+            console.log('🔐 Admin auth set to: false');
         }
-        console.log('🔐 Admin auth set to:', authenticated);
         return true;
     } catch (error) {
         console.error('Error setting admin auth:', error);
@@ -275,29 +376,21 @@ export async function logout() {
     window.location.href = 'admin.html';
 }
 
-// Initialize default admin password if not exists
+// Initialize admin auth - check if config exists
 export async function initializeAdminAuth() {
     try {
         const adminConfig = await getData('admin_config');
         const config = adminConfig.find(c => c.email === ADMIN_EMAIL);
         
-        if (!config) {
-            // Set default password
-            const defaultPassword = 'Brashokish2425';
-            const hashedPassword = await hashPassword(defaultPassword);
-            
-            const defaultConfig = {
-                email: ADMIN_EMAIL,
-                password_hash: hashedPassword,
-                created_at: new Date().toISOString(),
-                updated_at: new Date().toISOString()
-            };
-            
-            await saveData('admin_config', [defaultConfig]);
-            console.log('✅ Default admin password initialized');
+        if (config) {
+            console.log('✅ Admin config found in database');
+            console.log('📧 Admin email:', config.email);
+            console.log('🔑 Password hash exists:', !!config.password_hash);
+        } else {
+            console.log('❌ No admin config found. Please set up admin password.');
         }
     } catch (error) {
-        console.error('Error initializing admin auth:', error);
+        console.error('Error checking admin auth:', error);
     }
 }
 
@@ -422,7 +515,7 @@ function addTestEmailButton() {
     }
 }
 
-// Notification function (since it's not imported from database.js)
+// Notification function
 function showNotification(message, type = 'info') {
     const colors = {
         success: '#198754',
@@ -505,8 +598,15 @@ document.addEventListener('DOMContentLoaded', async function() {
                 const hashedPassword = await getCurrentPassword();
                 
                 console.log('🔐 Login attempt');
+                console.log('🔑 Input password length:', password.length);
+                console.log('🔑 Stored hash exists:', !!hashedPassword);
                 
-                if (hashedPassword && await verifyPassword(password, hashedPassword)) {
+                if (!hashedPassword) {
+                    showNotification('Admin account not configured. Please contact administrator.', 'error');
+                    return;
+                }
+                
+                if (await verifyPassword(password, hashedPassword)) {
                     await setAdminAuth(true);
                     document.getElementById('login-section').classList.add('d-none');
                     document.getElementById('admin-dashboard').classList.remove('d-none');
