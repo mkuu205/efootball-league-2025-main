@@ -93,7 +93,7 @@ export const DEFAULT_PLAYERS = [
     { 
         id: 8,
         name: 'Bora kesho',
-        team: 'Manchester United', // Fixed from 'Man U' to 'Manchester United'
+        team: 'Manchester United',
         photo: 'https://i.ibb.co/7NXyjhWR/Bora-20kesho.jpg',
         strength: 3177,
         team_color: '#DA291C',
@@ -185,6 +185,43 @@ export async function saveData(tableName, data) {
         }
     } catch (error) {
         console.error(`Error saving to ${tableName}:`, error);
+        throw error;
+    }
+}
+
+// Update data in Supabase
+export async function updateData(tableName, updates, id) {
+    if (!supabase) {
+        console.error('Supabase not available for updateData');
+        return null;
+    }
+    try {
+        const { data, error } = await supabase
+            .from(tableName)
+            .update(updates)
+            .eq('id', id)
+            .select();
+            
+        if (error) throw error;
+        return data?.[0] || null;
+    } catch (error) {
+        console.error(`Error updating ${tableName}:`, error);
+        throw error;
+    }
+}
+
+// Delete data from Supabase
+export async function deleteData(tableName, id) {
+    if (!supabase) {
+        console.error('Supabase not available for deleteData');
+        return false;
+    }
+    try {
+        const { error } = await supabase.from(tableName).delete().eq('id', id);
+        if (error) throw error;
+        return true;
+    } catch (error) {
+        console.error(`Error deleting from ${tableName}:`, error);
         throw error;
     }
 }
@@ -317,19 +354,19 @@ export async function updatePlayer(player) {
 export async function deletePlayer(playerId) {
     if (!supabase) return false;
     try {
-        // Delete player
-        await supabase.from(DB_KEYS.PLAYERS).delete().eq('id', playerId);
+        // Delete related results first
+        await supabase.from(DB_KEYS.RESULTS).delete().or(`home_player_id.eq.${playerId},away_player_id.eq.${playerId}`);
         
         // Delete related fixtures
         await supabase.from(DB_KEYS.FIXTURES)
             .delete()
             .or(`home_player_id.eq.${playerId},away_player_id.eq.${playerId}`);
             
-        // Delete related results
-        await supabase.from(DB_KEYS.RESULTS)
-            .delete()
-            .or(`home_player_id.eq.${playerId},away_player_id.eq.${playerId}`);
-            
+        // Delete player
+        const { error } = await supabase.from(DB_KEYS.PLAYERS).delete().eq('id', playerId);
+        
+        if (error) throw error;
+        
         await refreshAllDisplays();
         return true;
     } catch (err) {
@@ -369,6 +406,7 @@ async function generateSampleFixtures() {
             venue: 'Virtual Stadium ' + String.fromCharCode(65 + (idx % 3)),
             played: false,
             is_home_leg: true,
+            status: 'scheduled',
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString()
         });
@@ -379,7 +417,17 @@ async function generateSampleFixtures() {
 }
 
 export async function addFixture(fixture) {
-    return await saveData(DB_KEYS.FIXTURES, [fixture]);
+    const fixtures = await getData(DB_KEYS.FIXTURES);
+    const maxId = fixtures.length > 0 ? Math.max(...fixtures.map(f => f.id || 0)) : 0;
+    
+    const newFixture = {
+        ...fixture,
+        id: maxId + 1,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+    };
+    
+    return await saveData(DB_KEYS.FIXTURES, [newFixture]);
 }
 
 export async function updateFixture(fixture) {
@@ -408,7 +456,17 @@ export async function deleteFixture(fixtureId) {
 
 // Result Management
 export async function addResult(result) {
-    const inserted = await saveData(DB_KEYS.RESULTS, [result]);
+    const results = await getData(DB_KEYS.RESULTS);
+    const maxId = results.length > 0 ? Math.max(...results.map(r => r.id || 0)) : 0;
+    
+    const newResult = {
+        ...result,
+        id: maxId + 1,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+    };
+    
+    const inserted = await saveData(DB_KEYS.RESULTS, [newResult]);
     
     // Mark corresponding fixture as played
     const fixtures = await getData(DB_KEYS.FIXTURES);
@@ -418,7 +476,11 @@ export async function addResult(result) {
     );
     
     if (fixture) {
-        await updateFixture({ ...fixture, played: true });
+        await updateFixture({ 
+            ...fixture, 
+            played: true,
+            status: 'completed'
+        });
     }
     
     await refreshAllDisplays();
@@ -586,24 +648,52 @@ export async function getLeagueTable() {
     }
 }
 
-// Refresh UI & Subscriptions
+// Refresh UI & Subscriptions - FIXED VERSION
 export async function refreshAllDisplays() {
-    // Check if functions exist before calling them
-    const functions = [
-        'renderLeagueTable', 'renderPlayers', 'renderHomePage', 
-        'renderFixtures', 'renderResults', 'renderAdminPlayers',
-        'renderAdminFixtures', 'renderAdminResults', 'populatePlayerSelects'
-    ];
-    
-    functions.forEach(funcName => {
-        if (typeof window[funcName] === 'function') {
-            try {
-                window[funcName]();
-            } catch (error) {
-                console.error(`Error calling ${funcName}:`, error);
+    try {
+        console.log('Refreshing all displays...');
+        
+        // Refresh admin displays if on admin page
+        if (window.location.pathname.includes('admin.html')) {
+            if (typeof window.renderAdminPlayers === 'function') {
+                await window.renderAdminPlayers();
+            }
+            if (typeof window.renderAdminFixtures === 'function') {
+                await window.renderAdminFixtures();
+            }
+            if (typeof window.renderAdminResults === 'function') {
+                await window.renderAdminResults();
+            }
+            if (typeof window.populatePlayerSelects === 'function') {
+                await window.populatePlayerSelects();
+            }
+            if (typeof window.updateAdminStatistics === 'function') {
+                await window.updateAdminStatistics();
+            }
+        } else {
+            // Refresh main site displays
+            if (typeof window.renderHomePage === 'function') {
+                await window.renderHomePage();
+            }
+            if (typeof window.renderFixtures === 'function') {
+                await window.renderFixtures();
+            }
+            if (typeof window.renderResults === 'function') {
+                await window.renderResults();
+            }
+            if (typeof window.renderLeagueTable === 'function') {
+                await window.renderLeagueTable();
+            }
+            if (typeof window.renderPlayers === 'function') {
+                await window.renderPlayers();
             }
         }
-    });
+        
+        showNotification('Data refreshed successfully!', 'success');
+    } catch (error) {
+        console.error('Error refreshing displays:', error);
+        showNotification('Error refreshing data', 'error');
+    }
 }
 
 // Subscribe to database changes
@@ -626,6 +716,130 @@ export function subscribeToChanges(callback) {
     }
 }
 
+// Data Management Functions
+export async function exportTournamentData() {
+    try {
+        const players = await getData(DB_KEYS.PLAYERS);
+        const fixtures = await getData(DB_KEYS.FIXTURES);
+        const results = await getData(DB_KEYS.RESULTS);
+        
+        const data = {
+            players,
+            fixtures,
+            results,
+            exportDate: new Date().toISOString(),
+            tournament: 'eFootball League 2025',
+            version: '3.0',
+            database: 'Supabase'
+        };
+        
+        const dataStr = JSON.stringify(data, null, 2);
+        const dataBlob = new Blob([dataStr], {type: 'application/json'});
+        
+        const url = URL.createObjectURL(dataBlob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `efootball_tournament_${new Date().toISOString().split('T')[0]}.json`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        showNotification('Tournament data exported successfully!', 'success');
+        return data;
+    } catch (error) {
+        console.error('Error exporting tournament data:', error);
+        showNotification('Error exporting data: ' + error.message, 'error');
+        throw error;
+    }
+}
+
+export async function importTournamentData(data) {
+    try {
+        if (!data.players || !data.fixtures || !data.results) {
+            throw new Error('Invalid tournament data format');
+        }
+        
+        showNotification('Importing data to Supabase...', 'info');
+        
+        // Clear existing data
+        await supabase.from(DB_KEYS.RESULTS).delete().neq('id', 0);
+        await supabase.from(DB_KEYS.FIXTURES).delete().neq('id', 0);
+        await supabase.from(DB_KEYS.PLAYERS).delete().neq('id', 0);
+        
+        // Import new data
+        if (data.players && data.players.length > 0) {
+            await saveData(DB_KEYS.PLAYERS, data.players);
+        }
+        if (data.fixtures && data.fixtures.length > 0) {
+            await saveData(DB_KEYS.FIXTURES, data.fixtures);
+        }
+        if (data.results && data.results.length > 0) {
+            await saveData(DB_KEYS.RESULTS, data.results);
+        }
+        
+        await refreshAllDisplays();
+        showNotification('Tournament data imported successfully to Supabase!', 'success');
+        return true;
+    } catch (error) {
+        console.error('Error importing tournament data:', error);
+        showNotification('Error importing data: ' + error.message, 'error');
+        throw error;
+    }
+}
+
+export async function resetAllResults() {
+    if (!confirm('Are you sure you want to clear all match results? This cannot be undone.')) {
+        return false;
+    }
+    
+    try {
+        // Delete all results
+        await supabase.from(DB_KEYS.RESULTS).delete().neq('id', 0);
+        
+        // Reset all fixtures to not played
+        const fixtures = await getData(DB_KEYS.FIXTURES);
+        for (const fixture of fixtures) {
+            await updateFixture({
+                ...fixture,
+                played: false,
+                status: 'scheduled'
+            });
+        }
+        
+        await refreshAllDisplays();
+        showNotification('All results cleared successfully!', 'success');
+        return true;
+    } catch (error) {
+        console.error('Error resetting results:', error);
+        showNotification('Error resetting results', 'error');
+        return false;
+    }
+}
+
+export async function resetTournament() {
+    if (!confirm('Are you sure you want to reset the entire tournament? This will delete ALL data including players, fixtures, and results. This cannot be undone.')) {
+        return false;
+    }
+    
+    try {
+        // Delete all data
+        await supabase.from(DB_KEYS.RESULTS).delete().neq('id', 0);
+        await supabase.from(DB_KEYS.FIXTURES).delete().neq('id', 0);
+        await supabase.from(DB_KEYS.PLAYERS).delete().neq('id', 0);
+        
+        // Reinitialize with default data
+        await initializeDatabase();
+        
+        await refreshAllDisplays();
+        showNotification('Tournament reset successfully!', 'success');
+        return true;
+    } catch (error) {
+        console.error('Error resetting tournament:', error);
+        showNotification('Error resetting tournament', 'error');
+        return false;
+    }
+}
+
 // Utilities
 export function formatDisplayDate(dateString) {
     if (!dateString) return 'TBD';
@@ -645,18 +859,72 @@ export function formatDisplayDate(dateString) {
 export function showNotification(message, type = 'info') {
     if (typeof document === 'undefined') return;
     
+    // Remove any existing notifications first
+    const existingNotifications = document.querySelectorAll('.custom-notification');
+    existingNotifications.forEach(notification => {
+        if (notification.parentNode) {
+            notification.parentNode.removeChild(notification);
+        }
+    });
+    
     const notification = document.createElement('div');
-    notification.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
-    notification.style.cssText = `top:20px; right:20px; z-index:1060; min-width:300px; max-width:400px;`;
-    notification.innerHTML = `${message}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>`;
+    notification.className = `custom-notification alert alert-${type} alert-dismissible fade show position-fixed`;
+    notification.style.cssText = `
+        top: 20px; 
+        right: 20px; 
+        z-index: 1060; 
+        min-width: 300px; 
+        max-width: 400px;
+        background: ${type === 'success' ? '#198754' : type === 'error' ? '#dc3545' : type === 'warning' ? '#ffc107' : '#0dcaf0'};
+        color: white;
+        border: none;
+    `;
+    notification.innerHTML = `
+        <div class="d-flex align-items-center">
+            <i class="fas ${type === 'success' ? 'fa-check-circle' : type === 'error' ? 'fa-exclamation-circle' : type === 'warning' ? 'fa-exclamation-triangle' : 'fa-info-circle'} me-2"></i>
+            <span>${message}</span>
+        </div>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="alert"></button>
+    `;
     document.body.appendChild(notification);
     
+    // Auto remove after 5 seconds
     setTimeout(() => { 
         if (notification.parentNode) {
             notification.parentNode.removeChild(notification);
         }
     }, 5000);
 }
+
+// Data Sync System
+export class DataSync {
+    constructor() {
+        this.lastUpdate = localStorage.getItem('efl_last_sync') || null;
+    }
+
+    async manualSync() {
+        showNotification('🔄 Refreshing data from Supabase...', 'info');
+        
+        try {
+            await refreshAllDisplays();
+            this.lastUpdate = new Date().toISOString();
+            localStorage.setItem('efl_last_sync', this.lastUpdate);
+            showNotification('✅ Data refreshed successfully!', 'success');
+        } catch (error) {
+            console.error('Sync failed:', error);
+            showNotification('❌ Sync failed. Please try again.', 'error');
+        }
+    }
+}
+
+// Create global data sync instance
+export const dataSync = new DataSync();
+
+// Make functions globally available for onclick events
+window.refreshAllDisplays = refreshAllDisplays;
+window.exportTournamentData = exportTournamentData;
+window.resetAllResults = resetAllResults;
+window.resetTournament = resetTournament;
 
 // Initialize Database on DOM Loaded
 if (typeof document !== 'undefined') {
@@ -670,12 +938,26 @@ if (typeof document !== 'undefined') {
         
         if (!supabase) {
             console.error('❌ Supabase not available, skipping database initialization');
+            showNotification('❌ Database connection failed. Please refresh the page.', 'error');
             return;
         }
         
-        await initializeDatabase();
-        subscribeToChanges(payload => console.log('DB change detected', payload));
-        console.log('✅ Supabase database system initialized');
+        try {
+            await initializeDatabase();
+            subscribeToChanges(payload => console.log('DB change detected', payload));
+            console.log('✅ Supabase database system initialized');
+            
+            // Update sync status display
+            const syncStatus = document.getElementById('sync-status');
+            if (syncStatus) {
+                syncStatus.innerHTML = '<i class="fas fa-cloud me-1"></i>Supabase Online';
+                syncStatus.className = 'badge bg-success';
+            }
+            
+        } catch (error) {
+            console.error('Database initialization error:', error);
+            showNotification('❌ Database initialization failed', 'error');
+        }
     });
 }
 
