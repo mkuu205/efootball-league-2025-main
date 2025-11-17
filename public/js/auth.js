@@ -30,7 +30,7 @@ async function saveResetToken(email, token) {
 
 async function validateResetToken(email, token) {
     try {
-        const resetTokens = await getData('password_resets');
+        const resetTokens = await getData('password_reset_tokens');
         const tokenData = resetTokens.find(t => t.email === email && t.token === token);
         
         if (!tokenData) {
