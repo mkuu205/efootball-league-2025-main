@@ -1,6 +1,6 @@
 // Simple authentication check for admin.js
 export function checkAdminAuth() {
-    const isAuthenticated = sessionStorage.getItem('admin_session') === 'true';
+    const isAuthenticated = sessionStorage.getItem('admin_config') === 'true';
     return isAuthenticated;
 }
 
