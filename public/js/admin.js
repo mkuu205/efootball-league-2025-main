@@ -23,6 +23,12 @@ export function checkAdminAuth() {
     return isAuthenticated;
 }
 
+// Avatar helper function
+function getPlayerAvatar(player, size = 40) {
+    const initial = player?.name?.charAt(0)?.toUpperCase() || 'P';
+    return `https://ui-avatars.com/api/?name=${initial}&background=6a11cb&color=fff&size=${size}`;
+}
+
 // Enhanced data loading with fallbacks
 async function loadDataWithFallback(key) {
     try {
@@ -162,13 +168,16 @@ export async function renderAdminPlayers() {
                 continue;
             }
             
+            // Generate avatar using ui-avatars.com
+            const avatarUrl = getPlayerAvatar(player, 40);
+            
             const row = document.createElement('tr');
             row.innerHTML = `
                 <td>
                     <div class="d-flex align-items-center">
-                        <img src="${player.photo || 'https://via.placeholder.com/40/6a11cb/ffffff?text=?'}" 
+                        <img src="${player.photo || avatarUrl}" 
                              alt="${player.name}" class="rounded-circle me-2" width="40" height="40"
-                             onerror="this.src='https://via.placeholder.com/40/6a11cb/ffffff?text=?'">
+                             onerror="this.src='${avatarUrl}'">
                         <div>
                             <div class="fw-bold">${player.name || 'Unknown'}</div>
                             <small class="text-muted">ID: ${player.id}</small>
@@ -478,7 +487,7 @@ export function setupAdminEventListeners() {
                     await addPlayer({ 
                         name, 
                         team, 
-                        photo: photo || `https://via.placeholder.com/150/6a11cb/ffffff?text=${name.charAt(0)}`, 
+                        photo: photo || getPlayerAvatar({name}, 150), 
                         strength 
                     });
                     this.reset();
