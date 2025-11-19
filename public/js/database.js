@@ -279,13 +279,7 @@ export async function initializeDatabase() {
     }
 
     try {
-        // Test connection first
-        const { data, error } = await supabase.from('_test_connection').select('*').limit(1);
-        if (error && error.code !== 'PGRST204') {
-            console.warn('Supabase connection test warning:', error.message);
-        } else {
-            console.log('✅ Supabase connection test passed');
-        }
+        // Connection test removed - directly proceed with initialization
 
         // Initialize players with better error handling
         let existingPlayers = [];
