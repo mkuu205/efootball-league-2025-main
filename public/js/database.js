@@ -124,6 +124,7 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 // Export supabase as a variable that gets initialized
 export let supabase = null;
 let supabaseInitialized = false;
+let databaseInitialized = false; // Add flag to prevent repeated initialization
 const supabaseInitPromise = initializeSupabase();
 
 async function initializeSupabase() {
@@ -162,9 +163,10 @@ async function ensureSupabaseInitialized() {
 
 // Get data from Supabase
 export async function getData(tableName) {
-    // Validate tableName
-    if (!tableName || tableName === 'undefined') {
-        console.error('Invalid table name:', tableName);
+    // Validate tableName - FIXED: Better validation
+    if (!tableName || tableName === 'undefined' || typeof tableName !== 'string') {
+        console.warn('⚠️ getData called with invalid tableName:', tableName);
+        console.trace('Stack trace for invalid tableName call');
         return [];
     }
     
@@ -190,7 +192,7 @@ export async function getData(tableName) {
 
 // Save data to Supabase
 export async function saveData(tableName, data) {
-    if (!tableName || tableName === 'undefined') {
+    if (!tableName || tableName === 'undefined' || typeof tableName !== 'string') {
         console.error('Invalid table name:', tableName);
         return [];
     }
@@ -222,7 +224,7 @@ export async function saveData(tableName, data) {
 
 // Update data in Supabase
 export async function updateData(tableName, updates, id) {
-    if (!tableName || tableName === 'undefined') {
+    if (!tableName || tableName === 'undefined' || typeof tableName !== 'string') {
         console.error('Invalid table name:', tableName);
         return null;
     }
@@ -249,7 +251,7 @@ export async function updateData(tableName, updates, id) {
 
 // Delete data from Supabase
 export async function deleteData(tableName, id) {
-    if (!tableName || tableName === 'undefined') {
+    if (!tableName || tableName === 'undefined' || typeof tableName !== 'string') {
         console.error('Invalid table name:', tableName);
         return false;
     }
@@ -271,6 +273,12 @@ export async function deleteData(tableName, id) {
 
 // Initialize database with default data
 export async function initializeDatabase() {
+    // Prevent repeated initialization
+    if (databaseInitialized) {
+        console.log('⚙️ Database already initialized, skipping...');
+        return;
+    }
+    
     console.log('⚙️ Initializing Supabase database...');
     
     if (!await ensureSupabaseInitialized()) {
@@ -336,6 +344,10 @@ export async function initializeDatabase() {
                 console.error('Failed to generate fixtures:', err);
             }
         }
+
+        // Mark database as initialized
+        databaseInitialized = true;
+        console.log('✅ Database initialization completed');
 
     } catch (error) {
         console.error('Database initialization failed:', error);
@@ -913,6 +925,7 @@ export async function resetTournament() {
         await supabase.from(DB_KEYS.PLAYERS).delete().neq('id', 0);
         
         // Reinitialize with default data
+        databaseInitialized = false; // Reset flag
         await initializeDatabase();
         
         await refreshAllDisplays();
@@ -1012,10 +1025,18 @@ window.resetAllResults = resetAllResults;
 window.resetTournament = resetTournament;
 window.dataSync = dataSync;
 
-// Initialize Database on DOM Loaded
+// Initialize Database on DOM Loaded - FIXED: Only run once
 if (typeof document !== 'undefined') {
+    let domInitialized = false;
+    
     document.addEventListener('DOMContentLoaded', async function() {
+        if (domInitialized) {
+            console.log('📦 DOM already initialized, skipping...');
+            return;
+        }
+        
         console.log('📦 DOM loaded, initializing database...');
+        domInitialized = true;
         
         // Wait for Supabase to initialize
         try {
@@ -1097,12 +1118,13 @@ export async function debugGetDataCaller() {
     console.trace('Debug: getData called with undefined tableName');
 }
 
-// Temporary patch - wrap getData for debugging
+// Temporary patch - wrap getData for debugging - FIXED: Better validation
 const originalGetData = getData;
 window.getData = async function(tableName) {
-    if (!tableName || tableName === 'undefined') {
-        console.error('getData called with invalid tableName:', tableName);
-        debugGetDataCaller();
+    // Better validation for tableName
+    if (!tableName || tableName === 'undefined' || typeof tableName !== 'string') {
+        console.warn('⚠️ getData called with invalid tableName:', tableName);
+        console.trace('Stack trace for invalid tableName call');
         return [];
     }
     return await originalGetData(tableName);
