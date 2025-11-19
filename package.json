@@ -6,14 +6,15 @@
   "type": "module",
   "scripts": {
     "start": "node server.js",
-    "dev": "node --watch server.js"
+    "dev": "node --watch server.js",
+    "build": "echo 'No client build needed'"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.81.1",
+    "@supabase/supabase-js": "^2.39.7",
     "cors": "^2.8.5",
-    "dotenv": "^17.2.3",
-    "express": "^4.21.2",
-    "resend": "^6.4.2",
+    "dotenv": "^16.4.1",
+    "express": "^4.18.2",
+    "resend": "^3.4.0",
     "web-push": "^3.6.7"
   },
   "engines": {
