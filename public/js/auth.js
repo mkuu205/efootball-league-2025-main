@@ -5,13 +5,14 @@ import {
     DB_KEYS, 
     showNotification,
     supabase,
-    ensureSupabaseInitialized
+    ensureSupabaseInitialized,
+    getCurrentPassword,
+    updateAdminPassword
 } from './database.js';
 
 // Admin authentication state
 let adminAuthenticated = false;
 const ADMIN_EMAIL = 'support@kishtechsite.online';
-//const DEFAULT_ADMIN_PASSWORD = 'admin123'; // Default password
 
 // Password reset tokens management
 async function cleanupExpiredTokens() {
@@ -44,56 +45,6 @@ function generateToken() {
     return Math.random().toString(36).substring(2) + Date.now().toString(36);
 }
 
-// Get current admin password
-async function getCurrentPassword() {
-    try {
-        if (!await ensureSupabaseInitialized()) {
-            console.warn('⚠️ Supabase not available, using default password');
-            return DEFAULT_ADMIN_PASSWORD;
-        }
-
-        const config = await getData(DB_KEYS.ADMIN_CONFIG);
-        const adminConfig = config && config.length > 0 ? config[0] : null;
-        
-        return adminConfig?.admin_password || DEFAULT_ADMIN_PASSWORD;
-    } catch (error) {
-        console.error('❌ Error getting admin password:', error);
-        return DEFAULT_ADMIN_PASSWORD;
-    }
-}
-
-// Update admin password
-async function updateAdminPassword(newPassword) {
-    try {
-        if (!await ensureSupabaseInitialized()) {
-            throw new Error('Supabase not available');
-        }
-
-        const config = await getData(DB_KEYS.ADMIN_CONFIG);
-        let adminConfig = config && config.length > 0 ? config[0] : {
-            id: 1,
-            tournament_name: 'Premier League Tournament',
-            season: '2025',
-            max_players_per_team: 2,
-            points_for_win: 3,
-            points_for_draw: 1,
-            allow_player_registration: true,
-            show_leaderboard: true,
-            maintenance_mode: false,
-            created_at: new Date().toISOString()
-        };
-
-        adminConfig.admin_password = newPassword;
-        adminConfig.updated_at = new Date().toISOString();
-
-        await saveData(DB_KEYS.ADMIN_CONFIG, [adminConfig]);
-        return true;
-    } catch (error) {
-        console.error('❌ Error updating admin password:', error);
-        throw error;
-    }
-}
-
 // Verify admin password
 async function verifyAdminPassword(password) {
     try {
@@ -101,6 +52,16 @@ async function verifyAdminPassword(password) {
         return password === currentPassword;
     } catch (error) {
         console.error('❌ Error verifying admin password:', error);
+        
+        // Show specific error messages to user
+        if (error.message === 'Admin password not configured!') {
+            showNotification('Admin password not configured. Please contact system administrator.', 'error');
+        } else if (error.message === 'Database not available') {
+            showNotification('Database connection failed. Please try again later.', 'error');
+        } else {
+            showNotification('Authentication error. Please try again.', 'error');
+        }
+        
         return false;
     }
 }
@@ -307,14 +268,19 @@ export async function initializeAdminAuth() {
         // Clean up expired tokens
         await cleanupExpiredTokens();
         
-        // Check if we need to set up default password
+        // Check if admin password is configured
         try {
             const currentPassword = await getCurrentPassword();
-            console.log('✅ Admin authentication system ready');
+            console.log('✅ Admin password configured');
         } catch (error) {
-            console.warn('⚠️ Could not verify admin password setup:', error);
+            if (error.message === 'Admin password not configured!') {
+                console.error('❌ Admin password not configured - administrator must set it up first');
+                showNotification('Admin password not configured. Please set up the system first.', 'error');
+            }
+            throw error;
         }
         
+        console.log('✅ Admin authentication system ready');
         return true;
     } catch (error) {
         console.error('❌ Error initializing admin auth:', error);
