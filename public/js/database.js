@@ -970,3 +970,36 @@ if (typeof document !== 'undefined') {
 }
 
 console.log('✅ database.js COMPLETED loading - all functions available');
+
+// =======================================================
+//  COMPATIBILITY PATCH FOR advanced-stats.js + admin.html
+// =======================================================
+
+// Database core functions
+window.getData = getData;
+window.saveData = saveData;
+window.updateData = updateData;
+window.deleteData = deleteData;
+
+// Lookup helpers
+window.getPlayerById = getPlayerById;
+window.getFixtureById = getFixtureById;
+window.getResultById = getResultById;
+
+// League & stats
+window.calculatePlayerStats = calculatePlayerStats;
+window.getRecentForm = getRecentForm;
+window.getLeagueTable = getLeagueTable;
+
+// Global config
+window.DB_KEYS = DB_KEYS;
+
+// Refresh system
+window.refreshAllDisplays = refreshAllDisplays;
+
+// Data sync
+window.dataSync = dataSync;
+
+// Fix for advanced-stats.js expecting populatePlayerSelects
+window.populatePlayerSelects =
+    window.advancedStats?.populatePlayerSelects.bind(window.advancedStats);
