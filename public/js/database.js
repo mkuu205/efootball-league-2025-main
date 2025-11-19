@@ -725,8 +725,8 @@ export async function getLeagueTable() {
             const stats = await calculatePlayerStats(p.id);
             const form = await getRecentForm(p.id);
             return { ...p, ...stats, form };
-        });
-        
+        })); // ✅ FIXED — added missing )
+
         return tableData.sort((a, b) => 
             b.points - a.points || 
             b.goalDifference - a.goalDifference || 
@@ -737,6 +737,7 @@ export async function getLeagueTable() {
         return [];
     }
 }
+
 
 // Refresh UI & Subscriptions
 export async function refreshAllDisplays() {
