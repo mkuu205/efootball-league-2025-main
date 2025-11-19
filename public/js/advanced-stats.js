@@ -874,8 +874,10 @@ class AdvancedStatistics {
     }
 }
 
-// Initialize advanced statistics
-const advancedStats = new AdvancedStatistics();
+/
 
-// Global access
+// Initialize advanced statistics
+export const advancedStats = new AdvancedStatistics();
+
+// Optional: still make it global
 window.advancedStats = advancedStats;
