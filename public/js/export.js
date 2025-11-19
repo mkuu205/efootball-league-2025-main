@@ -37,7 +37,6 @@ class ImageExporter {
             }
 
             const script = document.createElement('script');
-            // ✅ Updated CDN link + correct integrity hash
             script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
             script.integrity = 'sha512-BNaRQnYJYiPSqHHDb58B0yaPfCu+Wgds8Gp/gU33kqBtgNS4tSPHuGibyoeqMV/TJlSKda6FXzoEyYGjTe+vXA==';
             script.crossOrigin = 'anonymous';
@@ -202,11 +201,9 @@ class ImageExporter {
         if (!(await this.isReady())) return;
 
         try {
-            // Use await to get the actual data from getData()
             const fixtures = await getData(DB_KEYS.FIXTURES);
             const players = await getData(DB_KEYS.PLAYERS);
 
-            // Validate that we got arrays
             if (!Array.isArray(fixtures)) {
                 console.error('Fixtures data is not an array:', fixtures);
                 showNotification('Error: Fixtures data is not available', 'error');
@@ -336,7 +333,6 @@ class ImageExporter {
                 fixturesList.appendChild(fixtureElement);
             });
 
-            // Check if we have any valid fixtures to display
             if (fixturesList.children.length === 0) {
                 showNotification('No valid fixtures found to export', 'warning');
                 this.isGenerating = false;
@@ -449,8 +445,6 @@ class ImageExporter {
                 text-align: center;
             `;
 
-            // You would need to calculate player stats here
-            // This is a simplified version
             tempContainer.innerHTML = `
                 <div style="text-align: center;">
                     <h1 style="color: #ffd700; margin-bottom: 20px;">Player Statistics</h1>
@@ -505,6 +499,8 @@ class ImageExporter {
     }
 }
 
-// Initialize exporter
-const imageExporter = new ImageExporter();
+// Initialize exporter and export it
+export const imageExporter = new ImageExporter();
+
+// Also make it available globally
 window.imageExporter = imageExporter;
