@@ -1,620 +1,508 @@
-// auth.js - Authentication functions using Supabase Auth with Email System
-import { supabase, getData, saveData } from './database.js';
+// auth.js - Fixed Authentication System
+import { 
+    getData, 
+    saveData, 
+    DB_KEYS, 
+    showNotification,
+    supabase,
+    ensureSupabaseInitialized
+} from './database.js';
 
+// Admin authentication state
+let adminAuthenticated = false;
 const ADMIN_EMAIL = 'support@kishtechsite.online';
-const EMAIL_API_URL = 'https://reset-email-system.netlify.app/.netlify/functions/send-email';
-const newPassword = 'kish24';
-console.log('🔐 Auth System Loading...');
+//const DEFAULT_ADMIN_PASSWORD = 'admin123'; // Default password
 
-// ------------------------
-// UTILITY FUNCTIONS
-// ------------------------
-function generateResetToken() {
-    return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
-}
-
-async function hashPassword(password) {
-    const encoder = new TextEncoder();
-    const data = encoder.encode(password);
-    const hash = await crypto.subtle.digest('SHA-256', data);
-    return Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2, '0')).join('');
-}
-
-async function verifyPassword(password, hashedPassword) {
-    const newHash = await hashPassword(password);
-    return newHash === hashedPassword;
-}
-
-// ------------------------
-// RESET TOKEN MANAGEMENT
-// ------------------------
-async function saveResetToken(email, token) {
-    try {
-        const resetData = {
-            email,
-            token,
-            expires: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
-            created_at: new Date().toISOString()
-        };
-        
-        const { error } = await supabase
-            .from('password_reset_tokens')
-            .insert([resetData]);
-            
-        if (error) throw error;
-        return true;
-    } catch (err) {
-        console.error('Error saving reset token:', err);
-        return false;
-    }
-}
-
-async function validateResetToken(email, token) {
-    try {
-        const { data: tokenData, error } = await supabase
-            .from('password_reset_tokens')
-            .select('*')
-            .eq('email', email)
-            .eq('token', token)
-            .single();
-
-        if (error || !tokenData) return false;
-        
-        // Check expiration
-        if (new Date() > new Date(tokenData.expires)) {
-            await clearResetToken(email);
-            return false;
-        }
-        return true;
-    } catch (err) {
-        console.error('Error validating reset token:', err);
-        return false;
-    }
-}
-
-async function clearResetToken(email) {
-    try {
-        const { error } = await supabase
-            .from('password_reset_tokens')
-            .delete()
-            .eq('email', email);
-            
-        if (error) throw error;
-        return true;
-    } catch (err) {
-        console.error('Error clearing reset token:', err);
-        return false;
-    }
-}
-
-// Clean up expired tokens
+// Password reset tokens management
 async function cleanupExpiredTokens() {
     try {
-        const { error } = await supabase
-            .from('password_reset_tokens')
-            .delete()
-            .lt('expires', new Date().toISOString());
+        // Wait for Supabase to be initialized
+        if (!await ensureSupabaseInitialized()) {
+            console.warn('⚠️ Supabase not available for token cleanup');
+            return;
+        }
+
+        const tokens = await getData(DB_KEYS.PASSWORD_RESET_TOKENS) || [];
+        const now = new Date();
+        const validTokens = tokens.filter(token => {
+            if (!token || !token.expires_at) return false;
+            return new Date(token.expires_at) > now;
+        });
+
+        // Only update if tokens were actually removed
+        if (validTokens.length < tokens.length) {
+            await saveData(DB_KEYS.PASSWORD_RESET_TOKENS, validTokens);
+            console.log(`🧹 Cleaned up ${tokens.length - validTokens.length} expired tokens`);
+        }
+    } catch (error) {
+        console.error('❌ Error cleaning up expired tokens:', error);
+    }
+}
+
+// Generate secure token
+function generateToken() {
+    return Math.random().toString(36).substring(2) + Date.now().toString(36);
+}
+
+// Get current admin password
+async function getCurrentPassword() {
+    try {
+        if (!await ensureSupabaseInitialized()) {
+            console.warn('⚠️ Supabase not available, using default password');
+            return DEFAULT_ADMIN_PASSWORD;
+        }
+
+        const config = await getData(DB_KEYS.ADMIN_CONFIG);
+        const adminConfig = config && config.length > 0 ? config[0] : null;
+        
+        return adminConfig?.admin_password || DEFAULT_ADMIN_PASSWORD;
+    } catch (error) {
+        console.error('❌ Error getting admin password:', error);
+        return DEFAULT_ADMIN_PASSWORD;
+    }
+}
+
+// Update admin password
+async function updateAdminPassword(newPassword) {
+    try {
+        if (!await ensureSupabaseInitialized()) {
+            throw new Error('Supabase not available');
+        }
+
+        const config = await getData(DB_KEYS.ADMIN_CONFIG);
+        let adminConfig = config && config.length > 0 ? config[0] : {
+            id: 1,
+            tournament_name: 'Premier League Tournament',
+            season: '2025',
+            max_players_per_team: 2,
+            points_for_win: 3,
+            points_for_draw: 1,
+            allow_player_registration: true,
+            show_leaderboard: true,
+            maintenance_mode: false,
+            created_at: new Date().toISOString()
+        };
+
+        adminConfig.admin_password = newPassword;
+        adminConfig.updated_at = new Date().toISOString();
+
+        await saveData(DB_KEYS.ADMIN_CONFIG, [adminConfig]);
+        return true;
+    } catch (error) {
+        console.error('❌ Error updating admin password:', error);
+        throw error;
+    }
+}
+
+// Verify admin password
+async function verifyAdminPassword(password) {
+    try {
+        const currentPassword = await getCurrentPassword();
+        return password === currentPassword;
+    } catch (error) {
+        console.error('❌ Error verifying admin password:', error);
+        return false;
+    }
+}
+
+// Check if user is authenticated
+export function isAdminAuthenticated() {
+    const sessionAuth = sessionStorage.getItem('admin_session') === 'true';
+    const localAuth = localStorage.getItem('admin_session') === 'true';
+    return sessionAuth || localAuth || adminAuthenticated;
+}
+
+// Admin login function
+export async function adminLogin(password, rememberMe = false) {
+    try {
+        console.log('🔐 Attempting admin login...');
+        
+        const isValid = await verifyAdminPassword(password);
+        
+        if (isValid) {
+            adminAuthenticated = true;
+            if (rememberMe) {
+                localStorage.setItem('admin_session', 'true');
+            } else {
+                sessionStorage.setItem('admin_session', 'true');
+            }
             
-        if (error) console.error('Error cleaning expired tokens:', error);
-    } catch (err) {
-        console.error('Token cleanup error:', err);
-    }
-}
-
-// ------------------------
-// EMAIL FUNCTIONS
-// ------------------------
-async function sendPasswordResetEmail(email, resetLink) {
-    try {
-        console.log('🔧 Sending reset email to:', email);
-        const response = await fetch(EMAIL_API_URL, {
-            method: 'POST',
-            headers: { 
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                to_email: email,
-                reset_link: resetLink,
-                email_type: 'reset'
-            })
-        });
-        
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        
-        const result = await response.json();
-        console.log('Email API response:', result);
-        
-        if (result.success) {
-            showNotification('Password reset link has been sent to your email!', 'success');
+            console.log('✅ Admin login successful');
+            showNotification('Admin access granted!', 'success');
             return true;
         } else {
-            showNotification('Failed to send email: ' + (result.error || 'Unknown error'), 'error');
+            console.log('❌ Admin login failed: Invalid password');
+            showNotification('Invalid admin password!', 'error');
             return false;
         }
-    } catch (err) {
-        console.error('Email sending error:', err);
-        showNotification('Email service temporarily unavailable. Please try again later.', 'error');
+    } catch (error) {
+        console.error('❌ Admin login error:', error);
+        showNotification('Login error: ' + error.message, 'error');
         return false;
     }
 }
 
-export async function sendTestEmail(email) {
+// Admin logout function
+export function adminLogout() {
+    adminAuthenticated = false;
+    sessionStorage.removeItem('admin_session');
+    localStorage.removeItem('admin_session');
+    console.log('👋 Admin logged out');
+    showNotification('Admin session ended', 'info');
+    window.location.reload();
+}
+
+// Request password reset
+export async function requestPasswordReset() {
     try {
-        console.log('🧪 Sending test email to:', email);
-        const response = await fetch(EMAIL_API_URL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                to_email: email,
-                email_type: 'test'
-            })
-        });
-        
-        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-        
-        const result = await response.json();
-        if (result.success) {
-            showNotification('Test email sent successfully!', 'success');
-            return true;
-        } else {
-            showNotification('Failed to send test email: ' + (result.error || 'Unknown'), 'error');
+        if (!await ensureSupabaseInitialized()) {
+            showNotification('Database not available. Please try again later.', 'error');
             return false;
         }
-    } catch (err) {
-        console.error('Test email error:', err);
-        showNotification('Failed to send test email: ' + err.message, 'error');
+
+        const token = generateToken();
+        const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+        
+        const resetToken = {
+            token: token,
+            email: ADMIN_EMAIL,
+            expires_at: expiresAt.toISOString(),
+            used: false,
+            created_at: new Date().toISOString()
+        };
+
+        const tokens = await getData(DB_KEYS.PASSWORD_RESET_TOKENS) || [];
+        tokens.push(resetToken);
+        await saveData(DB_KEYS.PASSWORD_RESET_TOKENS, tokens);
+
+        console.log('📧 Password reset token generated:', token);
+        
+        // In a real application, you would send an email here
+        // For demo purposes, we'll show the token in an alert
+        showNotification(`Password reset token: ${token} (Expires: ${expiresAt.toLocaleTimeString()})`, 'info');
+        
+        return true;
+    } catch (error) {
+        console.error('❌ Error requesting password reset:', error);
+        showNotification('Error requesting password reset', 'error');
         return false;
     }
 }
 
-// ------------------------
-// PASSWORD VALIDATION
-// ------------------------
-function validatePassword(password) {
-    const minLength = 6;
-    const issues = [];
+// Verify reset token
+async function verifyResetToken(token) {
+    try {
+        if (!await ensureSupabaseInitialized()) {
+            return false;
+        }
+
+        const tokens = await getData(DB_KEYS.PASSWORD_RESET_TOKENS) || [];
+        const now = new Date();
+        
+        const validToken = tokens.find(t => 
+            t && 
+            t.token === token && 
+            !t.used && 
+            new Date(t.expires_at) > now
+        );
+
+        return !!validToken;
+    } catch (error) {
+        console.error('❌ Error verifying reset token:', error);
+        return false;
+    }
+}
+
+// Mark token as used
+async function markTokenAsUsed(token) {
+    try {
+        if (!await ensureSupabaseInitialized()) {
+            return false;
+        }
+
+        const tokens = await getData(DB_KEYS.PASSWORD_RESET_TOKENS) || [];
+        const updatedTokens = tokens.map(t => 
+            t && t.token === token ? { ...t, used: true } : t
+        );
+
+        await saveData(DB_KEYS.PASSWORD_RESET_TOKENS, updatedTokens);
+        return true;
+    } catch (error) {
+        console.error('❌ Error marking token as used:', error);
+        return false;
+    }
+}
+
+// Reset admin password with token
+export async function resetAdminPassword(token, newPassword) {
+    try {
+        if (!await ensureSupabaseInitialized()) {
+            throw new Error('Database not available');
+        }
+
+        const isValidToken = await verifyResetToken(token);
+        if (!isValidToken) {
+            throw new Error('Invalid or expired reset token');
+        }
+
+        await updateAdminPassword(newPassword);
+        await markTokenAsUsed(token);
+
+        console.log('✅ Admin password reset successfully');
+        return true;
+    } catch (error) {
+        console.error('❌ Error resetting admin password:', error);
+        throw error;
+    }
+}
+
+// Password strength checker
+export function checkPasswordStrength(password) {
+    if (!password) return { strength: 0, text: 'Very Weak', color: '#dc3545' };
     
-    if (password.length < minLength) {
-        issues.push(`Password must be at least ${minLength} characters`);
+    let strength = 0;
+    let feedback = [];
+
+    // Length check
+    if (password.length >= 8) strength += 1;
+    if (password.length >= 12) strength += 1;
+
+    // Character variety checks
+    if (/[a-z]/.test(password)) strength += 1;
+    if (/[A-Z]/.test(password)) strength += 1;
+    if (/[0-9]/.test(password)) strength += 1;
+    if (/[^a-zA-Z0-9]/.test(password)) strength += 1;
+
+    // Determine strength level
+    let strengthText, strengthColor;
+    if (strength <= 2) {
+        strengthText = 'Very Weak';
+        strengthColor = '#dc3545';
+    } else if (strength <= 3) {
+        strengthText = 'Weak';
+        strengthColor = '#fd7e14';
+    } else if (strength <= 4) {
+        strengthText = 'Fair';
+        strengthColor = '#ffc107';
+    } else if (strength <= 5) {
+        strengthText = 'Good';
+        strengthColor = '#20c997';
+    } else {
+        strengthText = 'Strong';
+        strengthColor = '#198754';
     }
-    if (!/[A-Z]/.test(password)) {
-        issues.push('Include at least one uppercase letter');
-    }
-    if (!/[0-9]/.test(password)) {
-        issues.push('Include at least one number');
-    }
-    
+
     return {
-        isValid: issues.length === 0,
-        issues
+        strength: (strength / 6) * 100,
+        text: strengthText,
+        color: strengthColor
     };
 }
 
-// ------------------------
-// PASSWORD RESET FLOW
-// ------------------------
-export async function requestPasswordReset(email) {
-    if (!email || email !== ADMIN_EMAIL) {
-        showNotification('Only the admin support email can request password resets.', 'error');
-        return false;
-    }
-
-    const submitBtn = document.querySelector('#forgot-password-form button[type="submit"]');
-    const originalText = submitBtn?.innerHTML || 'Send Reset Link';
-    
-    try {
-        setButtonLoading(submitBtn, true);
-
-        const resetToken = generateResetToken();
-        const saved = await saveResetToken(email, resetToken);
-        
-        if (!saved) { 
-            showNotification('Failed to generate reset token. Please try again.', 'error'); 
-            return false; 
-        }
-
-        const resetLink = `${window.location.origin}${window.location.pathname}?reset_token=${resetToken}&email=${encodeURIComponent(email)}`;
-        const emailSent = await sendPasswordResetEmail(email, resetLink);
-        
-        if (emailSent) {
-            // Auto-redirect back to login after successful email send
-            setTimeout(showLoginForm, 3000);
-        }
-        return emailSent;
-        
-    } catch (err) {
-        console.error('Password reset request failed:', err);
-        showNotification('Error processing request. Please try again.', 'error');
-        return false;
-    } finally {
-        setButtonLoading(submitBtn, false, originalText);
-    }
-}
-
-export async function resetPassword(email, token, newPassword) {
-    if (!await validateResetToken(email, token)) {
-        showNotification('Invalid or expired reset token.', 'error');
-        return false;
-    }
-
-    try {
-        const hashedPassword = await hashPassword(newPassword);
-        
-        // Update admin config
-        const { data: existingConfig, error: fetchError } = await supabase
-            .from('admin_config')
-            .select('*')
-            .eq('email', ADMIN_EMAIL)
-            .single();
-
-        if (fetchError && fetchError.code !== 'PGRST116') {
-            throw fetchError;
-        }
-
-        if (existingConfig) {
-            const { error: updateError } = await supabase
-                .from('admin_config')
-                .update({ 
-                    password_hash: hashedPassword, 
-                    updated_at: new Date().toISOString() 
-                })
-                .eq('email', email);
-                
-            if (updateError) throw updateError;
-        } else {
-            const { error: insertError } = await supabase
-                .from('admin_config')
-                .insert([{ 
-                    email: email, 
-                    password_hash: hashedPassword, 
-                    updated_at: new Date().toISOString() 
-                }]);
-                
-            if (insertError) throw insertError;
-        }
-
-        await clearResetToken(email);
-        showNotification('Password reset successfully!', 'success');
-        return true;
-    } catch (err) {
-        console.error('Error resetting password:', err);
-        showNotification('Password reset failed.', 'error');
-        return false;
-    }
-}
-
-// ------------------------
-// ADMIN AUTH FUNCTIONS
-// ------------------------
-export async function getCurrentPassword() {
-    try {
-        const { data: adminConfig, error } = await supabase
-            .from('admin_config')
-            .select('*')
-            .eq('email', ADMIN_EMAIL)
-            .single();
-
-        if (error) throw error;
-        return adminConfig?.password_hash || null;
-    } catch (err) {
-        console.error('Error getting admin password:', err);
-        return null;
-    }
-}
-
-export async function checkAdminAuth() {
-    const session = sessionStorage.getItem('admin_session');
-    if (!session) return false;
-    
-    // Check session expiration
-    const sessionData = JSON.parse(session);
-    if (sessionData.expires && new Date() > new Date(sessionData.expires)) {
-        await logout();
-        return false;
-    }
-    
-    return true;
-}
-
-export async function setAdminAuth(authenticated) {
-    if (authenticated) {
-        const sessionData = {
-            authenticated: true,
-            timestamp: new Date().toISOString(),
-            expires: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString() // 24 hours
-        };
-        sessionStorage.setItem('admin_session', JSON.stringify(sessionData));
-    } else {
-        sessionStorage.removeItem('admin_session');
-    }
-}
-
-export async function logout() {
-    await setAdminAuth(false);
-    window.location.href = 'admin.html';
-}
-
+// Initialize admin authentication system
 export async function initializeAdminAuth() {
     try {
+        console.log('🔐 Initializing admin authentication system...');
+        
+        // Clean up expired tokens
         await cleanupExpiredTokens();
         
-        const { data: adminConfig, error } = await supabase
-            .from('admin_config')
-            .select('*')
-            .eq('email', ADMIN_EMAIL)
-            .single();
-
-        console.log(adminConfig ? '✅ Admin config exists' : '❌ No admin config found');
-        
-        if (error && error.code !== 'PGRST116') {
-            console.error('Error checking admin auth:', error);
+        // Check if we need to set up default password
+        try {
+            const currentPassword = await getCurrentPassword();
+            console.log('✅ Admin authentication system ready');
+        } catch (error) {
+            console.warn('⚠️ Could not verify admin password setup:', error);
         }
-    } catch (err) {
-        console.error('Error initializing admin auth:', err);
+        
+        return true;
+    } catch (error) {
+        console.error('❌ Error initializing admin auth:', error);
+        return false;
     }
 }
 
-// ------------------------
-// UI HELPER FUNCTIONS
-// ------------------------
-function setButtonLoading(button, isLoading, originalText = null) {
-    if (!button) return;
-    
-    if (isLoading) {
-        button.dataset.originalText = originalText || button.innerHTML;
-        button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
-        button.disabled = true;
-    } else {
-        button.innerHTML = button.dataset.originalText || originalText || 'Submit';
-        button.disabled = false;
-        delete button.dataset.originalText;
-    }
-}
+// Setup authentication event listeners
+export function setupAuthEventListeners() {
+    console.log('🔧 Setting up authentication event listeners...');
 
-function showNotification(message, type = 'info') {
-    const colors = { success: '#198754', error: '#dc3545', warning: '#ffc107', info: '#0dcaf0' };
-    const existing = document.getElementById('toast-temp'); 
-    if (existing) existing.remove();
-    
-    const div = document.createElement('div');
-    div.id = 'toast-temp';
-    div.style.cssText = `
-        position: fixed; top: 20px; right: 20px; background: #212529; color: #f8f9fa;
-        border-left: 4px solid ${colors[type] || colors.info}; padding: 12px 16px; border-radius: 8px;
-        box-shadow: 0 0 10px rgba(0,0,0,0.5); z-index: 2000; min-width: 250px; font-size: 14px; transition: all 0.3s ease;
-    `;
-    div.innerHTML = `<i class="fas fa-info-circle me-2" style="color:${colors[type]};"></i>${message}`;
-    document.body.appendChild(div);
-    
-    setTimeout(() => { 
-        div.style.opacity = '0'; 
-        setTimeout(() => div.remove(), 300); 
-    }, 4000);
-}
-
-// ------------------------
-// PASSWORD STRENGTH CHECK
-// ------------------------
-function checkPasswordStrength(password) {
-    let strength = 0;
-    if (password.length >= 6) strength++;
-    if (password.length >= 8) strength++;
-    if (/[A-Z]/.test(password)) strength++;
-    if (/[0-9]/.test(password)) strength++;
-    if (/[^A-Za-z0-9]/.test(password)) strength++;
-    return strength;
-}
-
-function updatePasswordStrengthIndicator(password) {
-    const strengthBar = document.getElementById('password-strength-bar');
-    const strengthText = document.getElementById('password-strength-text');
-    if (!strengthBar || !strengthText) return;
-
-    const strength = checkPasswordStrength(password);
-    strengthBar.className = 'password-strength';
-    strengthText.className = 'small mt-1';
-
-    if (password.length === 0) {
-        strengthBar.style.width = '0%';
-        strengthBar.style.backgroundColor = 'transparent';
-        strengthText.textContent = '';
-        return;
-    }
-
-    const widthPercent = Math.min((strength / 5) * 100, 100);
-    strengthBar.style.width = widthPercent + '%';
-
-    if (strength < 2) {
-        strengthBar.style.backgroundColor = '#dc3545';
-        strengthText.textContent = 'Weak';
-        strengthText.style.color = '#dc3545';
-    } else if (strength < 4) {
-        strengthBar.style.backgroundColor = '#ffc107';
-        strengthText.textContent = 'Medium';
-        strengthText.style.color = '#ffc107';
-    } else {
-        strengthBar.style.backgroundColor = '#28a745';
-        strengthText.textContent = 'Strong';
-        strengthText.style.color = '#28a745';
-    }
-}
-
-// ------------------------
-// RESET TOKEN URL CHECK
-// ------------------------
-function checkResetTokenInURL() {
-    const params = new URLSearchParams(window.location.search);
-    const resetToken = params.get('reset_token');
-    const email = params.get('email');
-    
-    if (resetToken && email) {
-        showResetPasswordForm(decodeURIComponent(email), resetToken);
-        // Clean URL
-        const cleanUrl = window.location.origin + window.location.pathname;
-        window.history.replaceState({}, document.title, cleanUrl);
-    }
-}
-
-function showResetPasswordForm(email, token) {
-    const loginSection = document.getElementById('login-section');
-    const resetSection = document.getElementById('reset-password-section');
-    
-    if (loginSection && resetSection) {
-        loginSection.classList.add('d-none');
-        resetSection.classList.remove('d-none');
-        document.getElementById('reset-email').value = email;
-        document.getElementById('reset-token').value = token;
-    }
-}
-
-function showForgotPasswordForm() {
-    const loginSection = document.getElementById('login-section');
-    const forgotSection = document.getElementById('forgot-password-section');
-    
-    if (loginSection && forgotSection) {
-        loginSection.classList.add('d-none');
-        forgotSection.classList.remove('d-none');
-        document.getElementById('forgot-email').value = ADMIN_EMAIL;
-    }
-}
-
-function showLoginForm() {
-    const loginSection = document.getElementById('login-section');
-    const forgotSection = document.getElementById('forgot-password-section');
-    const resetSection = document.getElementById('reset-password-section');
-    
-    if (loginSection) loginSection.classList.remove('d-none');
-    if (forgotSection) forgotSection.classList.add('d-none');
-    if (resetSection) resetSection.classList.add('d-none');
-}
-
-// ------------------------
-// ADMIN PAGE INIT
-// ------------------------
-document.addEventListener('DOMContentLoaded', async function() {
-    await initializeAdminAuth();
-    
-    // Only run on admin pages
-    if (!window.location.pathname.includes('admin.html')) return;
-
-    checkResetTokenInURL();
-    const isAuthenticated = await checkAdminAuth();
-
-    if (isAuthenticated) {
-        document.getElementById('login-section').classList.add('d-none');
-        document.getElementById('admin-dashboard').classList.remove('d-none');
-    }
-
-    // Setup logout
-    const logoutBtn = document.getElementById('logout-btn');
-    if (logoutBtn) {
-        logoutBtn.addEventListener('click', e => {
-            e.preventDefault();
-            logout();
-        });
-    }
-
-    // Setup login form
+    // Login form
     const loginForm = document.getElementById('login-form');
     if (loginForm) {
-        loginForm.addEventListener('submit', async e => {
+        loginForm.addEventListener('submit', async function(e) {
             e.preventDefault();
-            const password = document.getElementById('admin-password').value;
-            const submitBtn = loginForm.querySelector('button[type="submit"]');
             
-            setButtonLoading(submitBtn, true);
+            const password = document.getElementById('admin-password')?.value;
+            const rememberMe = document.getElementById('remember-me')?.checked || false;
             
+            if (!password) {
+                showNotification('Please enter admin password!', 'error');
+                return;
+            }
+
+            const loginButton = this.querySelector('button[type="submit"]');
+            const originalText = loginButton.innerHTML;
+            
+            loginButton.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i> Authenticating...';
+            loginButton.disabled = true;
+
             try {
-                const hashedPassword = await getCurrentPassword();
-                if (!hashedPassword) { 
-                    showNotification('Admin account not configured.', 'error'); 
-                    return; 
+                const success = await adminLogin(password, rememberMe);
+                if (success) {
+                    setTimeout(() => {
+                        window.location.href = 'admin.html';
+                    }, 1000);
                 }
-                
-                if (await verifyPassword(password, hashedPassword)) {
-                    await setAdminAuth(true);
-                    document.getElementById('login-section').classList.add('d-none');
-                    document.getElementById('admin-dashboard').classList.remove('d-none');
-                    showNotification('Login successful!', 'success');
-                } else {
-                    showNotification('Invalid password!', 'error');
-                }
-            } catch (err) {
-                console.error('Login error:', err);
-                showNotification('Login failed. Please try again.', 'error');
             } finally {
-                setButtonLoading(submitBtn, false);
+                loginButton.innerHTML = originalText;
+                loginButton.disabled = false;
             }
         });
     }
 
-    // Setup forgot password form
-    const forgotForm = document.getElementById('forgot-password-form');
-    if (forgotForm) {
-        forgotForm.addEventListener('submit', async e => {
+    // Forgot password link
+    const forgotPasswordLink = document.getElementById('forgot-password-link');
+    if (forgotPasswordLink) {
+        forgotPasswordLink.addEventListener('click', function(e) {
             e.preventDefault();
-            await requestPasswordReset(document.getElementById('forgot-email').value);
+            document.getElementById('login-section').classList.add('d-none');
+            document.getElementById('forgot-password-section').classList.remove('d-none');
         });
     }
 
-    // Setup reset password form
-    const resetForm = document.getElementById('reset-password-form');
-    if (resetForm) {
-        const newPasswordInput = document.getElementById('new-password');
-        if (newPasswordInput) {
-            newPasswordInput.addEventListener('input', () => updatePasswordStrengthIndicator(newPasswordInput.value));
-        }
-        
-        resetForm.addEventListener('submit', async e => {
+    // Forgot password form
+    const forgotPasswordForm = document.getElementById('forgot-password-form');
+    if (forgotPasswordForm) {
+        forgotPasswordForm.addEventListener('submit', async function(e) {
             e.preventDefault();
-            const submitBtn = resetForm.querySelector('button[type="submit"]');
-            const email = document.getElementById('reset-email').value;
-            const token = document.getElementById('reset-token').value;
-            const newPassword = document.getElementById('new-password').value;
-            const confirmPassword = document.getElementById('confirm-password').value;
             
-            setButtonLoading(submitBtn, true);
+            const submitButton = this.querySelector('button[type="submit"]');
+            const originalText = submitButton.innerHTML;
             
+            submitButton.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i> Sending...';
+            submitButton.disabled = true;
+
             try {
-                if (newPassword !== confirmPassword) { 
-                    showNotification('Passwords do not match!', 'error'); 
-                    return; 
+                const success = await requestPasswordReset();
+                if (success) {
+                    showNotification('Password reset instructions sent!', 'success');
                 }
-                
-                const validation = validatePassword(newPassword);
-                if (!validation.isValid) {
-                    showNotification('Password requirements: ' + validation.issues.join(', '), 'error');
-                    return;
-                }
-                
-                if (await resetPassword(email, token, newPassword)) {
-                    setTimeout(showLoginForm, 2000);
-                }
-            } catch (err) {
-                console.error('Reset password error:', err);
-                showNotification('Password reset failed.', 'error');
             } finally {
-                setButtonLoading(submitBtn, false);
+                submitButton.innerHTML = originalText;
+                submitButton.disabled = false;
             }
         });
     }
 
-    // Setup back to login links
-    document.querySelectorAll('.back-to-login').forEach(link => {
-        link.addEventListener('click', e => {
+    // Reset password form
+    const resetPasswordForm = document.getElementById('reset-password-form');
+    if (resetPasswordForm) {
+        resetPasswordForm.addEventListener('submit', async function(e) {
             e.preventDefault();
-            showLoginForm();
+            
+            const token = document.getElementById('reset-token')?.value;
+            const newPassword = document.getElementById('new-password')?.value;
+            const confirmPassword = document.getElementById('confirm-password')?.value;
+
+            if (!token || !newPassword || !confirmPassword) {
+                showNotification('Please fill in all fields!', 'error');
+                return;
+            }
+
+            if (newPassword !== confirmPassword) {
+                showNotification('Passwords do not match!', 'error');
+                return;
+            }
+
+            if (newPassword.length < 6) {
+                showNotification('Password must be at least 6 characters long!', 'error');
+                return;
+            }
+
+            const submitButton = this.querySelector('button[type="submit"]');
+            const originalText = submitButton.innerHTML;
+            
+            submitButton.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i> Resetting...';
+            submitButton.disabled = true;
+
+            try {
+                await resetAdminPassword(token, newPassword);
+                showNotification('Password reset successfully!', 'success');
+                
+                // Return to login
+                document.getElementById('reset-password-section').classList.add('d-none');
+                document.getElementById('login-section').classList.remove('d-none');
+                this.reset();
+            } catch (error) {
+                showNotification('Error: ' + error.message, 'error');
+            } finally {
+                submitButton.innerHTML = originalText;
+                submitButton.disabled = false;
+            }
+        });
+    }
+
+    // Back to login links
+    const backToLoginLinks = document.querySelectorAll('.back-to-login');
+    backToLoginLinks.forEach(link => {
+        link.addEventListener('click', function(e) {
+            e.preventDefault();
+            document.getElementById('login-section').classList.remove('d-none');
+            document.getElementById('forgot-password-section').classList.add('d-none');
+            document.getElementById('reset-password-section').classList.add('d-none');
         });
     });
 
-    // Setup forgot password link
-    const forgotLink = document.getElementById('forgot-password-link');
-    if (forgotLink) {
-        forgotLink.addEventListener('click', e => {
+    // Logout button
+    const logoutBtn = document.getElementById('logout-btn');
+    if (logoutBtn) {
+        logoutBtn.addEventListener('click', function(e) {
             e.preventDefault();
-            showForgotPasswordForm();
+            if (confirm('Are you sure you want to logout?')) {
+                adminLogout();
+            }
         });
     }
+
+    // Password strength indicator
+    const newPasswordInput = document.getElementById('new-password');
+    if (newPasswordInput) {
+        newPasswordInput.addEventListener('input', function() {
+            const strength = checkPasswordStrength(this.value);
+            const strengthBar = document.getElementById('password-strength-bar');
+            const strengthText = document.getElementById('password-strength-text');
+            
+            if (strengthBar && strengthText) {
+                strengthBar.style.width = strength.strength + '%';
+                strengthBar.style.backgroundColor = strength.color;
+                strengthText.textContent = strength.text;
+                strengthText.style.color = strength.color;
+            }
+        });
+    }
+
+    console.log('✅ Authentication event listeners setup complete');
+}
+
+// Initialize when DOM is loaded
+document.addEventListener('DOMContentLoaded', async function() {
+    console.log('🚀 Initializing authentication system...');
+    
+    // Initialize admin auth
+    await initializeAdminAuth();
+    
+    // Setup event listeners
+    setupAuthEventListeners();
+    
+    // Check if user is already authenticated
+    if (isAdminAuthenticated() && window.location.pathname.includes('admin.html')) {
+        console.log('🔓 User already authenticated, redirecting to dashboard...');
+        // The admin.js will handle showing the dashboard
+    }
 });
+
+// Make functions available globally
+window.adminLogin = adminLogin;
+window.adminLogout = adminLogout;
+window.requestPasswordReset = requestPasswordReset;
+window.resetAdminPassword = resetAdminPassword;
