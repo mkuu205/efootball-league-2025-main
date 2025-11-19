@@ -14,6 +14,12 @@ class ImageExporter {
         this.addExportButtons();
     }
 
+    // Avatar helper function
+    getPlayerAvatar(player, size = 40) {
+        const initial = player?.name?.charAt(0)?.toUpperCase() || 'P';
+        return `https://ui-avatars.com/api/?name=${initial}&background=6a11cb&color=fff&size=${size}`;
+    }
+
     // Notification helper function
     showNotification(message, type = 'info') {
         // Check if global showNotification exists
@@ -402,9 +408,9 @@ class ImageExporter {
                     </div>
                     <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;">
                         <div style="display: flex; align-items: center; gap: 10px; flex: 1;">
-                            <img src="${homePlayer.photo}" 
+                            <img src="${homePlayer.photo || this.getPlayerAvatar(homePlayer)}" 
                                  style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover; border: 2px solid rgba(255, 255, 255, 0.3);"
-                                 onerror="this.src='https://via.placeholder.com/40/1a1a2e/ffffff?text=?'">
+                                 onerror="this.src='${this.getPlayerAvatar(homePlayer)}'">
                             <div>
                                 <div style="font-weight: bold;">${homePlayer.name}</div>
                                 <div style="font-size: 0.8em; opacity: 0.8;">${homePlayer.team}</div>
@@ -416,9 +422,9 @@ class ImageExporter {
                                 <div style="font-weight: bold;">${awayPlayer.name}</div>
                                 <div style="font-size: 0.8em; opacity: 0.8;">${awayPlayer.team}</div>
                             </div>
-                            <img src="${awayPlayer.photo}" 
+                            <img src="${awayPlayer.photo || this.getPlayerAvatar(awayPlayer)}" 
                                  style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover; border: 2px solid rgba(255, 255, 255, 0.3);"
-                                 onerror="this.src='https://via.placeholder.com/40/1a1a2e/ffffff?text=?'">
+                                 onerror="this.src='${this.getPlayerAvatar(awayPlayer)}'">
                         </div>
                     </div>
                     <div style="text-align: center; padding-top: 8px; border-top: 1px solid rgba(255, 255, 255, 0.1);">
@@ -548,9 +554,9 @@ class ImageExporter {
                     <h1 style="color: #ffd700; margin-bottom: 20px;">Player Statistics</h1>
                     
                     <div style="display: flex; align-items: center; justify-content: center; gap: 20px; margin-bottom: 25px;">
-                        <img src="${player.photo}" 
+                        <img src="${player.photo || this.getPlayerAvatar(player, 80)}" 
                              style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover; border: 3px solid rgba(255, 255, 255, 0.3);"
-                             onerror="this.src='https://via.placeholder.com/80/1a1a2e/ffffff?text=?'">
+                             onerror="this.src='${this.getPlayerAvatar(player, 80)}'">
                         <div style="text-align: left;">
                             <h2 style="margin: 0 0 5px 0; color: white;">${player.name}</h2>
                             <p style="margin: 0; opacity: 0.8;">${player.team}</p>
