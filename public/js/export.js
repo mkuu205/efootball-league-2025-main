@@ -14,6 +14,104 @@ class ImageExporter {
         this.addExportButtons();
     }
 
+    // Notification helper function
+    showNotification(message, type = 'info') {
+        // Check if global showNotification exists
+        if (typeof window.showNotification === 'function') {
+            window.showNotification(message, type);
+            return;
+        }
+
+        // Fallback notification system
+        this.createFallbackNotification(message, type);
+    }
+
+    // Fallback notification when global function doesn't exist
+    createFallbackNotification(message, type = 'info') {
+        // Remove any existing fallback notifications
+        const existingNotifications = document.querySelectorAll('.fallback-notification');
+        existingNotifications.forEach(notification => {
+            if (notification.parentNode) {
+                notification.parentNode.removeChild(notification);
+            }
+        });
+
+        const notification = document.createElement('div');
+        notification.className = `fallback-notification alert alert-${this.getNotificationType(type)}`;
+        notification.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 9999;
+            min-width: 300px;
+            max-width: 500px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            border: none;
+            border-radius: 8px;
+            animation: slideIn 0.3s ease-out;
+        `;
+
+        // Add styles for animation
+        if (!document.querySelector('#fallback-notification-styles')) {
+            const style = document.createElement('style');
+            style.id = 'fallback-notification-styles';
+            style.textContent = `
+                @keyframes slideIn {
+                    from { transform: translateX(100%); opacity: 0; }
+                    to { transform: translateX(0); opacity: 1; }
+                }
+                @keyframes slideOut {
+                    from { transform: translateX(0); opacity: 1; }
+                    to { transform: translateX(100%); opacity: 0; }
+                }
+            `;
+            document.head.appendChild(style);
+        }
+
+        const icon = this.getNotificationIcon(type);
+        notification.innerHTML = `
+            <div class="d-flex align-items-center">
+                <span class="me-2" style="font-size: 1.2em;">${icon}</span>
+                <span style="flex: 1;">${message}</span>
+                <button type="button" class="btn-close btn-close-white ms-2" onclick="this.parentElement.parentElement.style.animation='slideOut 0.3s ease-in forwards'; setTimeout(() => this.parentElement.parentElement.remove(), 300)"></button>
+            </div>
+        `;
+
+        document.body.appendChild(notification);
+
+        // Auto remove after 5 seconds
+        setTimeout(() => {
+            if (notification.parentNode) {
+                notification.style.animation = 'slideOut 0.3s ease-in forwards';
+                setTimeout(() => {
+                    if (notification.parentNode) {
+                        notification.parentNode.removeChild(notification);
+                    }
+                }, 300);
+            }
+        }, 5000);
+    }
+
+    getNotificationType(type) {
+        const types = {
+            'success': 'success',
+            'error': 'danger',
+            'warning': 'warning',
+            'info': 'info'
+        };
+        return types[type] || 'info';
+    }
+
+    getNotificationIcon(type) {
+        const icons = {
+            'success': '✅',
+            'error': '❌',
+            'warning': '⚠️',
+            'info': 'ℹ️'
+        };
+        return icons[type] || 'ℹ️';
+    }
+
     async loadHtml2Canvas() {
         return new Promise((resolve) => {
             if (typeof html2canvas !== 'undefined') {
@@ -104,12 +202,12 @@ class ImageExporter {
         if (!this.html2canvasLoaded) {
             const loaded = await this.loadHtml2Canvas();
             if (!loaded) {
-                showNotification('Export library failed to load. Please refresh the page.', 'error');
+                this.showNotification('Export library failed to load. Please refresh the page.', 'error');
                 return false;
             }
         }
         if (this.isGenerating) {
-            showNotification('Please wait for current export to complete', 'warning');
+            this.showNotification('Please wait for current export to complete', 'warning');
             return false;
         }
         return true;
@@ -121,14 +219,14 @@ class ImageExporter {
 
         const tableElement = document.getElementById('league-table');
         if (!tableElement) {
-            showNotification('League table not found!', 'error');
+            this.showNotification('League table not found!', 'error');
             return;
         }
 
         this.isGenerating = true;
 
         try {
-            showNotification('🔄 Generating league table image...', 'info');
+            this.showNotification('🔄 Generating league table image...', 'info');
 
             const tempContainer = document.createElement('div');
             tempContainer.style.cssText = `
@@ -186,11 +284,11 @@ class ImageExporter {
             const filename = `EFL_League_Table_${new Date().toISOString().split('T')[0]}.png`;
 
             this.downloadImage(image, filename);
-            showNotification('✅ League table exported successfully!', 'success');
+            this.showNotification('✅ League table exported successfully!', 'success');
 
         } catch (error) {
             console.error('Export failed:', error);
-            showNotification('❌ Failed to export league table: ' + error.message, 'error');
+            this.showNotification('❌ Failed to export league table: ' + error.message, 'error');
         } finally {
             this.isGenerating = false;
         }
@@ -206,13 +304,13 @@ class ImageExporter {
 
             if (!Array.isArray(fixtures)) {
                 console.error('Fixtures data is not an array:', fixtures);
-                showNotification('Error: Fixtures data is not available', 'error');
+                this.showNotification('Error: Fixtures data is not available', 'error');
                 return;
             }
 
             if (!Array.isArray(players)) {
                 console.error('Players data is not an array:', players);
-                showNotification('Error: Players data is not available', 'error');
+                this.showNotification('Error: Players data is not available', 'error');
                 return;
             }
 
@@ -226,12 +324,12 @@ class ImageExporter {
             }).slice(0, 6);
 
             if (upcomingFixtures.length === 0) {
-                showNotification('No upcoming fixtures found for the next 7 days!', 'warning');
+                this.showNotification('No upcoming fixtures found for the next 7 days!', 'warning');
                 return;
             }
 
             this.isGenerating = true;
-            showNotification('🔄 Generating fixtures image...', 'info');
+            this.showNotification('🔄 Generating fixtures image...', 'info');
 
             const tempContainer = document.createElement('div');
             tempContainer.style.cssText = `
@@ -334,7 +432,7 @@ class ImageExporter {
             });
 
             if (fixturesList.children.length === 0) {
-                showNotification('No valid fixtures found to export', 'warning');
+                this.showNotification('No valid fixtures found to export', 'warning');
                 this.isGenerating = false;
                 return;
             }
@@ -358,11 +456,11 @@ class ImageExporter {
             const filename = `EFL_Fixtures_${new Date().toISOString().split('T')[0]}.png`;
 
             this.downloadImage(image, filename);
-            showNotification('✅ Fixtures exported successfully!', 'success');
+            this.showNotification('✅ Fixtures exported successfully!', 'success');
 
         } catch (error) {
             console.error('Export failed:', error);
-            showNotification('❌ Failed to export fixtures: ' + error.message, 'error');
+            this.showNotification('❌ Failed to export fixtures: ' + error.message, 'error');
         } finally {
             this.isGenerating = false;
         }
@@ -423,12 +521,12 @@ class ImageExporter {
             const players = await getData(DB_KEYS.PLAYERS);
             
             if (!player) {
-                showNotification('Player not found!', 'error');
+                this.showNotification('Player not found!', 'error');
                 return;
             }
 
             this.isGenerating = true;
-            showNotification('🔄 Generating player stats image...', 'info');
+            this.showNotification('🔄 Generating player stats image...', 'info');
 
             const tempContainer = document.createElement('div');
             tempContainer.style.cssText = `
@@ -488,11 +586,11 @@ class ImageExporter {
             const filename = `EFL_${player.name.replace(/\s+/g, '_')}_Stats_${new Date().toISOString().split('T')[0]}.png`;
 
             this.downloadImage(image, filename);
-            showNotification('✅ Player stats exported successfully!', 'success');
+            this.showNotification('✅ Player stats exported successfully!', 'success');
 
         } catch (error) {
             console.error('Export failed:', error);
-            showNotification('❌ Failed to export player stats: ' + error.message, 'error');
+            this.showNotification('❌ Failed to export player stats: ' + error.message, 'error');
         } finally {
             this.isGenerating = false;
         }
