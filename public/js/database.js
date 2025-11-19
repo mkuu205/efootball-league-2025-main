@@ -122,43 +122,65 @@ const SUPABASE_URL = 'https://zliedzrqzvywlsyfggcq.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpsaWVkenJxenZ5d2xzeWZnZ2NxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjEwOTE4NjYsImV4cCI6MjA3NjY2Nzg2Nn0.NbzEZ4ievehtrlyOxCK_mheb7YU4SnNgC0uXuOKPNOI';
 
 // Export supabase as a variable that gets initialized
-export let supabase;
+export let supabase = null;
+let supabaseInitialized = false;
+const supabaseInitPromise = initializeSupabase();
 
-try {
-    // Use the global supabase if available, otherwise create a new client
-    if (typeof window !== 'undefined' && window.supabase) {
-        supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-        console.log('✅ Supabase client initialized successfully using window.supabase');
-    } else {
-        // Fallback: try to import from @supabase/supabase-js
-        import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2').then(module => {
-            const { createClient } = module;
-            supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-            console.log('✅ Supabase client initialized successfully via CDN');
-        }).catch(error => {
-            console.error('❌ Failed to load Supabase from CDN:', error);
-            supabase = null;
-        });
+async function initializeSupabase() {
+    console.log('🔧 Initializing Supabase client...');
+    
+    try {
+        // First try to use global supabase if available
+        if (typeof window !== 'undefined' && window.supabase) {
+            supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+            console.log('✅ Supabase client initialized successfully using window.supabase');
+            supabaseInitialized = true;
+            return;
+        }
+
+        // Try to load from CDN
+        const { createClient } = await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/supabase.min.js');
+        supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        console.log('✅ Supabase client initialized successfully via CDN');
+        supabaseInitialized = true;
+    } catch (error) {
+        console.error('❌ Supabase client initialization failed:', error);
+        supabase = null;
+        supabaseInitialized = false;
     }
-} catch (error) {
-    console.error('❌ Supabase client initialization failed:', error);
-    supabase = null;
+}
+
+// Wait for Supabase to be initialized before executing database operations
+async function ensureSupabaseInitialized() {
+    if (!supabaseInitialized) {
+        await supabaseInitPromise;
+    }
+    return supabase !== null;
 }
 
 // Core Database Functions
 
 // Get data from Supabase
 export async function getData(tableName) {
-    if (!supabase) {
+    // Validate tableName
+    if (!tableName || tableName === 'undefined') {
+        console.error('Invalid table name:', tableName);
+        return [];
+    }
+    
+    if (!await ensureSupabaseInitialized()) {
         console.error('Supabase not available for getData');
         return [];
     }
+    
     try {
+        console.log(`📋 Fetching data from table: ${tableName}`);
         const { data, error } = await supabase.from(tableName).select('*');
         if (error) {
             console.error(`Error getting ${tableName}:`, error);
             return [];
         }
+        console.log(`✅ Retrieved ${data?.length || 0} records from ${tableName}`);
         return data || [];
     } catch (err) {
         console.error(`Error in getData for ${tableName}:`, err);
@@ -168,18 +190,28 @@ export async function getData(tableName) {
 
 // Save data to Supabase
 export async function saveData(tableName, data) {
-    if (!supabase) {
+    if (!tableName || tableName === 'undefined') {
+        console.error('Invalid table name:', tableName);
+        return [];
+    }
+    
+    if (!await ensureSupabaseInitialized()) {
         console.error('Supabase not available for saveData');
         return [];
     }
+    
     try {
+        console.log(`💾 Saving data to table: ${tableName}`, data);
+        
         if (Array.isArray(data) && data.length > 0) {
             const { data: result, error } = await supabase.from(tableName).insert(data).select();
             if (error) throw error;
+            console.log(`✅ Inserted ${result?.length || 0} records into ${tableName}`);
             return result;
         } else {
             const { data: result, error } = await supabase.from(tableName).upsert(data).select();
             if (error) throw error;
+            console.log(`✅ Upserted record into ${tableName}`);
             return result;
         }
     } catch (error) {
@@ -190,10 +222,16 @@ export async function saveData(tableName, data) {
 
 // Update data in Supabase
 export async function updateData(tableName, updates, id) {
-    if (!supabase) {
+    if (!tableName || tableName === 'undefined') {
+        console.error('Invalid table name:', tableName);
+        return null;
+    }
+    
+    if (!await ensureSupabaseInitialized()) {
         console.error('Supabase not available for updateData');
         return null;
     }
+    
     try {
         const { data, error } = await supabase
             .from(tableName)
@@ -211,10 +249,16 @@ export async function updateData(tableName, updates, id) {
 
 // Delete data from Supabase
 export async function deleteData(tableName, id) {
-    if (!supabase) {
+    if (!tableName || tableName === 'undefined') {
+        console.error('Invalid table name:', tableName);
+        return false;
+    }
+    
+    if (!await ensureSupabaseInitialized()) {
         console.error('Supabase not available for deleteData');
         return false;
     }
+    
     try {
         const { error } = await supabase.from(tableName).delete().eq('id', id);
         if (error) throw error;
@@ -228,36 +272,75 @@ export async function deleteData(tableName, id) {
 // Initialize database with default data
 export async function initializeDatabase() {
     console.log('⚙️ Initializing Supabase database...');
-    if (!supabase) {
+    
+    if (!await ensureSupabaseInitialized()) {
         console.error('Cannot initialize database: Supabase not available');
         return;
     }
 
     try {
-        // Initialize players
-        const existingPlayers = await getData(DB_KEYS.PLAYERS);
+        // Test connection first
+        const { data, error } = await supabase.from('_test_connection').select('*').limit(1);
+        if (error && error.code !== 'PGRST204') {
+            console.warn('Supabase connection test warning:', error.message);
+        } else {
+            console.log('✅ Supabase connection test passed');
+        }
+
+        // Initialize players with better error handling
+        let existingPlayers = [];
+        try {
+            existingPlayers = await getData(DB_KEYS.PLAYERS);
+        } catch (err) {
+            console.warn('Could not fetch players, table might not exist yet:', err.message);
+        }
+        
         if (!existingPlayers || existingPlayers.length === 0) {
             console.log('Setting up default players in Supabase...');
-            const insertedPlayers = await saveData(DB_KEYS.PLAYERS, DEFAULT_PLAYERS);
-            console.log(`✅ Default players inserted: ${insertedPlayers ? insertedPlayers.length : 0}`);
+            try {
+                const insertedPlayers = await saveData(DB_KEYS.PLAYERS, DEFAULT_PLAYERS);
+                console.log(`✅ Default players inserted: ${insertedPlayers ? insertedPlayers.length : 0}`);
+            } catch (err) {
+                console.error('Failed to insert default players:', err);
+            }
         } else {
             console.log(`✅ Players already initialized with ${existingPlayers.length} players`);
         }
 
         // Initialize admin config
-        const existingConfig = await getData(DB_KEYS.ADMIN_CONFIG);
+        let existingConfig = [];
+        try {
+            existingConfig = await getData(DB_KEYS.ADMIN_CONFIG);
+        } catch (err) {
+            console.warn('Could not fetch admin config:', err.message);
+        }
+        
         if (!existingConfig || existingConfig.length === 0) {
             console.log('Setting up default admin configuration...');
-            await saveData(DB_KEYS.ADMIN_CONFIG, [DEFAULT_ADMIN_CONFIG]);
-            console.log('✅ Default admin configuration inserted');
+            try {
+                await saveData(DB_KEYS.ADMIN_CONFIG, [DEFAULT_ADMIN_CONFIG]);
+                console.log('✅ Default admin configuration inserted');
+            } catch (err) {
+                console.error('Failed to insert admin config:', err);
+            }
         } else {
             console.log('✅ Admin configuration already exists');
         }
 
         // Generate fixtures if none exist
-        const existingFixtures = await getData(DB_KEYS.FIXTURES);
+        let existingFixtures = [];
+        try {
+            existingFixtures = await getData(DB_KEYS.FIXTURES);
+        } catch (err) {
+            console.warn('Could not fetch fixtures:', err.message);
+        }
+        
         if (!existingFixtures || existingFixtures.length === 0) {
-            await generateSampleFixtures();
+            try {
+                await generateSampleFixtures();
+            } catch (err) {
+                console.error('Failed to generate fixtures:', err);
+            }
         }
 
     } catch (error) {
@@ -277,7 +360,7 @@ export async function getAdminConfig() {
 }
 
 export async function updateAdminConfig(updates) {
-    if (!supabase) return null;
+    if (!await ensureSupabaseInitialized()) return null;
     try {
         const currentConfig = await getAdminConfig();
         const updatedConfig = {
@@ -330,7 +413,7 @@ export async function addPlayer(playerData) {
 }
 
 export async function updatePlayer(player) {
-    if (!supabase) return null;
+    if (!await ensureSupabaseInitialized()) return null;
     try {
         const { data, error } = await supabase
             .from(DB_KEYS.PLAYERS)
@@ -351,7 +434,7 @@ export async function updatePlayer(player) {
 }
 
 export async function deletePlayer(playerId) {
-    if (!supabase) return false;
+    if (!await ensureSupabaseInitialized()) return false;
     try {
         // Delete related results first
         await supabase.from(DB_KEYS.RESULTS).delete().or(`home_player_id.eq.${playerId},away_player_id.eq.${playerId}`);
@@ -438,7 +521,7 @@ export async function addFixture(fixture) {
 }
 
 export async function updateFixture(fixture) {
-    if (!supabase) return null;
+    if (!await ensureSupabaseInitialized()) return null;
     const { data, error } = await supabase
         .from(DB_KEYS.FIXTURES)
         .update({ 
@@ -454,7 +537,7 @@ export async function updateFixture(fixture) {
 }
 
 export async function deleteFixture(fixtureId) {
-    if (!supabase) return false;
+    if (!await ensureSupabaseInitialized()) return false;
     const { error } = await supabase.from(DB_KEYS.FIXTURES).delete().eq('id', fixtureId);
     if (error) throw error;
     await refreshAllDisplays();
@@ -495,7 +578,7 @@ export async function addResult(result) {
 }
 
 export async function updateResult(result) {
-    if (!supabase) return null;
+    if (!await ensureSupabaseInitialized()) return null;
     const { data, error } = await supabase
         .from(DB_KEYS.RESULTS)
         .update({ 
@@ -511,7 +594,7 @@ export async function updateResult(result) {
 }
 
 export async function deleteResult(resultId) {
-    if (!supabase) return false;
+    if (!await ensureSupabaseInitialized()) return false;
     const { error } = await supabase.from(DB_KEYS.RESULTS).delete().eq('id', resultId);
     if (error) throw error;
     await refreshAllDisplays();
@@ -642,7 +725,7 @@ export async function getLeagueTable() {
             const stats = await calculatePlayerStats(p.id);
             const form = await getRecentForm(p.id);
             return { ...p, ...stats, form };
-        }));
+        });
         
         return tableData.sort((a, b) => 
             b.points - a.points || 
@@ -939,20 +1022,25 @@ if (typeof document !== 'undefined') {
     document.addEventListener('DOMContentLoaded', async function() {
         console.log('📦 DOM loaded, initializing database...');
         
-        // Wait a bit for supabase to initialize if it was loaded via CDN
-        if (!supabase) {
-            await new Promise(resolve => setTimeout(resolve, 1000));
-        }
-        
-        if (!supabase) {
-            console.error('❌ Supabase not available, skipping database initialization');
-            showNotification('❌ Database connection failed. Please refresh the page.', 'error');
-            return;
-        }
-        
+        // Wait for Supabase to initialize
         try {
+            await ensureSupabaseInitialized();
+            
+            if (!supabase) {
+                console.error('❌ Supabase not available, skipping database initialization');
+                showNotification('❌ Database connection failed. Please refresh the page.', 'error');
+                return;
+            }
+            
             await initializeDatabase();
-            subscribeToChanges(payload => console.log('DB change detected', payload));
+            
+            // Set up change subscriptions
+            try {
+                subscribeToChanges(payload => console.log('DB change detected', payload));
+            } catch (err) {
+                console.warn('Could not set up change subscriptions:', err.message);
+            }
+            
             console.log('✅ Supabase database system initialized');
             
             // Update sync status display
@@ -964,7 +1052,7 @@ if (typeof document !== 'undefined') {
             
         } catch (error) {
             console.error('Database initialization error:', error);
-            showNotification('❌ Database initialization failed', 'error');
+            showNotification('❌ Database initialization failed: ' + error.message, 'error');
         }
     });
 }
@@ -1003,3 +1091,19 @@ window.dataSync = dataSync;
 // Fix for advanced-stats.js expecting populatePlayerSelects
 window.populatePlayerSelects =
     window.advancedStats?.populatePlayerSelects.bind(window.advancedStats);
+
+// Debug helper to track undefined table calls
+export async function debugGetDataCaller() {
+    console.trace('Debug: getData called with undefined tableName');
+}
+
+// Temporary patch - wrap getData for debugging
+const originalGetData = getData;
+window.getData = async function(tableName) {
+    if (!tableName || tableName === 'undefined') {
+        console.error('getData called with invalid tableName:', tableName);
+        debugGetDataCaller();
+        return [];
+    }
+    return await originalGetData(tableName);
+};
