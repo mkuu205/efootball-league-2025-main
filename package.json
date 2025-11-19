@@ -6,8 +6,7 @@
   "type": "module",
   "scripts": {
     "start": "node server.js",
-    "dev": "node --watch server.js",
-    "build": "echo 'No client build needed'"
+    "dev": "node --watch server.js"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.39.7",
@@ -15,6 +14,8 @@
     "dotenv": "^16.4.1",
     "express": "^4.18.2",
     "resend": "^3.4.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
     "web-push": "^3.6.7"
   },
   "engines": {
