@@ -11,6 +11,12 @@ import {
 // Cache and Version Control
 const APP_VERSION = '3.0.0';
 
+// Avatar helper function
+function getPlayerAvatar(player, size = 40) {
+    const initial = player?.name?.charAt(0)?.toUpperCase() || 'P';
+    return `https://ui-avatars.com/api/?name=${initial}&background=6a11cb&color=fff&size=${size}`;
+}
+
 async function initializeApp() {
     console.log('⚡ Initializing app with Supabase...');
     await refreshAllDisplays();
@@ -60,14 +66,14 @@ export async function renderUpcomingMatches() {
         return `
             <div class="match-card">
                 <div class="d-flex align-items-center">
-                    <img src="${homePlayer.photo}" alt="${homePlayer.name}" 
+                    <img src="${homePlayer.photo || getPlayerAvatar(homePlayer)}" alt="${homePlayer.name}" 
                          class="rounded-circle me-2" style="width: 30px; height: 30px; object-fit: cover;"
-                         onerror="this.src='${homePlayer.default_photo || homePlayer.defaultPhoto || 'https://via.placeholder.com/100/1a1a2e/ffffff?text=?'}'">
+                         onerror="this.src='${getPlayerAvatar(homePlayer)}'">
                     <div class="fw-bold">${homePlayer.name}</div>
                     <span class="mx-2">vs</span>
-                    <img src="${awayPlayer.photo}" alt="${awayPlayer.name}" 
+                    <img src="${awayPlayer.photo || getPlayerAvatar(awayPlayer)}" alt="${awayPlayer.name}" 
                          class="rounded-circle me-2" style="width: 30px; height: 30px; object-fit: cover;"
-                         onerror="this.src='${awayPlayer.default_photo || awayPlayer.defaultPhoto || 'https://via.placeholder.com/100/1a1a2e/ffffff?text=?'}'">
+                         onerror="this.src='${getPlayerAvatar(awayPlayer)}'">
                     <div class="fw-bold">${awayPlayer.name}</div>
                 </div>
                 <div class="text-muted">${formatDisplayDate(fixture.date)}, ${fixture.time}</div>
@@ -106,9 +112,9 @@ export async function renderTopScorers() {
     container.innerHTML = playerGoals.slice(0, 5).map((player, index) => `
         <li class="list-group-item d-flex justify-content-between align-items-start bg-transparent text-light border-light">
             <div class="d-flex align-items-center">
-                <img src="${player.photo}" alt="${player.name}" 
+                <img src="${player.photo || getPlayerAvatar(player)}" alt="${player.name}" 
                      class="rounded-circle me-3" style="width: 35px; height: 35px; object-fit: cover;"
-                     onerror="this.src='${player.default_photo || player.defaultPhoto || 'https://via.placeholder.com/100/1a1a2e/ffffff?text=?'}'">
+                     onerror="this.src='${getPlayerAvatar(player)}'">
                 <div>
                     <div class="fw-bold">${player.name}</div>
                     <small class="text-muted">${player.team}</small>
@@ -156,9 +162,9 @@ export async function renderRecentForm() {
         return `
             <div class="d-flex justify-content-between align-items-center mb-2 p-2 rounded" style="background: rgba(255,255,255,0.1);">
                 <div class="d-flex align-items-center">
-                    <img src="${player.photo}" alt="${player.name}" 
+                    <img src="${player.photo || getPlayerAvatar(player)}" alt="${player.name}" 
                          class="rounded-circle me-2" style="width: 30px; height: 30px; object-fit: cover;"
-                         onerror="this.src='${player.default_photo || player.defaultPhoto || 'https://via.placeholder.com/100/1a1a2e/ffffff?text=?'}'">
+                         onerror="this.src='${getPlayerAvatar(player)}'">
                     <span class="fw-bold">${player.name}</span>
                 </div>
                 <div>${formBadges || '<span class="text-muted">No matches</span>'}</div>
@@ -228,17 +234,17 @@ export async function renderFixtures() {
                 <td>${fixture.time}</td>
                 <td>
                     <div class="d-flex align-items-center">
-                        <img src="${homePlayer.photo}" alt="${homePlayer.name}" 
+                        <img src="${homePlayer.photo || getPlayerAvatar(homePlayer)}" alt="${homePlayer.name}" 
                              class="rounded-circle me-2" style="width: 30px; height: 30px; object-fit: cover;"
-                             onerror="this.src='${homePlayer.default_photo || homePlayer.defaultPhoto || 'https://via.placeholder.com/100/1a1a2e/ffffff?text=?'}'">
+                             onerror="this.src='${getPlayerAvatar(homePlayer)}'">
                         <div>${homePlayer.name}</div>
                     </div>
                 </td>
                 <td>
                     <div class="d-flex align-items-center">
-                        <img src="${awayPlayer.photo}" alt="${awayPlayer.name}" 
+                        <img src="${awayPlayer.photo || getPlayerAvatar(awayPlayer)}" alt="${awayPlayer.name}" 
                              class="rounded-circle me-2" style="width: 30px; height: 30px; object-fit: cover;"
-                             onerror="this.src='${awayPlayer.default_photo || awayPlayer.defaultPhoto || 'https://via.placeholder.com/100/1a1a2e/ffffff?text=?'}'">
+                             onerror="this.src='${getPlayerAvatar(awayPlayer)}'">
                         <div>${awayPlayer.name}</div>
                     </div>
                 </td>
@@ -268,16 +274,16 @@ export async function renderResults() {
             <div class="match-card">
                 <div class="d-flex align-items-center justify-content-between">
                     <div class="d-flex align-items-center">
-                        <img src="${homePlayer.photo}" alt="${homePlayer.name}" 
+                        <img src="${homePlayer.photo || getPlayerAvatar(homePlayer)}" alt="${homePlayer.name}" 
                              class="rounded-circle me-2" style="width: 40px; height: 40px; object-fit: cover;"
-                             onerror="this.src='${homePlayer.default_photo || homePlayer.defaultPhoto || 'https://via.placeholder.com/100/1a1a2e/ffffff?text=?'}'">
+                             onerror="this.src='${getPlayerAvatar(homePlayer)}'">
                         <div class="fw-bold">${homePlayer.name}</div>
                     </div>
                     <div class="match-result">${result.home_score} - ${result.away_score}</div>
                     <div class="d-flex align-items-center">
-                        <img src="${awayPlayer.photo}" alt="${awayPlayer.name}" 
+                        <img src="${awayPlayer.photo || getPlayerAvatar(awayPlayer)}" alt="${awayPlayer.name}" 
                              class="rounded-circle me-2" style="width: 40px; height: 40px; object-fit: cover;"
-                             onerror="this.src='${awayPlayer.default_photo || awayPlayer.defaultPhoto || 'https://via.placeholder.com/100/1a1a2e/ffffff?text=?'}'">
+                             onerror="this.src='${getPlayerAvatar(awayPlayer)}'">
                         <div class="fw-bold">${awayPlayer.name}</div>
                     </div>
                 </div>
@@ -323,9 +329,9 @@ export async function renderLeagueTable() {
                     <td class="text-center fw-bold">${index + 1}</td>
                     <td>
                         <div class="d-flex align-items-center">
-                            <img src="${playerData.photo}" alt="${player.name}" 
+                            <img src="${playerData.photo || getPlayerAvatar(playerData)}" alt="${player.name}" 
                                  class="rounded-circle me-3" style="width: 35px; height: 35px; object-fit: cover;"
-                                 onerror="this.src='${playerData.default_photo || playerData.defaultPhoto || 'https://via.placeholder.com/100/1a1a2e/ffffff?text=?'}'">
+                                 onerror="this.src='${getPlayerAvatar(playerData)}'">
                             <div>
                                 <div class="fw-bold">${player.name}</div>
                                 <small class="text-muted">${player.team}</small>
@@ -373,8 +379,8 @@ export async function renderPlayers() {
             <div class="col-md-6 col-lg-4 mb-4">
                 <div class="card player-card text-center">
                     <div class="card-body">
-                        <img src="${player.photo}" class="player-photo mb-3" alt="${player.name}" 
-                             onerror="this.src='${player.default_photo || player.defaultPhoto || 'https://via.placeholder.com/100/1a1a2e/ffffff?text=?'}'">
+                        <img src="${player.photo || getPlayerAvatar(player, 100)}" class="player-photo mb-3" alt="${player.name}" 
+                             onerror="this.src='${getPlayerAvatar(player, 100)}'">
                         <h5 class="card-title player-name">${player.name}</h5>
                         <p class="card-text">
                             <span class="badge" style="background-color: ${player.team_color || player.teamColor || '#6c757d'}; color: white;">
