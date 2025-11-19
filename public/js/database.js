@@ -1088,9 +1088,14 @@ window.refreshAllDisplays = refreshAllDisplays;
 // Data sync
 window.dataSync = dataSync;
 
-// Fix for advanced-stats.js expecting populatePlayerSelects
-window.populatePlayerSelects =
-    window.advancedStats?.populatePlayerSelects.bind(window.advancedStats);
+// Fix for advanced-stats.js expecting populatePlayerSelects - FIXED SYNTAX
+if (window.advancedStats && typeof window.advancedStats.populatePlayerSelects === 'function') {
+    window.populatePlayerSelects = window.advancedStats.populatePlayerSelects.bind(window.advancedStats);
+} else {
+    window.populatePlayerSelects = function() {
+        console.warn('populatePlayerSelects not available - advancedStats not loaded');
+    };
+}
 
 // Debug helper to track undefined table calls
 export async function debugGetDataCaller() {
