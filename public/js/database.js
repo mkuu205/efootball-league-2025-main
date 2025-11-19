@@ -7,7 +7,8 @@ export const DB_KEYS = {
     FIXTURES: 'fixtures',
     RESULTS: 'results',
     ADMIN_CONFIG: 'admin_config',
-    PASSWORD_RESET_TOKENS: 'password_reset_tokens'
+    PASSWORD_RESET_TOKENS: 'password_reset_tokens',
+    TOURNAMENT_UPDATES: 'tournament_updates'
 };
 
 // Default balanced teams configuration
@@ -111,7 +112,7 @@ export const DEFAULT_ADMIN_CONFIG = {
     allow_player_registration: true,
     show_leaderboard: true,
     maintenance_mode: false,
-    admin_password: 'admin123', // Default admin password
+    password: 'admin123', // Changed from admin_password to password
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString()
 };
@@ -280,6 +281,58 @@ export async function deleteData(tableName, id) {
     }
 }
 
+// Get current admin password from database
+export async function getCurrentPassword() {
+    try {
+        if (!await ensureSupabaseInitialized()) {
+            console.warn('⚠️ Supabase not available for password check');
+            throw new Error('Database not available');
+        }
+
+        const adminConfig = await getData(DB_KEYS.ADMIN_CONFIG);
+        if (!adminConfig || adminConfig.length === 0) {
+            throw new Error('Admin password not configured!');
+        }
+        return adminConfig[0].password;
+    } catch (error) {
+        console.error('❌ Error getting admin password:', error);
+        throw error;
+    }
+}
+
+// Update admin password
+export async function updateAdminPassword(newPassword) {
+    try {
+        if (!await ensureSupabaseInitialized()) {
+            throw new Error('Supabase not available');
+        }
+
+        const config = await getData(DB_KEYS.ADMIN_CONFIG);
+        let adminConfig = config && config.length > 0 ? config[0] : {
+            id: 1,
+            tournament_name: 'Premier League Tournament',
+            season: '2025',
+            max_players_per_team: 2,
+            points_for_win: 3,
+            points_for_draw: 1,
+            allow_player_registration: true,
+            show_leaderboard: true,
+            maintenance_mode: false,
+            password: 'admin123',
+            created_at: new Date().toISOString()
+        };
+
+        adminConfig.password = newPassword;
+        adminConfig.updated_at = new Date().toISOString();
+
+        await saveData(DB_KEYS.ADMIN_CONFIG, [adminConfig]);
+        return true;
+    } catch (error) {
+        console.error('❌ Error updating admin password:', error);
+        throw error;
+    }
+}
+
 // Initialize database with default data
 export async function initializeDatabase() {
     // Prevent repeated initialization
@@ -333,6 +386,14 @@ export async function initializeDatabase() {
                 console.error('Failed to insert admin config:', err);
             }
         } else {
+            // Ensure existing config has password field
+            const existing = existingConfig[0];
+            if (!existing.password) {
+                console.log('Adding password field to existing admin configuration...');
+                existing.password = 'admin123';
+                existing.updated_at = new Date().toISOString();
+                await saveData(DB_KEYS.ADMIN_CONFIG, [existing]);
+            }
             console.log('✅ Admin configuration already exists');
         }
 
@@ -1093,6 +1154,10 @@ window.refreshAllDisplays = refreshAllDisplays;
 
 // Data sync
 window.dataSync = dataSync;
+
+// Password management functions
+window.getCurrentPassword = getCurrentPassword;
+window.updateAdminPassword = updateAdminPassword;
 
 // Fix for advanced-stats.js expecting populatePlayerSelects
 if (window.advancedStats && typeof window.advancedStats.populatePlayerSelects === 'function') {
