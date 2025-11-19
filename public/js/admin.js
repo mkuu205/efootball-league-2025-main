@@ -10,7 +10,10 @@ import {
     addFixture,
     addResult,
     updatePlayer,
-    getPlayerById
+    deletePlayer as deletePlayerDB,
+    deleteFixture as deleteFixtureDB,
+    deleteResult as deleteResultDB,
+    updateFixture
 } from './database.js';
 
 // Simple authentication check
@@ -30,14 +33,12 @@ async function loadDataWithFallback(key) {
         if (data === null || data === undefined) {
             console.warn(`⚠️ No data found for ${key}, initializing empty array`);
             data = [];
-            await saveData(key, data);
         }
         
         // Ensure data is an array
         if (!Array.isArray(data)) {
             console.warn(`⚠️ Data for ${key} is not array, converting...`, data);
             data = [data].filter(item => item !== null && item !== undefined);
-            await saveData(key, data);
         }
         
         console.log(`✅ Loaded ${data.length} items for ${key}`);
@@ -49,7 +50,7 @@ async function loadDataWithFallback(key) {
     }
 }
 
-// Enhanced populate player selects
+// Enhanced populate player selects - FIXED
 export async function populatePlayerSelects() {
     try {
         console.log('🔄 Populating player selects...');
@@ -63,11 +64,13 @@ export async function populatePlayerSelects() {
         ];
         
         console.log(`🎯 Found ${selects.length} select elements to populate`);
+        console.log(`👥 Available players: ${players.length}`);
         
         selects.forEach(selectId => {
             const select = document.getElementById(selectId);
             if (select) {
                 console.log(`📝 Populating select: ${selectId}`);
+                // Clear existing options
                 select.innerHTML = '<option value="" selected disabled>Select player</option>';
                 
                 if (players.length === 0) {
@@ -76,6 +79,7 @@ export async function populatePlayerSelects() {
                     option.textContent = "No players available";
                     option.disabled = true;
                     select.appendChild(option);
+                    console.warn(`⚠️ No players available for ${selectId}`);
                     return;
                 }
                 
@@ -152,10 +156,10 @@ export async function renderAdminPlayers() {
         
         console.log(`👥 Rendering ${players.length} players`);
         
-        players.forEach(player => {
+        for (const player of players) {
             if (!player || !player.id) {
                 console.warn('⚠️ Skipping invalid player:', player);
-                return;
+                continue;
             }
             
             const row = document.createElement('tr');
@@ -185,7 +189,7 @@ export async function renderAdminPlayers() {
                 </td>
             `;
             tbody.appendChild(row);
-        });
+        }
         
         await updateAdminStatistics();
         console.log('✅ Players table rendered successfully');
@@ -218,10 +222,10 @@ export async function renderAdminFixtures() {
         
         console.log(`📅 Rendering ${fixtures.length} fixtures`);
         
-        fixtures.forEach(fixture => {
+        for (const fixture of fixtures) {
             if (!fixture || !fixture.id) {
                 console.warn('⚠️ Skipping invalid fixture:', fixture);
-                return;
+                continue;
             }
             
             const homePlayer = players.find(p => p && p.id === fixture.home_player_id);
@@ -253,7 +257,7 @@ export async function renderAdminFixtures() {
                 </td>
             `;
             tbody.appendChild(row);
-        });
+        }
         
         await updateAdminStatistics();
         console.log('✅ Fixtures table rendered successfully');
@@ -286,10 +290,10 @@ export async function renderAdminResults() {
         
         console.log(`⚽ Rendering ${results.length} results`);
         
-        results.forEach(result => {
+        for (const result of results) {
             if (!result || !result.id) {
                 console.warn('⚠️ Skipping invalid result:', result);
-                return;
+                continue;
             }
             
             const homePlayer = players.find(p => p && p.id === result.home_player_id);
@@ -311,7 +315,7 @@ export async function renderAdminResults() {
                 </td>
             `;
             tbody.appendChild(row);
-        });
+        }
         
         await updateAdminStatistics();
         console.log('✅ Results table rendered successfully');
@@ -346,9 +350,11 @@ export async function editPlayer(playerId) {
             ...player,
             name: newName,
             team: newTeam,
-            strength: parseInt(newStrength) || player.strength
+            strength: parseInt(newStrength) || player.strength,
+            updated_at: new Date().toISOString()
         };
         
+        // Use database function to update
         await updatePlayer(updatedPlayer);
         showNotification('Player updated successfully!', 'success');
         await renderAdminPlayers();
@@ -366,25 +372,7 @@ export async function deletePlayer(playerId) {
     }
     
     try {
-        // Get current data
-        const fixtures = await loadDataWithFallback(DB_KEYS.FIXTURES);
-        const results = await loadDataWithFallback(DB_KEYS.RESULTS);
-        const players = await loadDataWithFallback(DB_KEYS.PLAYERS);
-        
-        // Filter out player's fixtures and results
-        const updatedFixtures = fixtures.filter(f => 
-            f && f.home_player_id !== playerId && f.away_player_id !== playerId
-        );
-        const updatedResults = results.filter(r => 
-            r && r.home_player_id !== playerId && r.away_player_id !== playerId
-        );
-        const updatedPlayers = players.filter(p => p && p.id !== playerId);
-        
-        // Save updated data
-        await saveData(DB_KEYS.FIXTURES, updatedFixtures);
-        await saveData(DB_KEYS.RESULTS, updatedResults);
-        await saveData(DB_KEYS.PLAYERS, updatedPlayers);
-        
+        await deletePlayerDB(playerId);
         showNotification('Player deleted successfully!', 'success');
         await renderAdminPlayers();
         await renderAdminFixtures();
@@ -403,10 +391,7 @@ export async function deleteFixture(fixtureId) {
     }
     
     try {
-        const fixtures = await loadDataWithFallback(DB_KEYS.FIXTURES);
-        const updatedFixtures = fixtures.filter(f => f && f.id !== fixtureId);
-        await saveData(DB_KEYS.FIXTURES, updatedFixtures);
-        
+        await deleteFixtureDB(fixtureId);
         showNotification('Fixture deleted successfully!', 'success');
         await renderAdminFixtures();
         
@@ -422,10 +407,7 @@ export async function deleteResult(resultId) {
     }
     
     try {
-        const results = await loadDataWithFallback(DB_KEYS.RESULTS);
-        const updatedResults = results.filter(r => r && r.id !== resultId);
-        await saveData(DB_KEYS.RESULTS, updatedResults);
-        
+        await deleteResultDB(resultId);
         showNotification('Result deleted successfully!', 'success');
         await renderAdminResults();
         
@@ -445,31 +427,20 @@ export async function addFixtureResult(fixtureId) {
             return;
         }
         
-        const homeScore = prompt(`Enter home score for ${fixture.home_player_id}:`);
+        const homeScore = prompt(`Enter home score for fixture ${fixtureId}:`);
         if (homeScore === null) return;
         
-        const awayScore = prompt(`Enter away score for ${fixture.away_player_id}:`);
+        const awayScore = prompt(`Enter away score for fixture ${fixtureId}:`);
         if (awayScore === null) return;
         
-        // Add result
-        const results = await loadDataWithFallback(DB_KEYS.RESULTS);
-        const newResult = {
-            id: Date.now(), // Simple ID generation
+        // Add result using database function
+        await addResult({
             home_player_id: fixture.home_player_id,
             away_player_id: fixture.away_player_id,
             home_score: parseInt(homeScore) || 0,
             away_score: parseInt(awayScore) || 0,
             date: fixture.date || new Date().toISOString().split('T')[0]
-        };
-        
-        results.push(newResult);
-        await saveData(DB_KEYS.RESULTS, results);
-        
-        // Update fixture as played
-        const updatedFixtures = fixtures.map(f => 
-            f.id === fixtureId ? { ...f, played: true } : f
-        );
-        await saveData(DB_KEYS.FIXTURES, updatedFixtures);
+        });
         
         showNotification('Result added successfully!', 'success');
         await renderAdminFixtures();
@@ -481,7 +452,7 @@ export async function addFixtureResult(fixtureId) {
     }
 }
 
-// Enhanced Event Listeners for admin
+// Enhanced Event Listeners for admin - FIXED
 export function setupAdminEventListeners() {
     try {
         console.log('🔧 Setting up admin event listeners...');
@@ -550,23 +521,24 @@ export function setupAdminEventListeners() {
                 }
                 
                 try {
-                    const fixtures = await loadDataWithFallback(DB_KEYS.FIXTURES);
-                    const newFixture = {
-                        id: Date.now(),
+                    await addFixture({
                         home_player_id: homePlayerId,
                         away_player_id: awayPlayerId,
                         date: date,
                         time: time || '15:00',
                         venue: venue || 'Virtual Stadium',
-                        played: false
-                    };
-                    
-                    fixtures.push(newFixture);
-                    await saveData(DB_KEYS.FIXTURES, fixtures);
+                        played: false,
+                        status: 'scheduled'
+                    });
                     
                     this.reset();
+                    // Set default date
+                    const today = new Date().toISOString().split('T')[0];
+                    document.getElementById('fixtureDate').value = today;
+                    
                     showNotification('Fixture added successfully!', 'success');
                     await renderAdminFixtures();
+                    await populatePlayerSelects();
                 } catch (error) {
                     console.error('❌ Error adding fixture:', error);
                     showNotification('Error adding fixture: ' + error.message, 'error');
@@ -603,42 +575,27 @@ export function setupAdminEventListeners() {
                 }
                 
                 try {
-                    const results = await loadDataWithFallback(DB_KEYS.RESULTS);
-                    const newResult = {
-                        id: Date.now(),
+                    await addResult({
                         home_player_id: homePlayerId,
                         away_player_id: awayPlayerId,
                         home_score: homeScore,
                         away_score: awayScore,
                         date: date
-                    };
-                    
-                    results.push(newResult);
-                    await saveData(DB_KEYS.RESULTS, results);
+                    });
                     
                     this.reset();
+                    // Set default date
+                    const today = new Date().toISOString().split('T')[0];
+                    document.getElementById('matchDateResult').value = today;
+                    document.getElementById('homeScore').value = 0;
+                    document.getElementById('awayScore').value = 0;
+                    
                     showNotification('Result added successfully!', 'success');
                     await renderAdminResults();
+                    await renderAdminFixtures();
                 } catch (error) {
                     console.error('❌ Error adding result:', error);
                     showNotification('Error adding result: ' + error.message, 'error');
-                }
-            });
-        }
-        
-        // Export data
-        const exportButton = document.getElementById('export-data');
-        if (exportButton) {
-            exportButton.addEventListener('click', async function() {
-                try {
-                    if (window.exportTournamentData) {
-                        await window.exportTournamentData();
-                    } else {
-                        showNotification('Export function not available', 'error');
-                    }
-                } catch (error) {
-                    console.error('❌ Error exporting data:', error);
-                    showNotification('Error exporting data: ' + error.message, 'error');
                 }
             });
         }
@@ -657,7 +614,7 @@ window.deleteFixture = deleteFixture;
 window.deleteResult = deleteResult;
 window.addFixtureResult = addFixtureResult;
 
-// Enhanced admin dashboard initialization
+// Enhanced admin dashboard initialization - FIXED
 async function initializeAdminDashboard() {
     console.log('🚀 Initializing Admin Dashboard...');
     
@@ -665,38 +622,23 @@ async function initializeAdminDashboard() {
         // Show loading state
         const loginSection = document.getElementById('login-section');
         const adminDashboard = document.getElementById('admin-dashboard');
-        const loadingSection = document.getElementById('admin-loading');
         
-        if (loadingSection) loadingSection.classList.remove('d-none');
         if (loginSection) loginSection.classList.add('d-none');
-        if (adminDashboard) adminDashboard.classList.add('d-none');
+        if (adminDashboard) adminDashboard.classList.remove('d-none');
         
-        // Initialize database with retry
-        let dbInitialized = false;
-        let retries = 3;
+        // Initialize database
+        await initializeDatabase();
+        console.log('✅ Database initialized successfully');
         
-        while (retries > 0 && !dbInitialized) {
-            try {
-                await initializeDatabase();
-                dbInitialized = true;
-                console.log('✅ Database initialized successfully');
-            } catch (error) {
-                retries--;
-                console.warn(`⚠️ Database init failed, ${retries} retries left:`, error);
-                if (retries === 0) throw error;
-                await new Promise(resolve => setTimeout(resolve, 1000));
-            }
-        }
-        
-        // Setup event listeners
+        // Setup event listeners FIRST
         setupAdminEventListeners();
         
         // Load and populate data
+        await populatePlayerSelects(); // Populate dropdowns FIRST
         await Promise.all([
             renderAdminPlayers(),
             renderAdminFixtures(),
-            renderAdminResults(),
-            populatePlayerSelects()
+            renderAdminResults()
         ]);
         
         // Set today's date as default for date inputs
@@ -707,38 +649,27 @@ async function initializeAdminDashboard() {
         if (fixtureDate) fixtureDate.value = today;
         if (matchDateResult) matchDateResult.value = today;
         
-        // Show admin dashboard
-        if (loadingSection) loadingSection.classList.add('d-none');
-        if (adminDashboard) adminDashboard.classList.remove('d-none');
-        
         showNotification('Admin dashboard loaded successfully!', 'success');
         console.log('🎉 Admin dashboard initialization complete');
         
     } catch (error) {
         console.error('❌ Failed to initialize admin dashboard:', error);
-        
-        // Show error state
-        const loadingSection = document.getElementById('admin-loading');
-        const loginSection = document.getElementById('login-section');
-        
-        if (loadingSection) loadingSection.classList.add('d-none');
-        if (loginSection) loginSection.classList.remove('d-none');
-        
         showNotification('Failed to load admin dashboard. Please refresh the page.', 'error');
     }
 }
 
-// Initialize admin dashboard when DOM is ready
+// Initialize admin dashboard when authenticated
 document.addEventListener('DOMContentLoaded', async function() {
     if (window.location.pathname.includes('admin.html')) {
         console.log('🔍 Admin page detected, checking authentication...');
         const isAuthenticated = checkAdminAuth();
         
         if (isAuthenticated) {
+            console.log('🔓 User authenticated, initializing dashboard...');
             await initializeAdminDashboard();
         } else {
             console.log('🔒 User not authenticated, showing login form');
-            // Login form will handle authentication
+            // Login form will handle authentication via auth.js
         }
     }
 });
