@@ -11,6 +11,12 @@ class AdvancedStatistics {
         this.setupEventListeners();
     }
 
+    // Avatar helper function
+    getPlayerAvatar(player, size = 40) {
+        const initial = player?.name?.charAt(0)?.toUpperCase() || 'P';
+        return `https://ui-avatars.com/api/?name=${initial}&background=6a11cb&color=fff&size=${size}`;
+    }
+
     setupEventListeners() {
         // Listen for tab changes to load advanced stats
         document.addEventListener('DOMContentLoaded', () => {
@@ -336,9 +342,9 @@ class AdvancedStatistics {
         return `
             <div class="row">
                 <div class="col-md-3 text-center">
-                    <img src="${player.photo}" class="rounded-circle mb-3" 
+                    <img src="${player.photo || this.getPlayerAvatar(player, 100)}" class="rounded-circle mb-3" 
                          style="width: 100px; height: 100px; object-fit: cover;"
-                         onerror="this.src='${player.default_photo || 'https://via.placeholder.com/100'}'">
+                         onerror="this.src='${this.getPlayerAvatar(player, 100)}'">
                     <h5 class="text-warning">${player.name}</h5>
                     <span class="badge" style="background-color: ${player.team_color || '#6c757d'}; color: white;">
                         ${player.team}
@@ -469,9 +475,9 @@ class AdvancedStatistics {
             <div class="player-comparison">
                 <div class="row text-center mb-4">
                     <div class="col-md-5">
-                        <img src="${player1.photo}" 
+                        <img src="${player1.photo || this.getPlayerAvatar(player1, 80)}" 
                              class="rounded-circle mb-2" style="width: 80px; height: 80px; object-fit: cover;"
-                             onerror="this.src='${player1.default_photo || 'https://via.placeholder.com/100'}'">
+                             onerror="this.src='${this.getPlayerAvatar(player1, 80)}'">
                         <h5 class="text-warning">${player1.name}</h5>
                         <small class="text-muted">${player1.team}</small>
                     </div>
@@ -479,9 +485,9 @@ class AdvancedStatistics {
                         <h3 class="text-muted">VS</h3>
                     </div>
                     <div class="col-md-5">
-                        <img src="${player2.photo}" 
+                        <img src="${player2.photo || this.getPlayerAvatar(player2, 80)}" 
                              class="rounded-circle mb-2" style="width: 80px; height: 80px; object-fit: cover;"
-                             onerror="this.src='${player2.default_photo || 'https://via.placeholder.com/100'}'">
+                             onerror="this.src='${this.getPlayerAvatar(player2, 80)}'">
                         <h5 class="text-info">${player2.name}</h5>
                         <small class="text-muted">${player2.team}</small>
                     </div>
