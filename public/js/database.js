@@ -1,4 +1,4 @@
-// Database and Data Management System with Supabase
+// Database and Data Management System with Supabase - FIXED VERSION
 console.log('🚀 database.js STARTED loading...');
 
 // Database table keys
@@ -7,8 +7,7 @@ export const DB_KEYS = {
     FIXTURES: 'fixtures',
     RESULTS: 'results',
     ADMIN_CONFIG: 'admin_config',
-    PASSWORD_RESET_TOKENS: 'password_reset_tokens',
-    TOURNAMENT_UPDATES: 'tournament_updates'
+    PASSWORD_RESET_TOKENS: 'password_reset_tokens'
 };
 
 // Default balanced teams configuration
@@ -112,11 +111,12 @@ export const DEFAULT_ADMIN_CONFIG = {
     allow_player_registration: true,
     show_leaderboard: true,
     maintenance_mode: false,
+    admin_password: 'admin123', // Default admin password
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString()
 };
 
-// Supabase Client Initialization
+// Supabase Client Initialization - FIXED CDN URL
 console.log('🔧 Initializing Supabase client...');
 
 const SUPABASE_URL = 'https://zliedzrqzvywlsyfggcq.supabase.co';
@@ -125,7 +125,7 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 // Export supabase as a variable that gets initialized
 export let supabase = null;
 let supabaseInitialized = false;
-let databaseInitialized = false; // Add flag to prevent repeated initialization
+let databaseInitialized = false;
 const supabaseInitPromise = initializeSupabase();
 
 async function initializeSupabase() {
@@ -140,20 +140,29 @@ async function initializeSupabase() {
             return;
         }
 
-        // Try to load from CDN
-        const { createClient } = await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/supabase.min.js');
+        // Use correct CDN URL for Supabase
+        const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2');
         supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
         console.log('✅ Supabase client initialized successfully via CDN');
         supabaseInitialized = true;
     } catch (error) {
         console.error('❌ Supabase client initialization failed:', error);
-        supabase = null;
-        supabaseInitialized = false;
+        // Fallback: try to load from another CDN
+        try {
+            const { createClient } = await import('https://cdn.skypack.dev/@supabase/supabase-js@2');
+            supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+            console.log('✅ Supabase client initialized successfully via Skypack');
+            supabaseInitialized = true;
+        } catch (fallbackError) {
+            console.error('❌ All Supabase CDN attempts failed:', fallbackError);
+            supabase = null;
+            supabaseInitialized = false;
+        }
     }
 }
 
 // Wait for Supabase to be initialized before executing database operations
-async function ensureSupabaseInitialized() {
+export async function ensureSupabaseInitialized() {
     if (!supabaseInitialized) {
         await supabaseInitPromise;
     }
@@ -164,10 +173,9 @@ async function ensureSupabaseInitialized() {
 
 // Get data from Supabase
 export async function getData(tableName) {
-    // Validate tableName - FIXED: Better validation
+    // Validate tableName
     if (!tableName || tableName === 'undefined' || typeof tableName !== 'string') {
         console.warn('⚠️ getData called with invalid tableName:', tableName);
-        console.trace('Stack trace for invalid tableName call');
         return [];
     }
     
@@ -288,8 +296,6 @@ export async function initializeDatabase() {
     }
 
     try {
-        // Connection test removed - directly proceed with initialization
-
         // Initialize players with better error handling
         let existingPlayers = [];
         try {
@@ -732,7 +738,7 @@ export async function getLeagueTable() {
             const stats = await calculatePlayerStats(p.id);
             const form = await getRecentForm(p.id);
             return { ...p, ...stats, form };
-        })); // ✅ FIXED — added missing )
+        }));
 
         return tableData.sort((a, b) => 
             b.points - a.points || 
@@ -744,7 +750,6 @@ export async function getLeagueTable() {
         return [];
     }
 }
-
 
 // Refresh UI & Subscriptions
 export async function refreshAllDisplays() {
@@ -1036,41 +1041,25 @@ if (typeof document !== 'undefined') {
             return;
         }
         
-        console.log('📦 DOM loaded, initializing database...');
+        console.log('📦 DOM loaded, waiting for Supabase...');
         domInitialized = true;
         
-        // Wait for Supabase to initialize
-        try {
-            await ensureSupabaseInitialized();
-            
-            if (!supabase) {
-                console.error('❌ Supabase not available, skipping database initialization');
-                showNotification('❌ Database connection failed. Please refresh the page.', 'error');
-                return;
-            }
-            
-            await initializeDatabase();
-            
-            // Set up change subscriptions
+        // Wait for Supabase to initialize but don't block the page
+        setTimeout(async () => {
             try {
-                subscribeToChanges(payload => console.log('DB change detected', payload));
-            } catch (err) {
-                console.warn('Could not set up change subscriptions:', err.message);
+                await ensureSupabaseInitialized();
+                
+                if (!supabase) {
+                    console.error('❌ Supabase not available');
+                    return;
+                }
+                
+                console.log('✅ Supabase ready');
+                
+            } catch (error) {
+                console.error('❌ Supabase initialization error:', error);
             }
-            
-            console.log('✅ Supabase database system initialized');
-            
-            // Update sync status display
-            const syncStatus = document.getElementById('sync-status');
-            if (syncStatus) {
-                syncStatus.innerHTML = '<i class="fas fa-cloud me-1"></i>Supabase Online';
-                syncStatus.className = 'badge bg-success';
-            }
-            
-        } catch (error) {
-            console.error('Database initialization error:', error);
-            showNotification('❌ Database initialization failed: ' + error.message, 'error');
-        }
+        }, 1000);
     });
 }
 
@@ -1105,7 +1094,7 @@ window.refreshAllDisplays = refreshAllDisplays;
 // Data sync
 window.dataSync = dataSync;
 
-// Fix for advanced-stats.js expecting populatePlayerSelects - FIXED SYNTAX
+// Fix for advanced-stats.js expecting populatePlayerSelects
 if (window.advancedStats && typeof window.advancedStats.populatePlayerSelects === 'function') {
     window.populatePlayerSelects = window.advancedStats.populatePlayerSelects.bind(window.advancedStats);
 } else {
@@ -1119,13 +1108,12 @@ export async function debugGetDataCaller() {
     console.trace('Debug: getData called with undefined tableName');
 }
 
-// Temporary patch - wrap getData for debugging - FIXED: Better validation
+// Temporary patch - wrap getData for debugging
 const originalGetData = getData;
 window.getData = async function(tableName) {
-    // Better validation for tableName
     if (!tableName || tableName === 'undefined' || typeof tableName !== 'string') {
         console.warn('⚠️ getData called with invalid tableName:', tableName);
-        console.trace('Stack trace for invalid tableName call');
+        debugGetDataCaller();
         return [];
     }
     return await originalGetData(tableName);
