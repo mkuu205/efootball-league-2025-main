@@ -12,7 +12,9 @@ export class TournamentUpdates {
 
     async loadUpdates() {
         try {
-            this.updates = await getData(DB_KEYS.TOURNAMENT_UPDATES) || [];
+            // Use a valid table name - either add TOURNAMENT_UPDATES to DB_KEYS or use existing table
+            const updatesTable = window.DB_KEYS?.TOURNAMENT_UPDATES || 'results'; // Fallback to results table for now
+            this.updates = await getData(updatesTable) || [];
             console.log('Loaded updates:', this.updates.length);
         } catch (error) {
             console.error('Error loading updates:', error);
