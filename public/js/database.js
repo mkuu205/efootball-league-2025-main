@@ -11,6 +11,11 @@ export const DB_KEYS = {
     TOURNAMENT_UPDATES: 'tournament_updates'
 };
 
+// Cache system to reduce database calls
+const dataCache = new Map();
+let cacheTimestamp = null;
+const CACHE_DURATION = 5000; // 5 seconds cache
+
 // Default balanced teams configuration
 export const BALANCED_TEAMS = [
     { name: 'Kenya', strength: 85, color: '#000000' },
@@ -34,7 +39,7 @@ export const DEFAULT_PLAYERS = [
         photo: 'https://i.ibb.co/0jmt3HXf/alwaysresistance.jpg', 
         strength: 3138, 
         team_color: '#000000', 
-        default_photo: 'https://i.ibb.co/0jmt3HXf/alwaysresistance.jpg'
+        default_photo: 'https://ui-avatars.com/api/?name=A&background=6a11cb&color=fff&size=150'
     },
     { 
         id: 2, 
@@ -43,7 +48,7 @@ export const DEFAULT_PLAYERS = [
         photo: 'https://i.ibb.co/CcXdyfc/lildrip035.jpg',
         strength: 3100, 
         team_color: '#034694', 
-        default_photo: 'https://i.ibb.co/CcXdyfc/lildrip035.jpg'
+        default_photo: 'https://ui-avatars.com/api/?name=L&background=6a11cb&color=fff&size=150'
     },
     { 
         id: 3, 
@@ -52,7 +57,7 @@ export const DEFAULT_PLAYERS = [
         photo: 'https://i.ibb.co/TD6HHksv/sergent-white.jpg', 
         strength: 3042, 
         team_color: '#034694', 
-        default_photo: 'https://i.ibb.co/TD6HHksv/sergent-white.jpg'
+        default_photo: 'https://ui-avatars.com/api/?name=S&background=6a11cb&color=fff&size=150'
     },
     { 
         id: 4, 
@@ -61,7 +66,7 @@ export const DEFAULT_PLAYERS = [
         photo: 'https://i.ibb.co/Wv5nbZRy/skanga-Ke254.jpg', 
         strength: 2700, 
         team_color: '#c8102e', 
-        default_photo: 'https://i.ibb.co/Wv5nbZRy/skanga-Ke254.jpg'
+        default_photo: 'https://ui-avatars.com/api/?name=S&background=6a11cb&color=fff&size=150'
     },
     { 
         id: 5, 
@@ -70,7 +75,7 @@ export const DEFAULT_PLAYERS = [
         photo: 'https://i.ibb.co/2mzRJVn/drexas.jpg', 
         strength: 2792, 
         team_color: '#003399', 
-        default_photo: 'https://i.ibb.co/2mzRJVn/drexas.jpg'
+        default_photo: 'https://ui-avatars.com/api/?name=D&background=6a11cb&color=fff&size=150'
     },
     { 
         id: 6, 
@@ -79,7 +84,7 @@ export const DEFAULT_PLAYERS = [
         photo: 'https://i.ibb.co/nqyFvzvf/collo-leevan.jpg', 
         strength: 2448, 
         team_color: '#da291c', 
-        default_photo: 'https://i.ibb.co/nqyFvzvf/collo-leevan.jpg'
+        default_photo: 'https://ui-avatars.com/api/?name=C&background=6a11cb&color=fff&size=150'
     },
     { 
         id: 7, 
@@ -88,7 +93,7 @@ export const DEFAULT_PLAYERS = [
         photo: 'https://i.ibb.co/35kMmxjW/captainkenn.jpg', 
         strength: 3110, 
         team_color: '#7c2c3b', 
-        default_photo: 'https://i.ibb.co/35kMmxjW/captainkenn.jpg'
+        default_photo: 'https://ui-avatars.com/api/?name=C&background=6a11cb&color=fff&size=150'
     },
     { 
         id: 8,
@@ -97,7 +102,7 @@ export const DEFAULT_PLAYERS = [
         photo: 'https://i.ibb.co/7NXyjhWR/Bora-20kesho.jpg',
         strength: 3177,
         team_color: '#DA291C',
-        default_photo: 'https://i.ibb.co/7NXyjhWR/Bora-20kesho.jpg'
+        default_photo: 'https://ui-avatars.com/api/?name=B&background=6a11cb&color=fff&size=150'
     }
 ];
 
@@ -170,10 +175,31 @@ export async function ensureSupabaseInitialized() {
     return supabase !== null;
 }
 
+// Cache management functions
+function isCacheValid(tableName) {
+    if (!cacheTimestamp) return false;
+    const now = Date.now();
+    return (now - cacheTimestamp) < CACHE_DURATION && dataCache.has(tableName);
+}
+
+function getCachedData(tableName) {
+    return dataCache.get(tableName);
+}
+
+function setCachedData(tableName, data) {
+    dataCache.set(tableName, data);
+    cacheTimestamp = Date.now();
+}
+
+function clearCache() {
+    dataCache.clear();
+    cacheTimestamp = null;
+}
+
 // Core Database Functions
 
-// Get data from Supabase
-export async function getData(tableName) {
+// Get data from Supabase with caching
+export async function getData(tableName, forceRefresh = false) {
     // Validate tableName
     if (!tableName || tableName === 'undefined' || typeof tableName !== 'string') {
         console.warn('⚠️ getData called with invalid tableName:', tableName);
@@ -185,6 +211,12 @@ export async function getData(tableName) {
         return [];
     }
     
+    // Check cache first (unless force refresh)
+    if (!forceRefresh && isCacheValid(tableName)) {
+        console.log(`📋 Using cached data for: ${tableName}`);
+        return getCachedData(tableName);
+    }
+    
     try {
         console.log(`📋 Fetching data from table: ${tableName}`);
         const { data, error } = await supabase.from(tableName).select('*');
@@ -192,8 +224,13 @@ export async function getData(tableName) {
             console.error(`Error getting ${tableName}:`, error);
             return [];
         }
-        console.log(`✅ Retrieved ${data?.length || 0} records from ${tableName}`);
-        return data || [];
+        
+        const result = data || [];
+        console.log(`✅ Retrieved ${result.length} records from ${tableName}`);
+        
+        // Cache the result
+        setCachedData(tableName, result);
+        return result;
     } catch (err) {
         console.error(`Error in getData for ${tableName}:`, err);
         return [];
@@ -214,6 +251,9 @@ export async function saveData(tableName, data) {
     
     try {
         console.log(`💾 Saving data to table: ${tableName}`, data);
+        
+        // Clear cache when saving new data
+        clearCache();
         
         if (Array.isArray(data) && data.length > 0) {
             const { data: result, error } = await supabase.from(tableName).insert(data).select();
@@ -245,6 +285,9 @@ export async function updateData(tableName, updates, id) {
     }
     
     try {
+        // Clear cache when updating data
+        clearCache();
+        
         const { data, error } = await supabase
             .from(tableName)
             .update(updates)
@@ -272,6 +315,9 @@ export async function deleteData(tableName, id) {
     }
     
     try {
+        // Clear cache when deleting data
+        clearCache();
+        
         const { error } = await supabase.from(tableName).delete().eq('id', id);
         if (error) throw error;
         return true;
@@ -474,8 +520,8 @@ export async function addPlayer(playerData) {
     const newPlayer = {
         ...playerData,
         id: maxId + 1,
-        photo: playerData.photo || `https://via.placeholder.com/100/1a1a2e/ffffff?text=${playerData.name.charAt(0)}`,
-        default_photo: playerData.photo || `https://via.placeholder.com/100/1a1a2e/ffffff?text=${playerData.name.charAt(0)}`,
+        photo: playerData.photo || `https://ui-avatars.com/api/?name=${playerData.name.charAt(0)}&background=6a11cb&color=fff&size=150`,
+        default_photo: playerData.photo || `https://ui-avatars.com/api/?name=${playerData.name.charAt(0)}&background=6a11cb&color=fff&size=150`,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
     };
@@ -816,6 +862,9 @@ export async function getLeagueTable() {
 export async function refreshAllDisplays() {
     try {
         console.log('Refreshing all displays...');
+        
+        // Clear cache to force fresh data
+        clearCache();
         
         // Refresh admin displays if on admin page
         if (window.location.pathname.includes('admin.html')) {
