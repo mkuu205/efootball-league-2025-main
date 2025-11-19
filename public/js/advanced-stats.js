@@ -338,7 +338,7 @@ class AdvancedStatistics {
                 <div class="col-md-3 text-center">
                     <img src="${player.photo}" class="rounded-circle mb-3" 
                          style="width: 100px; height: 100px; object-fit: cover;"
-                         onerror="this.src='${player.default_photo || 'https://via.placeholder.com/100'}')">
+                         onerror="this.src='${player.default_photo || 'https://via.placeholder.com/100'}'">
                     <h5 class="text-warning">${player.name}</h5>
                     <span class="badge" style="background-color: ${player.team_color || '#6c757d'}; color: white;">
                         ${player.team}
@@ -471,7 +471,7 @@ class AdvancedStatistics {
                     <div class="col-md-5">
                         <img src="${player1.photo}" 
                              class="rounded-circle mb-2" style="width: 80px; height: 80px; object-fit: cover;"
-                             onerror="this.src='${player1.default_photo || 'https://via.placeholder.com/100'}')">
+                             onerror="this.src='${player1.default_photo || 'https://via.placeholder.com/100'}'">
                         <h5 class="text-warning">${player1.name}</h5>
                         <small class="text-muted">${player1.team}</small>
                     </div>
@@ -481,7 +481,7 @@ class AdvancedStatistics {
                     <div class="col-md-5">
                         <img src="${player2.photo}" 
                              class="rounded-circle mb-2" style="width: 80px; height: 80px; object-fit: cover;"
-                             onerror="this.src='${player2.default_photo || 'https://via.placeholder.com/100'}')">
+                             onerror="this.src='${player2.default_photo || 'https://via.placeholder.com/100'}'">
                         <h5 class="text-info">${player2.name}</h5>
                         <small class="text-muted">${player2.team}</small>
                     </div>
@@ -697,10 +697,15 @@ class AdvancedStatistics {
         return overview;
     }
 
-    // Helper method to get player team (would need to be implemented properly)
+    // Helper method to get player team
     async getPlayerTeam(playerId) {
-        const player = await getPlayerById(playerId);
-        return player ? player.team : null;
+        try {
+            const player = await getPlayerById(playerId);
+            return player ? player.team : null;
+        } catch (error) {
+            console.error('Error getting player team:', error);
+            return null;
+        }
     }
 
     generateTeamStatsHTML(teamName, stats) {
@@ -873,8 +878,6 @@ class AdvancedStatistics {
         return ((homeWins / results.length) * 100).toFixed(1);
     }
 }
-
-/
 
 // Initialize advanced statistics
 export const advancedStats = new AdvancedStatistics();
