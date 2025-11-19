@@ -7,7 +7,8 @@ export const DB_KEYS = {
     FIXTURES: 'fixtures',
     RESULTS: 'results',
     ADMIN_CONFIG: 'admin_config',
-    PASSWORD_RESET_TOKENS: 'password_reset_tokens'
+    PASSWORD_RESET_TOKENS: 'password_reset_tokens',
+    TOURNAMENT_UPDATES: 'tournament_updates'
 };
 
 // Default balanced teams configuration
