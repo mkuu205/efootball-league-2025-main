@@ -936,56 +936,64 @@ console.log('✅ database.js COMPLETED loading - all functions available');
 //  COMPATIBILITY PATCH FOR advanced-stats.js + admin.html
 // =======================================================
 
-// Export tournament reset functions
-window.resetTournament = resetTournament;
-window.resetAllResults = resetAllResults;
-window.exportTournamentData = exportTournamentData;
+// ---------- Fixture Manager ----------
+// Make sure fixtureManager exists
+if (typeof fixtureManager !== 'undefined') {
+    window.fixtureManager = fixtureManager;
 
-// Export fixture manager functions if needed
-window.generateOptimizedFixtures = generateOptimizedFixtures;
-window.showFixtureReport = showFixtureReport;
-window.checkFixtureConflicts = checkFixtureConflicts;
-window.showRescheduleTool = showRescheduleTool;
+    // Expose key fixture functions globally
+    window.generateOptimizedFixtures = () => fixtureManager.generateOptimizedFixtures();
+    window.showFixtureReport = () => fixtureManager.showFixtureReport();
+    window.checkFixtureConflicts = () => fixtureManager.detectDateConflicts();
+    window.showRescheduleTool = () => fixtureManager.showRescheduleTool();
+} else {
+    console.warn('fixtureManager not initialized yet');
+}
 
-// Make sure all admin functions are available globally
-window.getAdminConfig = getAdminConfig;
-window.updateAdminConfig = updateAdminConfig;
-window.initializeDatabase = initializeDatabase;
+// ---------- Tournament / Admin Functions ----------
+if (typeof resetTournament !== 'undefined') window.resetTournament = resetTournament;
+if (typeof resetAllResults !== 'undefined') window.resetAllResults = resetAllResults;
+if (typeof exportTournamentData !== 'undefined') window.exportTournamentData = exportTournamentData;
 
-// Database core functions
-window.getData = getData;
-window.saveData = saveData;
-window.updateData = updateData;
-window.deleteData = deleteData;
+// ---------- Admin Config ----------
+if (typeof getAdminConfig !== 'undefined') window.getAdminConfig = getAdminConfig;
+if (typeof updateAdminConfig !== 'undefined') window.updateAdminConfig = updateAdminConfig;
+if (typeof initializeDatabase !== 'undefined') window.initializeDatabase = initializeDatabase;
 
-// Lookup helpers
-window.getPlayerById = getPlayerById;
-window.getFixtureById = getFixtureById;
-window.getResultById = getResultById;
+// ---------- Database Core ----------
+if (typeof getData !== 'undefined') window.getData = getData;
+if (typeof saveData !== 'undefined') window.saveData = saveData;
+if (typeof updateData !== 'undefined') window.updateData = updateData;
+if (typeof deleteData !== 'undefined') window.deleteData = deleteData;
 
-// League & stats
-window.calculatePlayerStats = calculatePlayerStats;
-window.getRecentForm = getRecentForm;
-window.getLeagueTable = getLeagueTable;
+// ---------- Lookup Helpers ----------
+if (typeof getPlayerById !== 'undefined') window.getPlayerById = getPlayerById;
+if (typeof getFixtureById !== 'undefined') window.getFixtureById = getFixtureById;
+if (typeof getResultById !== 'undefined') window.getResultById = getResultById;
 
-// Global config
-window.DB_KEYS = DB_KEYS;
+// ---------- League & Stats ----------
+if (typeof calculatePlayerStats !== 'undefined') window.calculatePlayerStats = calculatePlayerStats;
+if (typeof getRecentForm !== 'undefined') window.getRecentForm = getRecentForm;
+if (typeof getLeagueTable !== 'undefined') window.getLeagueTable = getLeagueTable;
 
-// Refresh system
-window.refreshAllDisplays = refreshAllDisplays;
+// ---------- Global Config ----------
+if (typeof DB_KEYS !== 'undefined') window.DB_KEYS = DB_KEYS;
 
-// Data sync
-window.dataSync = dataSync;
+// ---------- Refresh System ----------
+if (typeof refreshAllDisplays !== 'undefined') window.refreshAllDisplays = refreshAllDisplays;
 
-// Password management functions
-window.getCurrentPassword = getCurrentPassword;
-window.updateAdminPassword = updateAdminPassword;
+// ---------- Data Sync ----------
+if (typeof dataSync !== 'undefined') window.dataSync = dataSync;
 
-// Fix for advanced-stats.js expecting populatePlayerSelects
+// ---------- Password Management ----------
+if (typeof getCurrentPassword !== 'undefined') window.getCurrentPassword = getCurrentPassword;
+if (typeof updateAdminPassword !== 'undefined') window.updateAdminPassword = updateAdminPassword;
+
+// ---------- Advanced Stats Compatibility ----------
 if (window.advancedStats && typeof window.advancedStats.populatePlayerSelects === 'function') {
     window.populatePlayerSelects = window.advancedStats.populatePlayerSelects.bind(window.advancedStats);
 } else {
     window.populatePlayerSelects = function() {
         console.warn('populatePlayerSelects not available - advancedStats not loaded');
     };
-        }
+}
