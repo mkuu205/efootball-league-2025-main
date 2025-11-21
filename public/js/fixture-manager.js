@@ -1,4 +1,9 @@
 // Advanced Fixture Management System
+import { getData, saveData, DB_KEYS, getSupabase } from './database.js'; // ✅ ADD getSupabase
+
+// ✅ ADD: Get the supabase client instance
+const supabase = getSupabase();
+
 class FixtureManager {
     constructor() {
         this.venues = [
