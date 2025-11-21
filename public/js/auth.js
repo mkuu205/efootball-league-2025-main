@@ -4,13 +4,13 @@ import {
     saveData, 
     DB_KEYS, 
     showNotification,
-    getSupabase,  // ✅ CHANGED: Import getSupabase instead of supabase
+    getSupabase,
     ensureSupabaseInitialized,
     getCurrentPassword,
     updateAdminPassword
 } from './database.js';
 
-// ✅ ADD: Get the supabase client instance
+// Get the supabase client instance
 const supabase = getSupabase();
 
 // Admin authentication state
@@ -116,7 +116,7 @@ export function adminLogout() {
     window.location.reload();
 }
 
-// Request password reset
+// Request password reset - FIXED VERSION
 export async function requestPasswordReset() {
     try {
         if (!await ensureSupabaseInitialized()) {
@@ -127,6 +127,7 @@ export async function requestPasswordReset() {
         const token = generateToken();
         const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
         
+        // FIXED: Don't include id field - let Supabase auto-generate it
         const resetToken = {
             token: token,
             email: ADMIN_EMAIL,
@@ -135,11 +136,27 @@ export async function requestPasswordReset() {
             created_at: new Date().toISOString()
         };
 
-        const tokens = await getData(DB_KEYS.PASSWORD_RESET_TOKENS) || [];
-        tokens.push(resetToken);
-        await saveData(DB_KEYS.PASSWORD_RESET_TOKENS, tokens);
+        console.log('📧 Creating password reset token...', resetToken);
 
-        console.log('📧 Password reset token generated:', token);
+        // FIXED: Use direct Supabase insert instead of saveData to avoid id conflicts
+        const { data, error } = await supabase
+            .from(DB_KEYS.PASSWORD_RESET_TOKENS)
+            .insert([resetToken])
+            .select();
+
+        if (error) {
+            console.error('❌ Error inserting reset token:', error);
+            
+            // If it's a duplicate token error, try again with a new token
+            if (error.code === '23505' && error.message.includes('token')) {
+                console.log('🔄 Token collision, generating new token...');
+                return await requestPasswordReset(); // Recursively try again
+            }
+            
+            throw error;
+        }
+
+        console.log('✅ Password reset token created:', data);
         
         // In a real application, you would send an email here
         // For demo purposes, we'll show the token in an alert
@@ -148,48 +165,63 @@ export async function requestPasswordReset() {
         return true;
     } catch (error) {
         console.error('❌ Error requesting password reset:', error);
-        showNotification('Error requesting password reset', 'error');
+        
+        if (error.code === '23505') {
+            showNotification('Reset token already exists. Please try again.', 'error');
+        } else {
+            showNotification('Error requesting password reset: ' + error.message, 'error');
+        }
+        
         return false;
     }
 }
 
-// Verify reset token
+// Verify reset token - FIXED VERSION
 async function verifyResetToken(token) {
     try {
         if (!await ensureSupabaseInitialized()) {
             return false;
         }
 
-        const tokens = await getData(DB_KEYS.PASSWORD_RESET_TOKENS) || [];
-        const now = new Date();
-        
-        const validToken = tokens.find(t => 
-            t && 
-            t.token === token && 
-            !t.used && 
-            new Date(t.expires_at) > now
-        );
+        // FIXED: Use direct Supabase query for better performance
+        const { data, error } = await supabase
+            .from(DB_KEYS.PASSWORD_RESET_TOKENS)
+            .select('*')
+            .eq('token', token)
+            .eq('used', false)
+            .gt('expires_at', new Date().toISOString())
+            .single();
 
-        return !!validToken;
+        if (error) {
+            console.error('❌ Error verifying reset token:', error);
+            return false;
+        }
+
+        return !!data;
     } catch (error) {
         console.error('❌ Error verifying reset token:', error);
         return false;
     }
 }
 
-// Mark token as used
+// Mark token as used - FIXED VERSION
 async function markTokenAsUsed(token) {
     try {
         if (!await ensureSupabaseInitialized()) {
             return false;
         }
 
-        const tokens = await getData(DB_KEYS.PASSWORD_RESET_TOKENS) || [];
-        const updatedTokens = tokens.map(t => 
-            t && t.token === token ? { ...t, used: true } : t
-        );
+        // FIXED: Use direct Supabase update
+        const { error } = await supabase
+            .from(DB_KEYS.PASSWORD_RESET_TOKENS)
+            .update({ used: true, updated_at: new Date().toISOString() })
+            .eq('token', token);
 
-        await saveData(DB_KEYS.PASSWORD_RESET_TOKENS, updatedTokens);
+        if (error) {
+            console.error('❌ Error marking token as used:', error);
+            return false;
+        }
+
         return true;
     } catch (error) {
         console.error('❌ Error marking token as used:', error);
@@ -197,7 +229,7 @@ async function markTokenAsUsed(token) {
     }
 }
 
-// Reset admin password with token
+// Reset admin password with token - FIXED VERSION
 export async function resetAdminPassword(token, newPassword) {
     try {
         if (!await ensureSupabaseInitialized()) {
@@ -354,7 +386,7 @@ export function setupAuthEventListeners() {
             try {
                 const success = await requestPasswordReset();
                 if (success) {
-                    showNotification('Password reset instructions sent!', 'success');
+                    showNotification('Password reset instructions sent! Check your notifications for the reset token.', 'success');
                 }
             } finally {
                 submitButton.innerHTML = originalText;
