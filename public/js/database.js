@@ -936,6 +936,22 @@ console.log('✅ database.js COMPLETED loading - all functions available');
 //  COMPATIBILITY PATCH FOR advanced-stats.js + admin.html
 // =======================================================
 
+// Export tournament reset functions
+window.resetTournament = resetTournament;
+window.resetAllResults = resetAllResults;
+window.exportTournamentData = exportTournamentData;
+
+// Export fixture manager functions if needed
+window.generateOptimizedFixtures = generateOptimizedFixtures;
+window.showFixtureReport = showFixtureReport;
+window.checkFixtureConflicts = checkFixtureConflicts;
+window.showRescheduleTool = showRescheduleTool;
+
+// Make sure all admin functions are available globally
+window.getAdminConfig = getAdminConfig;
+window.updateAdminConfig = updateAdminConfig;
+window.initializeDatabase = initializeDatabase;
+
 // Database core functions
 window.getData = getData;
 window.saveData = saveData;
