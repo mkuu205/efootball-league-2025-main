@@ -1,110 +1,24 @@
-// Database and Data Management System with Supabase - FIXED VERSION
+// database.js - FIXED VERSION (Remove Cache & Single Execution)
 console.log('🚀 database.js STARTED loading...');
 
 // Database table keys
 export const DB_KEYS = {
     PLAYERS: 'players',
-    FIXTURES: 'fixtures',
+    FIXTURES: 'fixtures', 
     RESULTS: 'results',
     ADMIN_CONFIG: 'admin_config',
     PASSWORD_RESET_TOKENS: 'password_reset_tokens',
     TOURNAMENT_UPDATES: 'tournament_updates'
 };
 
-// Cache system to reduce database calls
-const dataCache = new Map();
+// REMOVED CACHE SYSTEM - Using Supabase directly
 let cacheTimestamp = null;
-const CACHE_DURATION = 5000; // 5 seconds cache
 
-// Default balanced teams configuration
-export const BALANCED_TEAMS = [
-    { name: 'Kenya', strength: 85, color: '#000000' },
-    { name: 'Chelsea', strength: 88, color: '#034694' },
-    { name: 'Liverpool', strength: 87, color: '#c8102e' },
-    { name: 'Everton', strength: 78, color: '#003399' },
-    { name: 'Manchester United', strength: 85, color: '#da291c' },
-    { name: 'West Ham', strength: 79, color: '#7c2c3b' },
-    { name: 'Arsenal', strength: 86, color: '#ef0107' },
-    { name: 'Manchester City', strength: 89, color: '#6caddf' },
-    { name: 'Tottenham', strength: 84, color: '#132257' },
-    { name: 'Newcastle', strength: 82, color: '#241f20' }
-];
+// Default balanced teams configuration - REMOVED since using Supabase
+export const BALANCED_TEAMS = []; // Empty array since we're using Supabase data
 
-// Default players data
-export const DEFAULT_PLAYERS = [
-    { 
-        id: 1, 
-        name: 'alwaysresistance', 
-        team: 'Kenya', 
-        photo: 'https://i.ibb.co/0jmt3HXf/alwaysresistance.jpg', 
-        strength: 3138, 
-        team_color: '#000000', 
-        default_photo: 'https://ui-avatars.com/api/?name=A&background=6a11cb&color=fff&size=150'
-    },
-    { 
-        id: 2, 
-        name: 'lildrip035', 
-        team: 'Chelsea', 
-        photo: 'https://i.ibb.co/CcXdyfc/lildrip035.jpg',
-        strength: 3100, 
-        team_color: '#034694', 
-        default_photo: 'https://ui-avatars.com/api/?name=L&background=6a11cb&color=fff&size=150'
-    },
-    { 
-        id: 3, 
-        name: 'Sergent white', 
-        team: 'Chelsea', 
-        photo: 'https://i.ibb.co/TD6HHksv/sergent-white.jpg', 
-        strength: 3042, 
-        team_color: '#034694', 
-        default_photo: 'https://ui-avatars.com/api/?name=S&background=6a11cb&color=fff&size=150'
-    },
-    { 
-        id: 4, 
-        name: 'skangaKe254', 
-        team: 'Liverpool', 
-        photo: 'https://i.ibb.co/Wv5nbZRy/skanga-Ke254.jpg', 
-        strength: 2700, 
-        team_color: '#c8102e', 
-        default_photo: 'https://ui-avatars.com/api/?name=S&background=6a11cb&color=fff&size=150'
-    },
-    { 
-        id: 5, 
-        name: 'Drexas', 
-        team: 'Everton', 
-        photo: 'https://i.ibb.co/2mzRJVn/drexas.jpg', 
-        strength: 2792, 
-        team_color: '#003399', 
-        default_photo: 'https://ui-avatars.com/api/?name=D&background=6a11cb&color=fff&size=150'
-    },
-    { 
-        id: 6, 
-        name: 'Collo leevan', 
-        team: 'Manchester United', 
-        photo: 'https://i.ibb.co/nqyFvzvf/collo-leevan.jpg', 
-        strength: 2448, 
-        team_color: '#da291c', 
-        default_photo: 'https://ui-avatars.com/api/?name=C&background=6a11cb&color=fff&size=150'
-    },
-    { 
-        id: 7, 
-        name: 'captainkenn', 
-        team: 'West Ham', 
-        photo: 'https://i.ibb.co/35kMmxjW/captainkenn.jpg', 
-        strength: 3110, 
-        team_color: '#7c2c3b', 
-        default_photo: 'https://ui-avatars.com/api/?name=C&background=6a11cb&color=fff&size=150'
-    },
-    { 
-        id: 8,
-        name: 'Bora kesho',
-        team: 'Manchester United',
-        photo: 'https://i.ibb.co/7NXyjhWR/Bora-20kesho.jpg',
-        strength: 3177,
-        team_color: '#DA291C',
-        default_photo: 'https://ui-avatars.com/api/?name=B&background=6a11cb&color=fff&size=150'
-    }
-];
+// Default players data - REMOVED since using Supabase
+export const DEFAULT_PLAYERS = []; // Empty array since we're using Supabase data
 
 // Default admin configuration
 export const DEFAULT_ADMIN_CONFIG = {
@@ -117,12 +31,12 @@ export const DEFAULT_ADMIN_CONFIG = {
     allow_player_registration: true,
     show_leaderboard: true,
     maintenance_mode: false,
-    password: 'admin123', // Changed from admin_password to password
+    password: 'admin123',
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString()
 };
 
-// Supabase Client Initialization - FIXED CDN URL
+// Supabase Client Initialization - FIXED
 console.log('🔧 Initializing Supabase client...');
 
 const SUPABASE_URL = 'https://zliedzrqzvywlsyfggcq.supabase.co';
@@ -132,20 +46,16 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 export let supabase = null;
 let supabaseInitialized = false;
 let databaseInitialized = false;
-const supabaseInitPromise = initializeSupabase();
+
+// Single execution guard
+let initializationStarted = false;
 
 async function initializeSupabase() {
+    if (supabaseInitialized) return;
+    
     console.log('🔧 Initializing Supabase client...');
     
     try {
-        // First try to use global supabase if available
-        if (typeof window !== 'undefined' && window.supabase) {
-            supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-            console.log('✅ Supabase client initialized successfully using window.supabase');
-            supabaseInitialized = true;
-            return;
-        }
-
         // Use correct CDN URL for Supabase
         const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2');
         supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -170,35 +80,14 @@ async function initializeSupabase() {
 // Wait for Supabase to be initialized before executing database operations
 export async function ensureSupabaseInitialized() {
     if (!supabaseInitialized) {
-        await supabaseInitPromise;
+        await initializeSupabase();
     }
     return supabase !== null;
 }
 
-// Cache management functions
-function isCacheValid(tableName) {
-    if (!cacheTimestamp) return false;
-    const now = Date.now();
-    return (now - cacheTimestamp) < CACHE_DURATION && dataCache.has(tableName);
-}
+// Core Database Functions - REMOVED CACHE
 
-function getCachedData(tableName) {
-    return dataCache.get(tableName);
-}
-
-function setCachedData(tableName, data) {
-    dataCache.set(tableName, data);
-    cacheTimestamp = Date.now();
-}
-
-function clearCache() {
-    dataCache.clear();
-    cacheTimestamp = null;
-}
-
-// Core Database Functions
-
-// Get data from Supabase with caching
+// Get data from Supabase - NO CACHE
 export async function getData(tableName, forceRefresh = false) {
     // Validate tableName
     if (!tableName || tableName === 'undefined' || typeof tableName !== 'string') {
@@ -211,12 +100,6 @@ export async function getData(tableName, forceRefresh = false) {
         return [];
     }
     
-    // Check cache first (unless force refresh)
-    if (!forceRefresh && isCacheValid(tableName)) {
-        console.log(`📋 Using cached data for: ${tableName}`);
-        return getCachedData(tableName);
-    }
-    
     try {
         console.log(`📋 Fetching data from table: ${tableName}`);
         const { data, error } = await supabase.from(tableName).select('*');
@@ -227,9 +110,6 @@ export async function getData(tableName, forceRefresh = false) {
         
         const result = data || [];
         console.log(`✅ Retrieved ${result.length} records from ${tableName}`);
-        
-        // Cache the result
-        setCachedData(tableName, result);
         return result;
     } catch (err) {
         console.error(`Error in getData for ${tableName}:`, err);
@@ -251,9 +131,6 @@ export async function saveData(tableName, data) {
     
     try {
         console.log(`💾 Saving data to table: ${tableName}`, data);
-        
-        // Clear cache when saving new data
-        clearCache();
         
         if (Array.isArray(data) && data.length > 0) {
             const { data: result, error } = await supabase.from(tableName).insert(data).select();
@@ -285,9 +162,6 @@ export async function updateData(tableName, updates, id) {
     }
     
     try {
-        // Clear cache when updating data
-        clearCache();
-        
         const { data, error } = await supabase
             .from(tableName)
             .update(updates)
@@ -315,9 +189,6 @@ export async function deleteData(tableName, id) {
     }
     
     try {
-        // Clear cache when deleting data
-        clearCache();
-        
         const { error } = await supabase.from(tableName).delete().eq('id', id);
         if (error) throw error;
         return true;
@@ -382,8 +253,16 @@ export async function updateAdminPassword(newPassword) {
 // Initialize database with default data
 export async function initializeDatabase() {
     // Prevent repeated initialization
+    if (initializationStarted) {
+        console.log('⚙️ Database initialization already in progress, skipping...');
+        return;
+    }
+    
+    initializationStarted = true;
+    
     if (databaseInitialized) {
         console.log('⚙️ Database already initialized, skipping...');
+        initializationStarted = false;
         return;
     }
     
@@ -391,31 +270,12 @@ export async function initializeDatabase() {
     
     if (!await ensureSupabaseInitialized()) {
         console.error('Cannot initialize database: Supabase not available');
+        initializationStarted = false;
         return;
     }
 
     try {
-        // Initialize players with better error handling
-        let existingPlayers = [];
-        try {
-            existingPlayers = await getData(DB_KEYS.PLAYERS);
-        } catch (err) {
-            console.warn('Could not fetch players, table might not exist yet:', err.message);
-        }
-        
-        if (!existingPlayers || existingPlayers.length === 0) {
-            console.log('Setting up default players in Supabase...');
-            try {
-                const insertedPlayers = await saveData(DB_KEYS.PLAYERS, DEFAULT_PLAYERS);
-                console.log(`✅ Default players inserted: ${insertedPlayers ? insertedPlayers.length : 0}`);
-            } catch (err) {
-                console.error('Failed to insert default players:', err);
-            }
-        } else {
-            console.log(`✅ Players already initialized with ${existingPlayers.length} players`);
-        }
-
-        // Initialize admin config
+        // Initialize admin config only (players come from Supabase)
         let existingConfig = [];
         try {
             existingConfig = await getData(DB_KEYS.ADMIN_CONFIG);
@@ -443,28 +303,14 @@ export async function initializeDatabase() {
             console.log('✅ Admin configuration already exists');
         }
 
-        // Generate fixtures if none exist
-        let existingFixtures = [];
-        try {
-            existingFixtures = await getData(DB_KEYS.FIXTURES);
-        } catch (err) {
-            console.warn('Could not fetch fixtures:', err.message);
-        }
-        
-        if (!existingFixtures || existingFixtures.length === 0) {
-            try {
-                await generateSampleFixtures();
-            } catch (err) {
-                console.error('Failed to generate fixtures:', err);
-            }
-        }
-
         // Mark database as initialized
         databaseInitialized = true;
         console.log('✅ Database initialization completed');
 
     } catch (error) {
         console.error('Database initialization failed:', error);
+    } finally {
+        initializationStarted = false;
     }
 }
 
@@ -862,9 +708,6 @@ export async function getLeagueTable() {
 export async function refreshAllDisplays() {
     try {
         console.log('Refreshing all displays...');
-        
-        // Clear cache to force fresh data
-        clearCache();
         
         // Refresh admin displays if on admin page
         if (window.location.pathname.includes('admin.html')) {
