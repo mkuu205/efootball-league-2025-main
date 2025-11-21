@@ -1,11 +1,13 @@
 // Image Export functionality using html2canvas
+import { getData, getPlayerById, DB_KEYS, getSupabase } from './database.js'; // ✅ ADD getSupabase if needed
+
 class ImageExporter {
     constructor() {
         this.isGenerating = false;
         this.html2canvasLoaded = false;
         this.init();
     }
-
+    
     init() {
         // Load html2canvas library dynamically
         this.loadHtml2Canvas();
