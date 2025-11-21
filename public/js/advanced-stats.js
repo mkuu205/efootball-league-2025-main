@@ -1,4 +1,6 @@
 // Advanced Statistics System
+import { getData, getPlayerById, DB_KEYS, getSupabase } from './database.js'; // ✅ ADD getSupabase if needed
+
 class AdvancedStatistics {
     constructor() {
         this.playerMetrics = new Map();
