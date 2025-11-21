@@ -13,6 +13,93 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
   <!-- App CSS -->
   <link rel="stylesheet" href="/css/style.css">
+  <style>
+    /* Custom styles for the sliders */
+    .carousel-content {
+      min-height: 300px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 2rem;
+    }
+    
+    .carousel-control-prev, .carousel-control-next {
+      width: 5%;
+    }
+    
+    .carousel-indicators button {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      margin: 0 5px;
+    }
+    
+    .match-slider {
+      background: rgba(255, 255, 255, 0.08);
+      border-radius: 15px;
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+    }
+    
+    .match-slide {
+      padding: 1rem;
+      text-align: center;
+    }
+    
+    .match-teams {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 1rem;
+    }
+    
+    .team-info {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      width: 45%;
+    }
+    
+    .team-logo {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 3px solid rgba(255, 255, 255, 0.3);
+      margin-bottom: 0.5rem;
+    }
+    
+    .vs-badge {
+      background: linear-gradient(135deg, #ff6b6b, #ee5a24);
+      color: white;
+      padding: 0.5rem 1rem;
+      border-radius: 20px;
+      font-weight: bold;
+    }
+    
+    .match-details {
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 10px;
+      padding: 0.75rem;
+      margin-top: 1rem;
+    }
+    
+    .contact-info {
+      margin-bottom: 1.5rem;
+    }
+    
+    .contact-info h5 {
+      border-bottom: 2px solid;
+      padding-bottom: 0.5rem;
+      margin-bottom: 0.75rem;
+    }
+    
+    .contact-info .fa-envelope { color: #0dcaf0; }
+    .contact-info .fa-phone { color: #20c997; }
+    .contact-info .fa-user { color: #ffc107; }
+    .contact-info .fa-clock { color: #6f42c1; }
+  </style>
 </head>
 <body>
     <!-- Navigation -->
@@ -54,6 +141,9 @@
                         <a class="nav-link" href="#" data-tab="advanced-stats">Advanced Stats</a>
                     </li>
                     <li class="nav-item">
+                        <a class="nav-link" href="#" data-tab="contact">Contact</a>
+                    </li>
+                    <li class="nav-item">
                         <a class="nav-link" href="admin.html">Admin</a>
                     </li>
                     <!-- Install App Button -->
@@ -88,6 +178,62 @@
         <div class="tab-content" id="myTabContent">
             <!-- Home Tab -->
             <div class="tab-pane fade show active" id="home" role="tabpanel">
+                <!-- Featured Slider/Carousel -->
+                <div id="featuredCarousel" class="carousel slide mb-4" data-bs-ride="carousel" data-bs-interval="4000">
+                    <div class="carousel-indicators">
+                        <button type="button" data-bs-target="#featuredCarousel" data-bs-slide-to="0" class="active"></button>
+                        <button type="button" data-bs-target="#featuredCarousel" data-bs-slide-to="1"></button>
+                        <button type="button" data-bs-target="#featuredCarousel" data-bs-slide-to="2"></button>
+                        <button type="button" data-bs-target="#featuredCarousel" data-bs-slide-to="3"></button>
+                    </div>
+                    <div class="carousel-inner rounded">
+                        <div class="carousel-item active">
+                            <div class="carousel-content" style="background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);">
+                                <div class="text-white">
+                                    <h2 class="display-4 fw-bold">eFootball League 2025</h2>
+                                    <p class="lead">Competition - Round Robin Tournament</p>
+                                    <p>All players face each other in home and away matches</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="carousel-item">
+                            <div class="carousel-content" style="background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);">
+                                <div class="text-white">
+                                    <h2 class="display-4 fw-bold">500 KES Prize</h2>
+                                    <p class="lead">For the Tournament Winner!</p>
+                                    <p>Compete for glory and the cash prize</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="carousel-item">
+                            <div class="carousel-content" style="background: linear-gradient(135deg, #20c997 0%, #0ca678 100%);">
+                                <div class="text-white">
+                                    <h2 class="display-4 fw-bold">Real-time Updates</h2>
+                                    <p class="lead">Powered by Supabase</p>
+                                    <p>Live scores, fixtures, and league table updates</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="carousel-item">
+                            <div class="carousel-content" style="background: linear-gradient(135deg, #ffc107 0%, #fd7e14 100%);">
+                                <div class="text-white">
+                                    <h2 class="display-4 fw-bold">Advanced Statistics</h2>
+                                    <p class="lead">Track Player Performance</p>
+                                    <p>Detailed stats, form analysis, and player comparisons</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <button class="carousel-control-prev" type="button" data-bs-target="#featuredCarousel" data-bs-slide="prev">
+                        <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                        <span class="visually-hidden">Previous</span>
+                    </button>
+                    <button class="carousel-control-next" type="button" data-bs-target="#featuredCarousel" data-bs-slide="next">
+                        <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                        <span class="visually-hidden">Next</span>
+                    </button>
+                </div>
+
                 <div class="row">
                     <div class="col-md-8">
                         <div class="card">
@@ -109,12 +255,33 @@
                             </div>
                         </div>
                         
-                        <div class="card">
-                            <div class="card-header">
-                                <i class="fas fa-calendar-alt me-2"></i> Upcoming Matches
+                        <!-- Upcoming Matches Slider -->
+                        <div class="card match-slider">
+                            <div class="card-header d-flex justify-content-between align-items-center">
+                                <span><i class="fas fa-calendar-alt me-2"></i> Upcoming Matches</span>
+                                <div>
+                                    <button class="btn btn-sm btn-outline-light" onclick="showAllFixtures()">
+                                        <i class="fas fa-list me-1"></i> View All
+                                    </button>
+                                </div>
                             </div>
-                            <div class="card-body" id="upcoming-matches">
-                                <!-- Dynamically loaded -->
+                            <div class="card-body">
+                                <div id="upcomingMatchesCarousel" class="carousel slide" data-bs-ride="carousel" data-bs-interval="5000">
+                                    <div class="carousel-indicators">
+                                        <!-- Indicators will be dynamically added -->
+                                    </div>
+                                    <div class="carousel-inner" id="upcoming-matches-slides">
+                                        <!-- Match slides will be dynamically added -->
+                                    </div>
+                                    <button class="carousel-control-prev" type="button" data-bs-target="#upcomingMatchesCarousel" data-bs-slide="prev">
+                                        <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                                        <span class="visually-hidden">Previous</span>
+                                    </button>
+                                    <button class="carousel-control-next" type="button" data-bs-target="#upcomingMatchesCarousel" data-bs-slide="next">
+                                        <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                                        <span class="visually-hidden">Next</span>
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -248,10 +415,101 @@
                 </div>
             </div>
 
-            <!-- Updates Tab -->
-            <div class="tab-pane fade" id="updates" role="tabpanel">
-                <div id="tournament-updates-container">
-                    <!-- Tournament updates will be loaded here -->
+            <!-- Contact Tab -->
+            <div class="tab-pane fade" id="contact" role="tabpanel">
+                <div class="row">
+                    <div class="col-md-8">
+                        <div class="card">
+                            <div class="card-header">
+                                <i class="fas fa-envelope me-2"></i> Contact Us
+                            </div>
+                            <div class="card-body">
+                                <h4 class="text-warning mb-4">Get in Touch</h4>
+                                <p>Have questions about the tournament? Need technical support? Contact us using the information below:</p>
+                                
+                                <div class="row mt-4">
+                                    <div class="col-md-6">
+                                        <div class="contact-info">
+                                            <h5><i class="fas fa-envelope me-2"></i> Email Support</h5>
+                                            <p class="ms-4">
+                                                <a href="mailto:support@kishtechsite.online" class="text-info">
+                                                    support@kishtechsite.online
+                                                </a>
+                                            </p>
+                                        </div>
+                                        
+                                        <div class="contact-info">
+                                            <h5><i class="fas fa-phone me-2"></i> Helpline</h5>
+                                            <p class="ms-4">
+                                                <a href="tel:0796307638" class="text-info">
+                                                    0796307638
+                                                </a>
+                                            </p>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="col-md-6">
+                                        <div class="contact-info">
+                                            <h5><i class="fas fa-user me-2"></i> Tournament Organizer</h5>
+                                            <p class="ms-4">Made with ❤️ by Kish</p>
+                                        </div>
+                                        
+                                        <div class="contact-info">
+                                            <h5><i class="fas fa-clock me-2"></i> Response Time</h5>
+                                            <p class="ms-4">Within 24 hours</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="mt-4 p-3 rounded" style="background: rgba(255, 255, 255, 0.1);">
+                                    <h6 class="text-warning">Common Questions:</h6>
+                                    <ul class="mt-3">
+                                        <li>How do I register for the tournament? - Contact the admin</li>
+                                        <li>When are matches scheduled? - Check the fixtures tab</li>
+                                        <li>How are points calculated? - Win=3, Draw=1, Loss=0</li>
+                                        <li>Technical issues with the website? - Email support</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-4">
+                        <div class="card">
+                            <div class="card-header">
+                                <i class="fas fa-info-circle me-2"></i> Tournament Information
+                            </div>
+                            <div class="card-body">
+                                <h6 class="text-warning">Quick Links</h6>
+                                <ul class="list-group list-group-flush bg-transparent">
+                                    <li class="list-group-item bg-transparent text-light d-flex align-items-center">
+                                        <i class="fas fa-trophy me-2 text-warning"></i>
+                                        <a href="#" data-tab="table" class="text-info">View League Table</a>
+                                    </li>
+                                    <li class="list-group-item bg-transparent text-light d-flex align-items-center">
+                                        <i class="fas fa-calendar me-2 text-primary"></i>
+                                        <a href="#" data-tab="fixtures" class="text-info">Check Fixtures</a>
+                                    </li>
+                                    <li class="list-group-item bg-transparent text-light d-flex align-items-center">
+                                        <i class="fas fa-futbol me-2 text-success"></i>
+                                        <a href="#" data-tab="results" class="text-info">See Match Results</a>
+                                    </li>
+                                    <li class="list-group-item bg-transparent text-light d-flex align-items-center">
+                                        <i class="fas fa-users me-2 text-info"></i>
+                                        <a href="#" data-tab="players" class="text-info">Player Profiles</a>
+                                    </li>
+                                </ul>
+                                
+                                <div class="mt-4">
+                                    <h6 class="text-warning">Need Admin Access?</h6>
+                                    <p>If you're a tournament administrator, you can access the admin panel to manage players, fixtures, and results.</p>
+                                    <a href="admin.html" class="btn btn-sm btn-primary w-100">
+                                        <i class="fas fa-cog me-1"></i> Go to Admin Panel
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -286,8 +544,170 @@
     <script type="module" src="/js/export.js"></script>
     <script type="module" src="/js/tournament-updates.js"></script>
 
-    <!-- Right-click disable script -->
+    <!-- Custom JavaScript for Sliders -->
     <script>
+        // Enhanced avatar helper function
+        function getPlayerAvatar(player, size = 40) {
+            if (player?.photo && player.photo.startsWith('http')) {
+                return player.photo;
+            }
+            const initial = player?.name?.charAt(0)?.toUpperCase() || 'P';
+            return `https://ui-avatars.com/api/?name=${initial}&background=6a11cb&color=fff&size=${size}`;
+        }
+
+        // Format date for display
+        function formatDisplayDate(dateString) {
+            if (!dateString) return 'TBD';
+            try {
+                return new Date(dateString).toLocaleDateString('en-US', { 
+                    weekday: 'short', 
+                    year: 'numeric', 
+                    month: 'short', 
+                    day: 'numeric' 
+                });
+            } catch (error) {
+                console.error('Error formatting date:', error);
+                return 'Invalid Date';
+            }
+        }
+
+        // Render upcoming matches as a slider
+        async function renderUpcomingMatchesSlider() {
+            try {
+                const fixtures = await getData('fixtures');
+                const players = await getData('players');
+                
+                if (!Array.isArray(fixtures) || !Array.isArray(players)) {
+                    console.error('Invalid data format for fixtures or players');
+                    return;
+                }
+                
+                const upcomingFixtures = fixtures.filter(f => !f.played).slice(0, 6);
+                const container = document.getElementById('upcoming-matches-slides');
+                const indicatorsContainer = document.querySelector('#upcomingMatchesCarousel .carousel-indicators');
+                
+                if (!container) return;
+                
+                if (upcomingFixtures.length === 0) {
+                    container.innerHTML = '<div class="carousel-item active"><div class="match-slide"><p class="text-center">No upcoming matches</p></div></div>';
+                    indicatorsContainer.innerHTML = '<button type="button" data-bs-target="#upcomingMatchesCarousel" data-bs-slide-to="0" class="active"></button>';
+                    return;
+                }
+                
+                let slidesHTML = '';
+                let indicatorsHTML = '';
+                
+                upcomingFixtures.forEach((fixture, index) => {
+                    const homePlayer = players.find(p => p.id === fixture.home_player_id);
+                    const awayPlayer = players.find(p => p.id === fixture.away_player_id);
+                    
+                    if (!homePlayer || !awayPlayer) return;
+                    
+                    const isActive = index === 0 ? 'active' : '';
+                    
+                    slidesHTML += `
+                        <div class="carousel-item ${isActive}">
+                            <div class="match-slide">
+                                <div class="match-teams">
+                                    <div class="team-info">
+                                        <img src="${homePlayer.photo || getPlayerAvatar(homePlayer, 80)}" 
+                                             alt="${homePlayer.name}" 
+                                             class="team-logo"
+                                             onerror="this.src='${getPlayerAvatar(homePlayer, 80)}'">
+                                        <div class="fw-bold">${homePlayer.name}</div>
+                                        <small class="text-muted">${homePlayer.team}</small>
+                                    </div>
+                                    
+                                    <div class="vs-badge">VS</div>
+                                    
+                                    <div class="team-info">
+                                        <img src="${awayPlayer.photo || getPlayerAvatar(awayPlayer, 80)}" 
+                                             alt="${awayPlayer.name}" 
+                                             class="team-logo"
+                                             onerror="this.src='${getPlayerAvatar(awayPlayer, 80)}'">
+                                        <div class="fw-bold">${awayPlayer.name}</div>
+                                        <small class="text-muted">${awayPlayer.team}</small>
+                                    </div>
+                                </div>
+                                
+                                <div class="match-details">
+                                    <div class="row text-center">
+                                        <div class="col-6">
+                                            <i class="fas fa-calendar me-1"></i> ${formatDisplayDate(fixture.date)}
+                                        </div>
+                                        <div class="col-6">
+                                            <i class="fas fa-clock me-1"></i> ${fixture.time || '15:00'}
+                                        </div>
+                                    </div>
+                                    <div class="mt-2">
+                                        <i class="fas fa-map-marker-alt me-1"></i> ${fixture.venue || 'Virtual Stadium'}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    
+                    indicatorsHTML += `
+                        <button type="button" data-bs-target="#upcomingMatchesCarousel" 
+                                data-bs-slide-to="${index}" class="${isActive}"></button>
+                    `;
+                });
+                
+                container.innerHTML = slidesHTML;
+                indicatorsContainer.innerHTML = indicatorsHTML;
+                
+            } catch (error) {
+                console.error('Error rendering upcoming matches slider:', error);
+            }
+        }
+
+        // Show all fixtures when "View All" button is clicked
+        function showAllFixtures() {
+            document.querySelector('[data-tab="fixtures"]').click();
+        }
+
+        // Initialize sliders when DOM is loaded
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize the featured carousel
+            const featuredCarousel = new bootstrap.Carousel(document.getElementById('featuredCarousel'), {
+                interval: 4000,
+                wrap: true
+            });
+            
+            // Initialize upcoming matches carousel after data is loaded
+            setTimeout(() => {
+                renderUpcomingMatchesSlider();
+                const upcomingCarousel = new bootstrap.Carousel(document.getElementById('upcomingMatchesCarousel'), {
+                    interval: 5000,
+                    wrap: true
+                });
+            }, 1000);
+            
+            // Add navigation for contact links
+            document.querySelectorAll('a[data-tab]').forEach(link => {
+                link.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const tabName = this.getAttribute('data-tab');
+                    
+                    // Update active nav link
+                    document.querySelectorAll('.nav-link').forEach(navLink => {
+                        navLink.classList.remove('active');
+                    });
+                    this.classList.add('active');
+                    
+                    // Show the tab
+                    document.querySelectorAll('.tab-pane').forEach(tab => {
+                        tab.classList.remove('show', 'active');
+                    });
+                    const tab = document.getElementById(tabName);
+                    if (tab) {
+                        tab.classList.add('show', 'active');
+                    }
+                });
+            });
+        });
+
+        // Right-click disable script
         document.addEventListener("contextmenu", function(event) {
             event.preventDefault();
             alert("Right-click is disabled on this website.");
