@@ -1,3 +1,4 @@
+// app.js - Fixed with Enhanced Avatar Handling
 import { 
     getData, 
     getPlayerById, 
@@ -11,8 +12,14 @@ import {
 // Cache and Version Control
 const APP_VERSION = '3.0.0';
 
-// Avatar helper function
+// Enhanced avatar helper function with better fallback
 function getPlayerAvatar(player, size = 40) {
+    // If player has a valid photo URL, use it
+    if (player?.photo && player.photo.startsWith('http')) {
+        return player.photo;
+    }
+    
+    // Otherwise generate avatar from name
     const initial = player?.name?.charAt(0)?.toUpperCase() || 'P';
     return `https://ui-avatars.com/api/?name=${initial}&background=6a11cb&color=fff&size=${size}`;
 }
@@ -95,10 +102,10 @@ export async function renderTopScorers() {
         let goals = 0;
         results.forEach(result => {
             if (result.home_player_id === player.id) {
-                goals += result.home_score;
+                goals += result.home_score || 0;
             }
             if (result.away_player_id === player.id) {
-                goals += result.away_score;
+                goals += result.away_score || 0;
             }
         });
         return { ...player, goals };
@@ -183,7 +190,7 @@ export async function renderQuickStats() {
     const container = document.getElementById('quick-stats');
     if (!container) return;
 
-    const totalGoals = results.reduce((acc, result) => acc + result.home_score + result.away_score, 0);
+    const totalGoals = results.reduce((acc, result) => acc + (result.home_score || 0) + (result.away_score || 0), 0);
     const playedMatches = results.length;
     const upcomingMatches = fixtures.filter(f => !f.played).length;
     const avgGoals = playedMatches > 0 ? (totalGoals / playedMatches).toFixed(1) : 0;
@@ -279,7 +286,7 @@ export async function renderResults() {
                              onerror="this.src='${getPlayerAvatar(homePlayer)}'">
                         <div class="fw-bold">${homePlayer.name}</div>
                     </div>
-                    <div class="match-result">${result.home_score} - ${result.away_score}</div>
+                    <div class="match-result">${result.home_score || 0} - ${result.away_score || 0}</div>
                     <div class="d-flex align-items-center">
                         <img src="${awayPlayer.photo || getPlayerAvatar(awayPlayer)}" alt="${awayPlayer.name}" 
                              class="rounded-circle me-2" style="width: 40px; height: 40px; object-fit: cover;"
@@ -338,16 +345,16 @@ export async function renderLeagueTable() {
                             </div>
                         </div>
                     </td>
-                    <td class="text-center">${player.played}</td>
-                    <td class="text-center">${player.wins}</td>
-                    <td class="text-center">${player.draws}</td>
-                    <td class="text-center">${player.losses}</td>
-                    <td class="text-center">${player.goalsFor}</td>
-                    <td class="text-center">${player.goalsAgainst}</td>
+                    <td class="text-center">${player.played || 0}</td>
+                    <td class="text-center">${player.wins || 0}</td>
+                    <td class="text-center">${player.draws || 0}</td>
+                    <td class="text-center">${player.losses || 0}</td>
+                    <td class="text-center">${player.goalsFor || 0}</td>
+                    <td class="text-center">${player.goalsAgainst || 0}</td>
                     <td class="text-center ${player.goalDifference > 0 ? 'text-success' : player.goalDifference < 0 ? 'text-danger' : ''}">
-                        ${player.goalDifference > 0 ? '+' : ''}${player.goalDifference}
+                        ${player.goalDifference > 0 ? '+' : ''}${player.goalDifference || 0}
                     </td>
-                    <td class="text-center fw-bold text-warning">${player.points}</td>
+                    <td class="text-center fw-bold text-warning">${player.points || 0}</td>
                     <td class="text-center">${formBadges || '<span class="text-muted">-</span>'}</td>
                 </tr>
             `;
@@ -379,7 +386,10 @@ export async function renderPlayers() {
             <div class="col-md-6 col-lg-4 mb-4">
                 <div class="card player-card text-center">
                     <div class="card-body">
-                        <img src="${player.photo || getPlayerAvatar(player, 100)}" class="player-photo mb-3" alt="${player.name}" 
+                        <img src="${player.photo || getPlayerAvatar(player, 100)}" 
+                             class="player-photo mb-3" 
+                             alt="${player.name}" 
+                             style="width: 100px; height: 100px; object-fit: cover; border-radius: 50%;"
                              onerror="this.src='${getPlayerAvatar(player, 100)}'">
                         <h5 class="card-title player-name">${player.name}</h5>
                         <p class="card-text">
@@ -390,15 +400,15 @@ export async function renderPlayers() {
                         <p class="card-text">Position: ${position}</p>
                         <div class="d-flex justify-content-around mt-3">
                             <div>
-                                <div class="fw-bold">${stats.goalsFor}</div>
+                                <div class="fw-bold">${stats.goalsFor || 0}</div>
                                 <small>Goals</small>
                             </div>
                             <div>
-                                <div class="fw-bold">${stats.wins}</div>
+                                <div class="fw-bold">${stats.wins || 0}</div>
                                 <small>Wins</small>
                             </div>
                             <div>
-                                <div class="fw-bold">${stats.points}</div>
+                                <div class="fw-bold">${stats.points || 0}</div>
                                 <small>Points</small>
                             </div>
                         </div>
@@ -564,3 +574,12 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 });
+
+// Make functions globally available for onclick events
+window.renderHomePage = renderHomePage;
+window.renderFixtures = renderFixtures;
+window.renderResults = renderResults;
+window.renderLeagueTable = renderLeagueTable;
+window.renderPlayers = renderPlayers;
+window.showTab = showTab;
+window.updateCountdown = updateCountdown;
