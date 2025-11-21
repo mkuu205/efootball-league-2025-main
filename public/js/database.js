@@ -1,4 +1,4 @@
-// database.js - FIXED VERSION (Remove Cache & Single Execution)
+// database.js - FINAL FIXED VERSION (Single Supabase Client)
 console.log('🚀 database.js STARTED loading...');
 
 // Database table keys
@@ -11,14 +11,40 @@ export const DB_KEYS = {
     TOURNAMENT_UPDATES: 'tournament_updates'
 };
 
-// REMOVED CACHE SYSTEM - Using Supabase directly
-let cacheTimestamp = null;
+// Single Supabase Client Instance
+let supabaseClient = null;
+let supabaseInitialized = false;
+let databaseInitialized = false;
 
-// Default balanced teams configuration - REMOVED since using Supabase
-export const BALANCED_TEAMS = []; // Empty array since we're using Supabase data
+// Supabase Configuration
+const SUPABASE_URL = 'https://zliedzrqzvywlsyfggcq.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpsaWVkenJxenZ5d2xzeWZnZ2NxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjEwOTE4NjYsImV4cCI6MjA3NjY2Nzg2Nn0.NbzEZ4ievehtrlyOxCK_mheb7YU4SnNgC0uXuOKPNOI';
 
-// Default players data - REMOVED since using Supabase
-export const DEFAULT_PLAYERS = []; // Empty array since we're using Supabase data
+// SINGLE SUPABASE CLIENT FUNCTION
+export function getSupabase() {
+    if (!supabaseClient) {
+        console.log('🔥 Creating SINGLE Supabase client instance...');
+        
+        // Use global supabase if available (from CDN)
+        if (typeof window !== 'undefined' && window.supabase) {
+            supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+                auth: {
+                    persistSession: true,
+                    storageKey: 'kishtech-token',
+                    autoRefreshToken: true,
+                    detectSessionInUrl: true
+                }
+            });
+            console.log('✅ Supabase SINGLE client created via window.supabase');
+        } else {
+            console.error('❌ window.supabase not available - make sure CDN script is loaded first');
+            throw new Error('Supabase CDN not loaded');
+        }
+        
+        supabaseInitialized = true;
+    }
+    return supabaseClient;
+}
 
 // Default admin configuration
 export const DEFAULT_ADMIN_CONFIG = {
@@ -36,58 +62,15 @@ export const DEFAULT_ADMIN_CONFIG = {
     updated_at: new Date().toISOString()
 };
 
-// Supabase Client Initialization - FIXED
-console.log('🔧 Initializing Supabase client...');
-
-const SUPABASE_URL = 'https://zliedzrqzvywlsyfggcq.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpsaWVkenJxenZ5d2xzeWZnZ2NxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjEwOTE4NjYsImV4cCI6MjA3NjY2Nzg2Nn0.NbzEZ4ievehtrlyOxCK_mheb7YU4SnNgC0uXuOKPNOI';
-
-// Export supabase as a variable that gets initialized
-export let supabase = null;
-let supabaseInitialized = false;
-let databaseInitialized = false;
-
-// Single execution guard
-let initializationStarted = false;
-
-async function initializeSupabase() {
-    if (supabaseInitialized) return;
-    
-    console.log('🔧 Initializing Supabase client...');
-    
-    try {
-        // Use correct CDN URL for Supabase
-        const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2');
-        supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-        console.log('✅ Supabase client initialized successfully via CDN');
-        supabaseInitialized = true;
-    } catch (error) {
-        console.error('❌ Supabase client initialization failed:', error);
-        // Fallback: try to load from another CDN
-        try {
-            const { createClient } = await import('https://cdn.skypack.dev/@supabase/supabase-js@2');
-            supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-            console.log('✅ Supabase client initialized successfully via Skypack');
-            supabaseInitialized = true;
-        } catch (fallbackError) {
-            console.error('❌ All Supabase CDN attempts failed:', fallbackError);
-            supabase = null;
-            supabaseInitialized = false;
-        }
-    }
-}
-
-// Wait for Supabase to be initialized before executing database operations
+// Wait for Supabase to be initialized
 export async function ensureSupabaseInitialized() {
     if (!supabaseInitialized) {
-        await initializeSupabase();
+        getSupabase(); // This will initialize it
     }
-    return supabase !== null;
+    return supabaseClient !== null;
 }
 
-// Core Database Functions - REMOVED CACHE
-
-// Get data from Supabase - NO CACHE
+// Core Database Functions
 export async function getData(tableName, forceRefresh = false) {
     // Validate tableName
     if (!tableName || tableName === 'undefined' || typeof tableName !== 'string') {
@@ -102,7 +85,7 @@ export async function getData(tableName, forceRefresh = false) {
     
     try {
         console.log(`📋 Fetching data from table: ${tableName}`);
-        const { data, error } = await supabase.from(tableName).select('*');
+        const { data, error } = await supabaseClient.from(tableName).select('*');
         if (error) {
             console.error(`Error getting ${tableName}:`, error);
             return [];
@@ -133,12 +116,12 @@ export async function saveData(tableName, data) {
         console.log(`💾 Saving data to table: ${tableName}`, data);
         
         if (Array.isArray(data) && data.length > 0) {
-            const { data: result, error } = await supabase.from(tableName).insert(data).select();
+            const { data: result, error } = await supabaseClient.from(tableName).insert(data).select();
             if (error) throw error;
             console.log(`✅ Inserted ${result?.length || 0} records into ${tableName}`);
             return result;
         } else {
-            const { data: result, error } = await supabase.from(tableName).upsert(data).select();
+            const { data: result, error } = await supabaseClient.from(tableName).upsert(data).select();
             if (error) throw error;
             console.log(`✅ Upserted record into ${tableName}`);
             return result;
@@ -162,7 +145,7 @@ export async function updateData(tableName, updates, id) {
     }
     
     try {
-        const { data, error } = await supabase
+        const { data, error } = await supabaseClient
             .from(tableName)
             .update(updates)
             .eq('id', id)
@@ -189,7 +172,7 @@ export async function deleteData(tableName, id) {
     }
     
     try {
-        const { error } = await supabase.from(tableName).delete().eq('id', id);
+        const { error } = await supabaseClient.from(tableName).delete().eq('id', id);
         if (error) throw error;
         return true;
     } catch (error) {
@@ -252,17 +235,8 @@ export async function updateAdminPassword(newPassword) {
 
 // Initialize database with default data
 export async function initializeDatabase() {
-    // Prevent repeated initialization
-    if (initializationStarted) {
-        console.log('⚙️ Database initialization already in progress, skipping...');
-        return;
-    }
-    
-    initializationStarted = true;
-    
     if (databaseInitialized) {
         console.log('⚙️ Database already initialized, skipping...');
-        initializationStarted = false;
         return;
     }
     
@@ -270,12 +244,11 @@ export async function initializeDatabase() {
     
     if (!await ensureSupabaseInitialized()) {
         console.error('Cannot initialize database: Supabase not available');
-        initializationStarted = false;
         return;
     }
 
     try {
-        // Initialize admin config only (players come from Supabase)
+        // Initialize admin config only
         let existingConfig = [];
         try {
             existingConfig = await getData(DB_KEYS.ADMIN_CONFIG);
@@ -309,8 +282,6 @@ export async function initializeDatabase() {
 
     } catch (error) {
         console.error('Database initialization failed:', error);
-    } finally {
-        initializationStarted = false;
     }
 }
 
@@ -335,7 +306,7 @@ export async function updateAdminConfig(updates) {
             updated_at: new Date().toISOString()
         };
         
-        const { data, error } = await supabase
+        const { data, error } = await supabaseClient
             .from(DB_KEYS.ADMIN_CONFIG)
             .upsert(updatedConfig)
             .select();
@@ -381,7 +352,7 @@ export async function addPlayer(playerData) {
 export async function updatePlayer(player) {
     if (!await ensureSupabaseInitialized()) return null;
     try {
-        const { data, error } = await supabase
+        const { data, error } = await supabaseClient
             .from(DB_KEYS.PLAYERS)
             .update({ 
                 ...player, 
@@ -403,15 +374,15 @@ export async function deletePlayer(playerId) {
     if (!await ensureSupabaseInitialized()) return false;
     try {
         // Delete related results first
-        await supabase.from(DB_KEYS.RESULTS).delete().or(`home_player_id.eq.${playerId},away_player_id.eq.${playerId}`);
+        await supabaseClient.from(DB_KEYS.RESULTS).delete().or(`home_player_id.eq.${playerId},away_player_id.eq.${playerId}`);
         
         // Delete related fixtures
-        await supabase.from(DB_KEYS.FIXTURES)
+        await supabaseClient.from(DB_KEYS.FIXTURES)
             .delete()
             .or(`home_player_id.eq.${playerId},away_player_id.eq.${playerId}`);
             
         // Delete player
-        const { error } = await supabase.from(DB_KEYS.PLAYERS).delete().eq('id', playerId);
+        const { error } = await supabaseClient.from(DB_KEYS.PLAYERS).delete().eq('id', playerId);
         
         if (error) throw error;
         
@@ -424,54 +395,6 @@ export async function deletePlayer(playerId) {
 }
 
 // Fixture Management
-async function generateSampleFixtures() {
-    const players = await getData(DB_KEYS.PLAYERS);
-    if (!players || players.length < 2) return;
-
-    const fixtures = [];
-    let fixtureId = 1;
-    const startDate = new Date();
-    const matchPairs = [];
-
-    // Generate all possible match pairs
-    for (let i = 0; i < players.length; i++) {
-        for (let j = i + 1; j < players.length; j++) {
-            matchPairs.push([players[i], players[j]]);
-        }
-    }
-
-    // Create fixtures for each pair
-    matchPairs.forEach(([p1, p2], idx) => {
-        const matchDate = new Date(startDate);
-        matchDate.setDate(matchDate.getDate() + idx * 2);
-
-        fixtures.push({
-            id: fixtureId++,
-            home_player_id: p1.id,
-            away_player_id: p2.id,
-            date: matchDate.toISOString().split('T')[0],
-            time: '15:00',
-            venue: 'Virtual Stadium ' + String.fromCharCode(65 + (idx % 3)),
-            played: false,
-            is_home_leg: true,
-            status: 'scheduled',
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
-        });
-    });
-
-    try {
-        await saveData(DB_KEYS.FIXTURES, fixtures);
-        console.log('✅ Generated', fixtures.length, 'fixtures');
-    } catch (error) {
-        console.error('Error generating fixtures:', error);
-        // If status column doesn't exist, try without it
-        const fixturesWithoutStatus = fixtures.map(({ status, ...fixture }) => fixture);
-        await saveData(DB_KEYS.FIXTURES, fixturesWithoutStatus);
-        console.log('✅ Generated', fixtures.length, 'fixtures (without status)');
-    }
-}
-
 export async function addFixture(fixture) {
     const fixtures = await getData(DB_KEYS.FIXTURES);
     const maxId = fixtures.length > 0 ? Math.max(...fixtures.map(f => f.id || 0)) : 0;
@@ -488,7 +411,7 @@ export async function addFixture(fixture) {
 
 export async function updateFixture(fixture) {
     if (!await ensureSupabaseInitialized()) return null;
-    const { data, error } = await supabase
+    const { data, error } = await supabaseClient
         .from(DB_KEYS.FIXTURES)
         .update({ 
             ...fixture, 
@@ -504,7 +427,7 @@ export async function updateFixture(fixture) {
 
 export async function deleteFixture(fixtureId) {
     if (!await ensureSupabaseInitialized()) return false;
-    const { error } = await supabase.from(DB_KEYS.FIXTURES).delete().eq('id', fixtureId);
+    const { error } = await supabaseClient.from(DB_KEYS.FIXTURES).delete().eq('id', fixtureId);
     if (error) throw error;
     await refreshAllDisplays();
     return true;
@@ -545,7 +468,7 @@ export async function addResult(result) {
 
 export async function updateResult(result) {
     if (!await ensureSupabaseInitialized()) return null;
-    const { data, error } = await supabase
+    const { data, error } = await supabaseClient
         .from(DB_KEYS.RESULTS)
         .update({ 
             ...result, 
@@ -561,7 +484,7 @@ export async function updateResult(result) {
 
 export async function deleteResult(resultId) {
     if (!await ensureSupabaseInitialized()) return false;
-    const { error } = await supabase.from(DB_KEYS.RESULTS).delete().eq('id', resultId);
+    const { error } = await supabaseClient.from(DB_KEYS.RESULTS).delete().eq('id', resultId);
     if (error) throw error;
     await refreshAllDisplays();
     return true;
@@ -754,10 +677,10 @@ export async function refreshAllDisplays() {
 
 // Subscribe to database changes
 export function subscribeToChanges(callback) {
-    if (!supabase) return null;
+    if (!supabaseClient) return null;
     
     try {
-        return supabase.channel('schema-db-changes')
+        return supabaseClient.channel('schema-db-changes')
             .on('postgres_changes', 
                 { event: '*', schema: 'public' }, 
                 payload => {
@@ -818,9 +741,9 @@ export async function importTournamentData(data) {
         showNotification('Importing data to Supabase...', 'info');
         
         // Clear existing data
-        await supabase.from(DB_KEYS.RESULTS).delete().neq('id', 0);
-        await supabase.from(DB_KEYS.FIXTURES).delete().neq('id', 0);
-        await supabase.from(DB_KEYS.PLAYERS).delete().neq('id', 0);
+        await supabaseClient.from(DB_KEYS.RESULTS).delete().neq('id', 0);
+        await supabaseClient.from(DB_KEYS.FIXTURES).delete().neq('id', 0);
+        await supabaseClient.from(DB_KEYS.PLAYERS).delete().neq('id', 0);
         
         // Import new data
         if (data.players && data.players.length > 0) {
@@ -850,7 +773,7 @@ export async function resetAllResults() {
     
     try {
         // Delete all results
-        await supabase.from(DB_KEYS.RESULTS).delete().neq('id', 0);
+        await supabaseClient.from(DB_KEYS.RESULTS).delete().neq('id', 0);
         
         // Reset all fixtures to not played
         const fixtures = await getData(DB_KEYS.FIXTURES);
@@ -879,9 +802,9 @@ export async function resetTournament() {
     
     try {
         // Delete all data
-        await supabase.from(DB_KEYS.RESULTS).delete().neq('id', 0);
-        await supabase.from(DB_KEYS.FIXTURES).delete().neq('id', 0);
-        await supabase.from(DB_KEYS.PLAYERS).delete().neq('id', 0);
+        await supabaseClient.from(DB_KEYS.RESULTS).delete().neq('id', 0);
+        await supabaseClient.from(DB_KEYS.FIXTURES).delete().neq('id', 0);
+        await supabaseClient.from(DB_KEYS.PLAYERS).delete().neq('id', 0);
         
         // Reinitialize with default data
         databaseInitialized = false; // Reset flag
@@ -984,7 +907,7 @@ window.resetAllResults = resetAllResults;
 window.resetTournament = resetTournament;
 window.dataSync = dataSync;
 
-// Initialize Database on DOM Loaded - FIXED: Only run once
+// Initialize Database on DOM Loaded
 if (typeof document !== 'undefined') {
     let domInitialized = false;
     
@@ -994,25 +917,16 @@ if (typeof document !== 'undefined') {
             return;
         }
         
-        console.log('📦 DOM loaded, waiting for Supabase...');
+        console.log('📦 DOM loaded, initializing Supabase...');
         domInitialized = true;
         
-        // Wait for Supabase to initialize but don't block the page
-        setTimeout(async () => {
-            try {
-                await ensureSupabaseInitialized();
-                
-                if (!supabase) {
-                    console.error('❌ Supabase not available');
-                    return;
-                }
-                
-                console.log('✅ Supabase ready');
-                
-            } catch (error) {
-                console.error('❌ Supabase initialization error:', error);
-            }
-        }, 1000);
+        // Initialize Supabase
+        try {
+            await ensureSupabaseInitialized();
+            console.log('✅ Supabase ready');
+        } catch (error) {
+            console.error('❌ Supabase initialization error:', error);
+        }
     });
 }
 
@@ -1058,20 +972,4 @@ if (window.advancedStats && typeof window.advancedStats.populatePlayerSelects ==
     window.populatePlayerSelects = function() {
         console.warn('populatePlayerSelects not available - advancedStats not loaded');
     };
-}
-
-// Debug helper to track undefined table calls
-export async function debugGetDataCaller() {
-    console.trace('Debug: getData called with undefined tableName');
-}
-
-// Temporary patch - wrap getData for debugging
-const originalGetData = getData;
-window.getData = async function(tableName) {
-    if (!tableName || tableName === 'undefined' || typeof tableName !== 'string') {
-        console.warn('⚠️ getData called with invalid tableName:', tableName);
-        debugGetDataCaller();
-        return [];
-    }
-    return await originalGetData(tableName);
-};
+        }
