@@ -4,11 +4,14 @@ import {
     saveData, 
     DB_KEYS, 
     showNotification,
-    supabase,
+    getSupabase,  // ✅ CHANGED: Import getSupabase instead of supabase
     ensureSupabaseInitialized,
     getCurrentPassword,
     updateAdminPassword
 } from './database.js';
+
+// ✅ ADD: Get the supabase client instance
+const supabase = getSupabase();
 
 // Admin authentication state
 let adminAuthenticated = false;
