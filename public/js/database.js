@@ -933,63 +933,49 @@ if (typeof document !== 'undefined') {
 console.log('✅ database.js COMPLETED loading - all functions available');
 
 // =======================================================
-//  COMPATIBILITY PATCH FOR advanced-stats.js + admin.html
+//  COMPATIBILITY PATCH FOR admin.html + advanced-stats.js
 // =======================================================
 
-// ---------- Fixture Manager ----------
-// Make sure fixtureManager exists
-if (typeof fixtureManager !== 'undefined') {
-    window.fixtureManager = fixtureManager;
+// -------------------- DATABASE CORE --------------------
+window.getData = getData;
+window.saveData = saveData;
+window.updateData = updateData;
+window.deleteData = deleteData;
 
-    // Expose key fixture functions globally
-    window.generateOptimizedFixtures = () => fixtureManager.generateOptimizedFixtures();
-    window.showFixtureReport = () => fixtureManager.showFixtureReport();
-    window.checkFixtureConflicts = () => fixtureManager.detectDateConflicts();
-    window.showRescheduleTool = () => fixtureManager.showRescheduleTool();
-} else {
-    console.warn('fixtureManager not initialized yet');
-}
+// -------------------- LOOKUP HELPERS -------------------
+window.getPlayerById = getPlayerById;
+window.getFixtureById = getFixtureById;
+window.getResultById = getResultById;
 
-// ---------- Tournament / Admin Functions ----------
-if (typeof resetTournament !== 'undefined') window.resetTournament = resetTournament;
-if (typeof resetAllResults !== 'undefined') window.resetAllResults = resetAllResults;
-if (typeof exportTournamentData !== 'undefined') window.exportTournamentData = exportTournamentData;
+// -------------------- LEAGUE & STATS -------------------
+window.calculatePlayerStats = calculatePlayerStats;
+window.getRecentForm = getRecentForm;
+window.getLeagueTable = getLeagueTable;
 
-// ---------- Admin Config ----------
-if (typeof getAdminConfig !== 'undefined') window.getAdminConfig = getAdminConfig;
-if (typeof updateAdminConfig !== 'undefined') window.updateAdminConfig = updateAdminConfig;
-if (typeof initializeDatabase !== 'undefined') window.initializeDatabase = initializeDatabase;
+// -------------------- GLOBAL CONFIG -------------------
+window.DB_KEYS = DB_KEYS;
 
-// ---------- Database Core ----------
-if (typeof getData !== 'undefined') window.getData = getData;
-if (typeof saveData !== 'undefined') window.saveData = saveData;
-if (typeof updateData !== 'undefined') window.updateData = updateData;
-if (typeof deleteData !== 'undefined') window.deleteData = deleteData;
+// -------------------- REFRESH SYSTEM ------------------
+window.refreshAllDisplays = refreshAllDisplays;
 
-// ---------- Lookup Helpers ----------
-if (typeof getPlayerById !== 'undefined') window.getPlayerById = getPlayerById;
-if (typeof getFixtureById !== 'undefined') window.getFixtureById = getFixtureById;
-if (typeof getResultById !== 'undefined') window.getResultById = getResultById;
+// -------------------- DATA SYNC -----------------------
+window.dataSync = dataSync;
 
-// ---------- League & Stats ----------
-if (typeof calculatePlayerStats !== 'undefined') window.calculatePlayerStats = calculatePlayerStats;
-if (typeof getRecentForm !== 'undefined') window.getRecentForm = getRecentForm;
-if (typeof getLeagueTable !== 'undefined') window.getLeagueTable = getLeagueTable;
+// -------------------- PASSWORD MANAGEMENT -------------
+window.getCurrentPassword = getCurrentPassword;
+window.updateAdminPassword = updateAdminPassword;
 
-// ---------- Global Config ----------
-if (typeof DB_KEYS !== 'undefined') window.DB_KEYS = DB_KEYS;
+// -------------------- ADMIN CONFIG --------------------
+window.getAdminConfig = getAdminConfig;
+window.updateAdminConfig = updateAdminConfig;
+window.initializeDatabase = initializeDatabase;
 
-// ---------- Refresh System ----------
-if (typeof refreshAllDisplays !== 'undefined') window.refreshAllDisplays = refreshAllDisplays;
+// -------------------- TOURNAMENT FUNCTIONS -----------
+window.resetTournament = resetTournament;
+window.resetAllResults = resetAllResults;
+window.exportTournamentData = exportTournamentData;
 
-// ---------- Data Sync ----------
-if (typeof dataSync !== 'undefined') window.dataSync = dataSync;
-
-// ---------- Password Management ----------
-if (typeof getCurrentPassword !== 'undefined') window.getCurrentPassword = getCurrentPassword;
-if (typeof updateAdminPassword !== 'undefined') window.updateAdminPassword = updateAdminPassword;
-
-// ---------- Advanced Stats Compatibility ----------
+// -------------------- ADVANCED STATS FIX -------------
 if (window.advancedStats && typeof window.advancedStats.populatePlayerSelects === 'function') {
     window.populatePlayerSelects = window.advancedStats.populatePlayerSelects.bind(window.advancedStats);
 } else {
@@ -997,3 +983,22 @@ if (window.advancedStats && typeof window.advancedStats.populatePlayerSelects ==
         console.warn('populatePlayerSelects not available - advancedStats not loaded');
     };
 }
+
+// -------------------- FIXTURE MANAGER -----------------
+// Attach globally after fixtureManager is initialized
+function initFixtureManagerGlobals() {
+    if (typeof fixtureManager !== 'undefined') {
+        window.fixtureManager = fixtureManager;
+        window.generateOptimizedFixtures = () => fixtureManager.generateOptimizedFixtures();
+        window.showFixtureReport = () => fixtureManager.showFixtureReport();
+        window.checkFixtureConflicts = () => fixtureManager.detectDateConflicts();
+        window.showRescheduleTool = () => fixtureManager.showRescheduleTool();
+        console.log('✅ fixtureManager functions exposed globally');
+    } else {
+        // Retry after 500ms until fixtureManager exists
+        setTimeout(initFixtureManagerGlobals, 500);
+    }
+}
+
+// Run it once
+initFixtureManagerGlobals();
