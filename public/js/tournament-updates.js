@@ -1,4 +1,6 @@
 // Tournament Updates and News System
+import { getData, DB_KEYS, getSupabase } from './database.js'; // ✅ ADD getSupabase if needed
+
 export class TournamentUpdates {
     constructor() {
         this.updates = [];
