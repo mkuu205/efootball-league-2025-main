@@ -13,6 +13,12 @@ class AdvancedStatistics {
 
     // Avatar helper function
     getPlayerAvatar(player, size = 40) {
+        // If player has a valid photo URL, use it
+        if (player?.photo && player.photo.startsWith('http')) {
+            return player.photo;
+        }
+        
+        // Otherwise generate avatar from name
         const initial = player?.name?.charAt(0)?.toUpperCase() || 'P';
         return `https://ui-avatars.com/api/?name=${initial}&background=6a11cb&color=fff&size=${size}`;
     }
