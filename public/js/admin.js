@@ -23,8 +23,14 @@ export function checkAdminAuth() {
     return isAuthenticated;
 }
 
-// Avatar helper function
+// Enhanced avatar helper function with better fallback
 function getPlayerAvatar(player, size = 40) {
+    // If player has a valid photo URL, use it
+    if (player?.photo && player.photo.startsWith('http')) {
+        return player.photo;
+    }
+    
+    // Otherwise generate avatar from name
     const initial = player?.name?.charAt(0)?.toUpperCase() || 'P';
     return `https://ui-avatars.com/api/?name=${initial}&background=6a11cb&color=fff&size=${size}`;
 }
@@ -168,16 +174,20 @@ export async function renderAdminPlayers() {
                 continue;
             }
             
-            // Generate avatar using ui-avatars.com
+            // Use player's photo if available, otherwise generate avatar
             const avatarUrl = getPlayerAvatar(player, 40);
             
             const row = document.createElement('tr');
             row.innerHTML = `
                 <td>
                     <div class="d-flex align-items-center">
-                        <img src="${player.photo || avatarUrl}" 
-                             alt="${player.name}" class="rounded-circle me-2" width="40" height="40"
-                             onerror="this.src='${avatarUrl}'">
+                        <img src="${avatarUrl}" 
+                             alt="${player.name}" 
+                             class="rounded-circle me-2" 
+                             width="40" 
+                             height="40"
+                             style="object-fit: cover;"
+                             onerror="this.src='https://ui-avatars.com/api/?name=${player.name?.charAt(0)?.toUpperCase() || 'P'}&background=6a11cb&color=fff&size=40'">
                         <div>
                             <div class="fw-bold">${player.name || 'Unknown'}</div>
                             <small class="text-muted">ID: ${player.id}</small>
@@ -484,10 +494,16 @@ export function setupAdminEventListeners() {
                 }
                 
                 try {
+                    // Use provided photo URL if valid, otherwise generate avatar
+                    let playerPhoto = photo;
+                    if (!playerPhoto || !playerPhoto.startsWith('http')) {
+                        playerPhoto = `https://ui-avatars.com/api/?name=${name.charAt(0)}&background=6a11cb&color=fff&size=150`;
+                    }
+                    
                     await addPlayer({ 
                         name, 
                         team, 
-                        photo: photo || getPlayerAvatar({name}, 150), 
+                        photo: playerPhoto, 
                         strength 
                     });
                     this.reset();
