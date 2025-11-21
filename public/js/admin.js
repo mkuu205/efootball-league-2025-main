@@ -1,10 +1,10 @@
-// admin.js - Fixed Admin Functions
+// admin.js - Fixed Admin Functions with All Features
 import { 
     getData, 
     saveData, 
     DB_KEYS, 
     showNotification,
-    getSupabase,  // ✅ CHANGED: Import getSupabase instead of supabase
+    getSupabase,
     initializeDatabase,
     addPlayer,
     addFixture,
@@ -13,10 +13,14 @@ import {
     deletePlayer as deletePlayerDB,
     deleteFixture as deleteFixtureDB,
     deleteResult as deleteResultDB,
-    updateFixture
+    updateFixture,
+    refreshAllDisplays,
+    resetTournament,
+    resetAllResults,
+    exportTournamentData
 } from './database.js';
 
-// ✅ ADD: Get the supabase client instance
+// Get the supabase client instance
 const supabase = getSupabase();
 
 // Simple authentication check
@@ -150,6 +154,41 @@ export async function updateAdminStatistics() {
     }
 }
 
+// Update system information
+async function updateSystemInformation() {
+    try {
+        const players = await loadDataWithFallback(DB_KEYS.PLAYERS);
+        const fixtures = await loadDataWithFallback(DB_KEYS.FIXTURES);
+        const results = await loadDataWithFallback(DB_KEYS.RESULTS);
+        
+        // Update system info panel
+        const updateElement = (id, value) => {
+            const element = document.getElementById(id);
+            if (element) element.textContent = value;
+        };
+        
+        updateElement('info-players', players.length);
+        updateElement('info-fixtures', fixtures.length);
+        updateElement('info-results', results.length);
+        updateElement('db-status', 'Online');
+        
+        // Update last sync time
+        const lastSync = localStorage.getItem('efl_last_sync');
+        const lastSyncElement = document.getElementById('last-sync');
+        if (lastSyncElement) {
+            lastSyncElement.textContent = lastSync ? new Date(lastSync).toLocaleString() : 'Never';
+        }
+        
+    } catch (error) {
+        console.error('Error updating system information:', error);
+        const statusElement = document.getElementById('db-status');
+        if (statusElement) {
+            statusElement.textContent = 'Offline';
+            statusElement.className = 'badge bg-danger';
+        }
+    }
+}
+
 // Enhanced render admin players table
 export async function renderAdminPlayers() {
     try {
@@ -214,6 +253,7 @@ export async function renderAdminPlayers() {
         }
         
         await updateAdminStatistics();
+        await updateSystemInformation();
         console.log('✅ Players table rendered successfully');
         
     } catch (error) {
@@ -282,6 +322,7 @@ export async function renderAdminFixtures() {
         }
         
         await updateAdminStatistics();
+        await updateSystemInformation();
         console.log('✅ Fixtures table rendered successfully');
         
     } catch (error) {
@@ -340,6 +381,7 @@ export async function renderAdminResults() {
         }
         
         await updateAdminStatistics();
+        await updateSystemInformation();
         console.log('✅ Results table rendered successfully');
         
     } catch (error) {
@@ -635,13 +677,6 @@ export function setupAdminEventListeners() {
     }
 }
 
-// Make functions globally available for onclick events
-window.editPlayer = editPlayer;
-window.deletePlayer = deletePlayer;
-window.deleteFixture = deleteFixture;
-window.deleteResult = deleteResult;
-window.addFixtureResult = addFixtureResult;
-
 // Enhanced admin dashboard initialization - FIXED
 async function initializeAdminDashboard() {
     console.log('🚀 Initializing Admin Dashboard...');
@@ -669,6 +704,9 @@ async function initializeAdminDashboard() {
             renderAdminResults()
         ]);
         
+        // Update system information
+        await updateSystemInformation();
+        
         // Set today's date as default for date inputs
         const today = new Date().toISOString().split('T')[0];
         const fixtureDate = document.getElementById('fixtureDate');
@@ -685,6 +723,18 @@ async function initializeAdminDashboard() {
         showNotification('Failed to load admin dashboard. Please refresh the page.', 'error');
     }
 }
+
+// Make functions globally available for onclick events
+window.editPlayer = editPlayer;
+window.deletePlayer = deletePlayer;
+window.deleteFixture = deleteFixture;
+window.deleteResult = deleteResult;
+window.addFixtureResult = addFixtureResult;
+
+// Make reset and export functions available globally
+window.resetTournament = resetTournament;
+window.resetAllResults = resetAllResults;
+window.exportTournamentData = exportTournamentData;
 
 // Initialize admin dashboard when authenticated
 document.addEventListener('DOMContentLoaded', async function() {
