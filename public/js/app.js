@@ -10,7 +10,7 @@ import {
 } from './database.js';
 
 // Cache and Version Control
-const APP_VERSION = '3.1.2';
+const APP_VERSION = '3.2.0';
 
 // Enhanced avatar helper function with better fallback
 function getPlayerAvatar(player, size = 40) {
