@@ -10,7 +10,7 @@ import {
 } from './database.js';
 
 // Cache and Version Control
-const APP_VERSION = '3.1.1';
+const APP_VERSION = '3.1.2';
 
 // Enhanced avatar helper function with better fallback
 function getPlayerAvatar(player, size = 40) {
@@ -217,19 +217,46 @@ export async function renderQuickStats() {
     `;
 }
 
-export async function renderFixtures() {
+export async function renderFixtures(stageFilter = null) {
     const fixtures = await getData(DB_KEYS.FIXTURES);
     const players = await getData(DB_KEYS.PLAYERS);
     
     const container = document.getElementById('fixtures-table');
     if (!container) return;
     
+    // Filter by stage if provided
+    let filteredFixtures = fixtures;
+    if (stageFilter) {
+        filteredFixtures = fixtures.filter(f => f.stage === stageFilter);
+    }
+    
+    // Sort by stage priority and date
+    const stageOrder = { 'group': 1, 'quarter-final': 2, 'semi-final': 3, 'final': 4 };
+    filteredFixtures.sort((a, b) => {
+        const stageDiff = (stageOrder[a.stage] || 99) - (stageOrder[b.stage] || 99);
+        if (stageDiff !== 0) return stageDiff;
+        return new Date(a.date) - new Date(b.date);
+    });
+    
     const tbody = container.querySelector('tbody');
-    tbody.innerHTML = fixtures.map(fixture => {
-        const homePlayer = players.find(p => p.id === fixture.home_player_id);
-        const awayPlayer = players.find(p => p.id === fixture.away_player_id);
+    tbody.innerHTML = filteredFixtures.map(fixture => {
+        const homePlayer = fixture.home_player_id ? players.find(p => p.id === fixture.home_player_id) : null;
+        const awayPlayer = fixture.away_player_id ? players.find(p => p.id === fixture.away_player_id) : null;
         
-        if (!homePlayer || !awayPlayer) return '';
+        const homeName = homePlayer ? homePlayer.name : (fixture.home_team_qualifier || 'TBD');
+        const awayName = awayPlayer ? awayPlayer.name : (fixture.away_team_qualifier || 'TBD');
+        const homePhoto = homePlayer ? (homePlayer.photo || getPlayerAvatar(homePlayer)) : null;
+        const awayPhoto = awayPlayer ? (awayPlayer.photo || getPlayerAvatar(awayPlayer)) : null;
+        
+        const stageBadge = fixture.stage === 'group' ? 
+            `<span class="badge bg-primary">Group ${fixture.group || ''}</span>` :
+            fixture.stage === 'quarter-final' ? 
+            '<span class="badge bg-warning">Quarter-Final</span>' :
+            fixture.stage === 'semi-final' ? 
+            '<span class="badge bg-info">Semi-Final</span>' :
+            fixture.stage === 'final' ? 
+            '<span class="badge bg-danger">Final</span>' :
+            '<span class="badge bg-secondary">Other</span>';
         
         const statusBadge = fixture.played ? 
             '<span class="badge bg-success">Played</span>' : 
@@ -237,25 +264,26 @@ export async function renderFixtures() {
         
         return `
             <tr>
+                <td>${stageBadge}</td>
                 <td>${formatDisplayDate(fixture.date)}</td>
-                <td>${fixture.time}</td>
+                <td>${fixture.time || 'TBD'}</td>
                 <td>
                     <div class="d-flex align-items-center">
-                        <img src="${homePlayer.photo || getPlayerAvatar(homePlayer)}" alt="${homePlayer.name}" 
+                        ${homePhoto ? `<img src="${homePhoto}" alt="${homeName}" 
                              class="rounded-circle me-2" style="width: 30px; height: 30px; object-fit: cover;"
-                             onerror="this.src='${getPlayerAvatar(homePlayer)}'">
-                        <div>${homePlayer.name}</div>
+                             onerror="this.src='${getPlayerAvatar({name: homeName})}'">` : ''}
+                        <div>${homeName}</div>
                     </div>
                 </td>
                 <td>
                     <div class="d-flex align-items-center">
-                        <img src="${awayPlayer.photo || getPlayerAvatar(awayPlayer)}" alt="${awayPlayer.name}" 
+                        ${awayPhoto ? `<img src="${awayPhoto}" alt="${awayName}" 
                              class="rounded-circle me-2" style="width: 30px; height: 30px; object-fit: cover;"
-                             onerror="this.src='${getPlayerAvatar(awayPlayer)}'">
-                        <div>${awayPlayer.name}</div>
+                             onerror="this.src='${getPlayerAvatar({name: awayName})}'">` : ''}
+                        <div>${awayName}</div>
                     </div>
                 </td>
-                <td>${fixture.venue}</td>
+                <td>${fixture.venue || 'TBD'}</td>
                 <td>${statusBadge}</td>
             </tr>
         `;
@@ -300,8 +328,260 @@ export async function renderResults() {
     }).join('');
 }
 
+// Render group tables for Champions League
+export async function renderGroupTables() {
+    try {
+        const fixtures = await getData(DB_KEYS.FIXTURES);
+        const players = await getData(DB_KEYS.PLAYERS);
+        const results = await getData(DB_KEYS.RESULTS);
+        
+        // Calculate group standings
+        const groupAStandings = await calculateGroupStandings('A', fixtures, players, results);
+        const groupBStandings = await calculateGroupStandings('B', fixtures, players, results);
+        
+        // Render Group A
+        const groupATbody = document.querySelector('#group-a-table tbody');
+        if (groupATbody) {
+            groupATbody.innerHTML = groupAStandings.map((player, index) => {
+                const playerData = players.find(p => p && p.id === player.id);
+                if (!playerData) return '';
+                
+                const positionClass = index < 2 ? 'bg-success bg-opacity-25' : '';
+                
+                return `
+                    <tr class="${positionClass}">
+                        <td class="text-center fw-bold">${index + 1}</td>
+                        <td>
+                            <div class="d-flex align-items-center">
+                                <img src="${playerData.photo || getPlayerAvatar(playerData)}" alt="${player.name}" 
+                                     class="rounded-circle me-2" style="width: 30px; height: 30px; object-fit: cover;"
+                                     onerror="this.src='${getPlayerAvatar(playerData)}'">
+                                <div>
+                                    <div class="fw-bold">${player.name}</div>
+                                    <small class="text-muted">${player.team}</small>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="text-center">${player.played || 0}</td>
+                        <td class="text-center">${player.wins || 0}</td>
+                        <td class="text-center">${player.draws || 0}</td>
+                        <td class="text-center">${player.losses || 0}</td>
+                        <td class="text-center">${player.goalsFor || 0}</td>
+                        <td class="text-center">${player.goalsAgainst || 0}</td>
+                        <td class="text-center ${player.goalDifference > 0 ? 'text-success' : player.goalDifference < 0 ? 'text-danger' : ''}">
+                            ${player.goalDifference > 0 ? '+' : ''}${player.goalDifference || 0}
+                        </td>
+                        <td class="text-center fw-bold text-warning">${player.points || 0}</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+        
+        // Render Group B
+        const groupBTbody = document.querySelector('#group-b-table tbody');
+        if (groupBTbody) {
+            groupBTbody.innerHTML = groupBStandings.map((player, index) => {
+                const playerData = players.find(p => p && p.id === player.id);
+                if (!playerData) return '';
+                
+                const positionClass = index < 2 ? 'bg-success bg-opacity-25' : '';
+                
+                return `
+                    <tr class="${positionClass}">
+                        <td class="text-center fw-bold">${index + 1}</td>
+                        <td>
+                            <div class="d-flex align-items-center">
+                                <img src="${playerData.photo || getPlayerAvatar(playerData)}" alt="${player.name}" 
+                                     class="rounded-circle me-2" style="width: 30px; height: 30px; object-fit: cover;"
+                                     onerror="this.src='${getPlayerAvatar(playerData)}'">
+                                <div>
+                                    <div class="fw-bold">${player.name}</div>
+                                    <small class="text-muted">${player.team}</small>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="text-center">${player.played || 0}</td>
+                        <td class="text-center">${player.wins || 0}</td>
+                        <td class="text-center">${player.draws || 0}</td>
+                        <td class="text-center">${player.losses || 0}</td>
+                        <td class="text-center">${player.goalsFor || 0}</td>
+                        <td class="text-center">${player.goalsAgainst || 0}</td>
+                        <td class="text-center ${player.goalDifference > 0 ? 'text-success' : player.goalDifference < 0 ? 'text-danger' : ''}">
+                            ${player.goalDifference > 0 ? '+' : ''}${player.goalDifference || 0}
+                        </td>
+                        <td class="text-center fw-bold text-warning">${player.points || 0}</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+        
+        // Render knockout bracket
+        await renderKnockoutBracket(fixtures, players, results);
+        
+    } catch (error) {
+        console.error('Error rendering group tables:', error);
+    }
+}
+
+// Calculate standings for a specific group
+async function calculateGroupStandings(groupName, fixtures, players, results) {
+    const groupFixtures = fixtures.filter(f => f.stage === 'group' && f.group === groupName);
+    const groupPlayerIds = new Set();
+    
+    groupFixtures.forEach(f => {
+        if (f.home_player_id) groupPlayerIds.add(f.home_player_id);
+        if (f.away_player_id) groupPlayerIds.add(f.away_player_id);
+    });
+    
+    const groupPlayers = players.filter(p => groupPlayerIds.has(p.id));
+    
+    const standings = await Promise.all(groupPlayers.map(async (player) => {
+        const playerGroupResults = results.filter(r => {
+            const fixture = groupFixtures.find(f => 
+                (f.home_player_id === r.home_player_id && f.away_player_id === r.away_player_id) ||
+                (f.home_player_id === r.away_player_id && f.away_player_id === r.home_player_id)
+            );
+            return fixture && (r.home_player_id === player.id || r.away_player_id === player.id);
+        });
+        
+        let stats = { played: 0, wins: 0, draws: 0, losses: 0, goalsFor: 0, goalsAgainst: 0, points: 0 };
+        
+        playerGroupResults.forEach(result => {
+            const isHome = result.home_player_id === player.id;
+            const playerScore = isHome ? (result.home_score || 0) : (result.away_score || 0);
+            const opponentScore = isHome ? (result.away_score || 0) : (result.home_score || 0);
+            
+            stats.played++;
+            stats.goalsFor += playerScore;
+            stats.goalsAgainst += opponentScore;
+            
+            if (playerScore > opponentScore) {
+                stats.wins++;
+                stats.points += 3;
+            } else if (playerScore === opponentScore) {
+                stats.draws++;
+                stats.points += 1;
+            } else {
+                stats.losses++;
+            }
+        });
+        
+        stats.goalDifference = stats.goalsFor - stats.goalsAgainst;
+        
+        return { ...player, ...stats };
+    }));
+    
+    return standings.sort((a, b) => 
+        b.points - a.points || 
+        b.goalDifference - a.goalDifference || 
+        b.goalsFor - a.goalsFor
+    );
+}
+
+// Render knockout bracket
+async function renderKnockoutBracket(fixtures, players, results) {
+    const container = document.getElementById('knockout-bracket');
+    if (!container) return;
+    
+    const knockoutFixtures = fixtures.filter(f => 
+        f.stage === 'quarter-final' || f.stage === 'semi-final' || f.stage === 'final'
+    );
+    
+    let html = '<div class="row">';
+    
+    // Quarter-Finals
+    const quarters = knockoutFixtures.filter(f => f.stage === 'quarter-final');
+    if (quarters.length > 0) {
+        html += '<div class="col-md-6 mb-4"><h5 class="text-warning">Quarter-Finals</h5>';
+        quarters.forEach(qf => {
+            const homePlayer = qf.home_player_id ? players.find(p => p.id === qf.home_player_id) : null;
+            const awayPlayer = qf.away_player_id ? players.find(p => p.id === qf.away_player_id) : null;
+            const result = results.find(r => 
+                (r.home_player_id === qf.home_player_id && r.away_player_id === qf.away_player_id) ||
+                (r.home_player_id === qf.away_player_id && r.away_player_id === qf.home_player_id)
+            );
+            
+            html += `
+                <div class="card mb-2">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>${homePlayer ? homePlayer.name : qf.home_team_qualifier || 'TBD'}</div>
+                            ${result ? `<div class="fw-bold">${result.home_score} - ${result.away_score}</div>` : '<div>vs</div>'}
+                            <div>${awayPlayer ? awayPlayer.name : qf.away_team_qualifier || 'TBD'}</div>
+                        </div>
+                        <small class="text-muted">${formatDisplayDate(qf.date)}</small>
+                    </div>
+                </div>
+            `;
+        });
+        html += '</div>';
+    }
+    
+    // Semi-Finals
+    const semis = knockoutFixtures.filter(f => f.stage === 'semi-final');
+    if (semis.length > 0) {
+        html += '<div class="col-md-6 mb-4"><h5 class="text-info">Semi-Finals</h5>';
+        semis.forEach(sf => {
+            const homePlayer = sf.home_player_id ? players.find(p => p.id === sf.home_player_id) : null;
+            const awayPlayer = sf.away_player_id ? players.find(p => p.id === sf.away_player_id) : null;
+            const result = results.find(r => 
+                (r.home_player_id === sf.home_player_id && r.away_player_id === sf.away_player_id) ||
+                (r.home_player_id === sf.away_player_id && r.away_player_id === sf.home_player_id)
+            );
+            
+            html += `
+                <div class="card mb-2">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>${homePlayer ? homePlayer.name : sf.home_team_qualifier || 'TBD'}</div>
+                            ${result ? `<div class="fw-bold">${result.home_score} - ${result.away_score}</div>` : '<div>vs</div>'}
+                            <div>${awayPlayer ? awayPlayer.name : sf.away_team_qualifier || 'TBD'}</div>
+                        </div>
+                        <small class="text-muted">${formatDisplayDate(sf.date)}</small>
+                    </div>
+                </div>
+            `;
+        });
+        html += '</div>';
+    }
+    
+    // Final
+    const final = knockoutFixtures.find(f => f.stage === 'final');
+    if (final) {
+        html += '<div class="col-12"><h5 class="text-danger">Final</h5>';
+        const homePlayer = final.home_player_id ? players.find(p => p.id === final.home_player_id) : null;
+        const awayPlayer = final.away_player_id ? players.find(p => p.id === final.away_player_id) : null;
+        const result = results.find(r => 
+            (r.home_player_id === final.home_player_id && r.away_player_id === final.away_player_id) ||
+            (r.home_player_id === final.away_player_id && r.away_player_id === final.home_player_id)
+        );
+        
+        html += `
+            <div class="card bg-warning text-dark">
+                <div class="card-body text-center">
+                    <h4>🏆 Championship Match 🏆</h4>
+                    <div class="d-flex justify-content-between align-items-center mt-3">
+                        <div class="fs-5">${homePlayer ? homePlayer.name : final.home_team_qualifier || 'TBD'}</div>
+                        ${result ? `<div class="fs-3 fw-bold">${result.home_score} - ${result.away_score}</div>` : '<div class="fs-4">vs</div>'}
+                        <div class="fs-5">${awayPlayer ? awayPlayer.name : 'TBD'}</div>
+                    </div>
+                    <small class="text-muted">${formatDisplayDate(final.date)}</small>
+                </div>
+            </div>
+        `;
+        html += '</div>';
+    }
+    
+    html += '</div>';
+    container.innerHTML = html;
+}
+
 export async function renderLeagueTable() {
     try {
+        // Render group tables first
+        await renderGroupTables();
+        
+        // Then render overall standings
         const tableData = await getLeagueTable();
         const players = await getData(DB_KEYS.PLAYERS);
         
@@ -514,6 +794,15 @@ export async function showTab(tabName) {
                 break;
             case 'fixtures':
                 await renderFixtures();
+                // Setup stage filter buttons
+                document.querySelectorAll('[data-stage]').forEach(btn => {
+                    btn.addEventListener('click', async () => {
+                        const stage = btn.getAttribute('data-stage');
+                        await renderFixtures(stage);
+                        document.querySelectorAll('[data-stage]').forEach(b => b.classList.remove('active'));
+                        btn.classList.add('active');
+                    });
+                });
                 break;
             case 'results':
                 await renderResults();
