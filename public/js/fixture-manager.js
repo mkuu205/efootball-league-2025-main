@@ -1,5 +1,5 @@
 // Advanced Fixture Management System
-import { getData, saveData, DB_KEYS, getSupabase } from './database.js'; // ✅ ADD getSupabase
+import { getData, saveData, deleteData, DB_KEYS, getSupabase, showNotification } from './database.js';
 
 // ✅ ADD: Get the supabase client instance
 const supabase = getSupabase();
@@ -38,88 +38,200 @@ class FixtureManager {
         console.log('Fixture management UI ready');
     }
 
-    // Generate optimized fixtures
-    generateOptimizedFixtures() {
-        const players = getData(DB_KEYS.PLAYERS);
+    // Generate optimized fixtures - Champions League Format
+    async generateOptimizedFixtures() {
+        const players = await getData(DB_KEYS.PLAYERS);
         
         if (players.length < 2) {
             showNotification('Need at least 2 players to generate fixtures', 'error');
             return;
         }
 
-        if (confirm('This will replace all existing fixtures with an optimized schedule. Continue?')) {
-            showNotification('Generating optimized fixtures...', 'info');
+        if (confirm('This will replace all existing fixtures with Champions League format (Groups → Quarters → Semis → Final). Continue?')) {
+            showNotification('Generating Champions League fixtures...', 'info');
             
-            setTimeout(() => {
-                try {
-                    const fixtures = this.createOptimizedFixtures(players);
-                    this.saveOptimizedFixtures(fixtures);
-                    showNotification('✅ Optimized fixtures generated successfully!', 'success');
-                    
-                    // Refresh fixtures display
-                    if (typeof renderAdminFixtures === 'function') {
-                        renderAdminFixtures();
-                    }
-                    
-                    // Show fixture report
-                    this.showFixtureReport();
-                    
-                } catch (error) {
-                    console.error('Fixture generation failed:', error);
-                    showNotification('❌ Failed to generate fixtures: ' + error.message, 'error');
+            try {
+                const fixtures = await this.createChampionsLeagueFixtures(players);
+                await this.saveOptimizedFixtures(fixtures);
+                showNotification('✅ Champions League fixtures generated successfully!', 'success');
+                
+                // Refresh fixtures display
+                if (typeof renderAdminFixtures === 'function') {
+                    await renderAdminFixtures();
                 }
-            }, 100);
+                
+                // Show fixture report
+                this.showFixtureReport();
+                
+            } catch (error) {
+                console.error('Fixture generation failed:', error);
+                showNotification('❌ Failed to generate fixtures: ' + error.message, 'error');
+            }
         }
     }
 
-    createOptimizedFixtures(players) {
+    // Create Champions League format fixtures
+    async createChampionsLeagueFixtures(players) {
         const fixtures = [];
-        let fixtureId = this.getNextFixtureId();
+        let fixtureId = await this.getNextFixtureId();
+        const baseDate = new Date();
+        let currentDateOffset = 0;
+
+        // Shuffle players for random group assignment
+        const shuffledPlayers = [...players].sort(() => Math.random() - 0.5);
         
-        // Generate all possible match combinations
-        const matchPairs = [];
-        for (let i = 0; i < players.length; i++) {
-            for (let j = i + 1; j < players.length; j++) {
-                matchPairs.push({
-                    homePlayer: players[i],
-                    awayPlayer: players[j],
-                    strengthDiff: Math.abs(players[i].strength - players[j].strength)
-                });
+        // Create 2 groups of 5 players each (or adjust if not exactly 10)
+        const groupSize = Math.ceil(shuffledPlayers.length / 2);
+        const groupA = shuffledPlayers.slice(0, groupSize);
+        const groupB = shuffledPlayers.slice(groupSize);
+        
+        console.log(`Group A: ${groupA.length} players, Group B: ${groupB.length} players`);
+
+        // ========== GROUP STAGE ==========
+        // Generate round-robin fixtures within each group
+        const groups = [groupA, groupB];
+        groups.forEach((group, groupIndex) => {
+            const groupName = groupIndex === 0 ? 'A' : 'B';
+            
+            // Generate all match pairs within group (home and away)
+            for (let i = 0; i < group.length; i++) {
+                for (let j = i + 1; j < group.length; j++) {
+                    // Home match
+                    const homeDate = new Date(baseDate);
+                    homeDate.setDate(homeDate.getDate() + currentDateOffset);
+                    fixtures.push({
+                        id: fixtureId++,
+                        home_player_id: group[i].id,
+                        away_player_id: group[j].id,
+                        date: homeDate.toISOString().split('T')[0],
+                        time: this.timeSlots[currentDateOffset % this.timeSlots.length],
+                        venue: this.venues[currentDateOffset % this.venues.length],
+                        played: false,
+                        stage: 'group',
+                        group: groupName,
+                        round: `Group ${groupName}`,
+                        created_at: new Date().toISOString(),
+                        updated_at: new Date().toISOString()
+                    });
+                    
+                    currentDateOffset += this.minDaysBetweenMatches;
+                    
+                    // Away match (reverse fixture)
+                    const awayDate = new Date(baseDate);
+                    awayDate.setDate(awayDate.getDate() + currentDateOffset);
+                    fixtures.push({
+                        id: fixtureId++,
+                        home_player_id: group[j].id,
+                        away_player_id: group[i].id,
+                        date: awayDate.toISOString().split('T')[0],
+                        time: this.timeSlots[currentDateOffset % this.timeSlots.length],
+                        venue: this.venues[currentDateOffset % this.venues.length],
+                        played: false,
+                        stage: 'group',
+                        group: groupName,
+                        round: `Group ${groupName}`,
+                        created_at: new Date().toISOString(),
+                        updated_at: new Date().toISOString()
+                    });
+                    
+                    currentDateOffset += this.minDaysBetweenMatches;
+                }
             }
-        }
+        });
 
-        // Sort match pairs by strength difference (closer matches first)
-        matchPairs.sort((a, b) => a.strengthDiff - b.strengthDiff);
-
-        // Create optimized schedule
-        const schedule = this.createBalancedSchedule(matchPairs, players);
+        // ========== QUARTER-FINALS ==========
+        // Top 2 from each group advance (4 teams total)
+        // For now, create placeholder fixtures that will be populated after group stage
+        const quarterDate = new Date(baseDate);
+        quarterDate.setDate(quarterDate.getDate() + currentDateOffset + 7); // 1 week after group stage
         
-        // Convert schedule to fixtures
-        schedule.forEach((daySchedule, dayIndex) => {
-            const date = new Date();
-            date.setDate(date.getDate() + dayIndex * this.minDaysBetweenMatches);
-            const dateString = date.toISOString().split('T')[0];
-            const venue = this.venues[dayIndex % this.venues.length];
+        // QF1: Group A Winner vs Group B Runner-up
+        fixtures.push({
+            id: fixtureId++,
+            home_player_id: null, // Will be set after group stage
+            away_player_id: null,
+            date: quarterDate.toISOString().split('T')[0],
+            time: '15:00',
+            venue: 'Champions Field',
+            played: false,
+            stage: 'quarter-final',
+            group: null,
+            round: 'Quarter-Final 1',
+            home_team_qualifier: 'Group A Winner',
+            away_team_qualifier: 'Group B Runner-up',
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+        });
 
-            daySchedule.forEach((match, matchIndex) => {
-                const time = this.timeSlots[matchIndex % this.timeSlots.length];
-                
-                fixtures.push({
-                    id: fixtureId++,
-                    homePlayerId: match.homePlayer.id,
-                    awayPlayerId: match.awayPlayer.id,
-                    date: dateString,
-                    time: time,
-                    venue: venue,
-                    played: false,
-                    isHomeLeg: true,
-                    createdAt: new Date(),
-                    updatedAt: new Date()
-                });
-            });
+        // QF2: Group B Winner vs Group A Runner-up
+        const qf2Date = new Date(quarterDate);
+        qf2Date.setDate(qf2Date.getDate() + 1);
+        fixtures.push({
+            id: fixtureId++,
+            home_player_id: null,
+            away_player_id: null,
+            date: qf2Date.toISOString().split('T')[0],
+            time: '15:00',
+            venue: 'Champions Field',
+            played: false,
+            stage: 'quarter-final',
+            group: null,
+            round: 'Quarter-Final 2',
+            home_team_qualifier: 'Group B Winner',
+            away_team_qualifier: 'Group A Runner-up',
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+        });
+
+        // ========== SEMI-FINALS ==========
+        const semiDate = new Date(quarterDate);
+        semiDate.setDate(semiDate.getDate() + 7); // 1 week after quarter-finals
+        
+        // SF1: Winner of QF1 vs Winner of QF2
+        fixtures.push({
+            id: fixtureId++,
+            home_player_id: null,
+            away_player_id: null,
+            date: semiDate.toISOString().split('T')[0],
+            time: '18:00',
+            venue: 'Main Arena',
+            played: false,
+            stage: 'semi-final',
+            group: null,
+            round: 'Semi-Final 1',
+            home_team_qualifier: 'QF1 Winner',
+            away_team_qualifier: 'QF2 Winner',
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+        });
+
+        // ========== FINAL ==========
+        const finalDate = new Date(semiDate);
+        finalDate.setDate(finalDate.getDate() + 7); // 1 week after semi-finals
+        
+        fixtures.push({
+            id: fixtureId++,
+            home_player_id: null,
+            away_player_id: null,
+            date: finalDate.toISOString().split('T')[0],
+            time: '20:00',
+            venue: 'Champions Field',
+            played: false,
+            stage: 'final',
+            group: null,
+            round: 'Final',
+            home_team_qualifier: 'SF1 Winner',
+            away_team_qualifier: null,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
         });
 
         return fixtures;
+    }
+
+    // Legacy method for backward compatibility
+    createOptimizedFixtures(players) {
+        return this.createChampionsLeagueFixtures(players);
     }
 
     createBalancedSchedule(matchPairs, players) {
@@ -218,8 +330,21 @@ class FixtureManager {
         return Math.floor(currentDayIndex / daysInWeek) * this.maxMatchesPerWeek;
     }
 
-    saveOptimizedFixtures(fixtures) {
-        saveData(DB_KEYS.FIXTURES, fixtures);
+    async saveOptimizedFixtures(fixtures) {
+        // Clear existing fixtures first
+        const existingFixtures = await getData(DB_KEYS.FIXTURES);
+        if (existingFixtures && existingFixtures.length > 0) {
+            for (const fixture of existingFixtures) {
+                try {
+                    await deleteData(DB_KEYS.FIXTURES, fixture.id);
+                } catch (err) {
+                    console.warn('Could not delete fixture:', err);
+                }
+            }
+        }
+        
+        // Save new fixtures
+        await saveData(DB_KEYS.FIXTURES, fixtures);
         
         // Also sync with MongoDB if available
         if (typeof eflAPI !== 'undefined' && eflAPI.isOnline) {
@@ -247,10 +372,10 @@ class FixtureManager {
     }
 
     // Check for fixture congestion
-    checkFixtureCongestion(playerId) {
-        const fixtures = getData(DB_KEYS.FIXTURES);
+    async checkFixtureCongestion(playerId) {
+        const fixtures = await getData(DB_KEYS.FIXTURES);
         const playerFixtures = fixtures.filter(f => 
-            (f.homePlayerId === playerId || f.awayPlayerId === playerId) && !f.played
+            (f.home_player_id === playerId || f.away_player_id === playerId) && !f.played
         );
         
         // Check next 7 days
@@ -271,14 +396,14 @@ class FixtureManager {
     }
 
     // Check home/away balance
-    checkHomeAwayBalance(playerId) {
-        const fixtures = getData(DB_KEYS.FIXTURES);
+    async checkHomeAwayBalance(playerId) {
+        const fixtures = await getData(DB_KEYS.FIXTURES);
         const playerFixtures = fixtures.filter(f => 
-            f.homePlayerId === playerId || f.awayPlayerId === playerId
+            f.home_player_id === playerId || f.away_player_id === playerId
         );
         
-        const homeMatches = playerFixtures.filter(f => f.homePlayerId === playerId).length;
-        const awayMatches = playerFixtures.filter(f => f.awayPlayerId === playerId).length;
+        const homeMatches = playerFixtures.filter(f => f.home_player_id === playerId).length;
+        const awayMatches = playerFixtures.filter(f => f.away_player_id === playerId).length;
         
         const totalMatches = homeMatches + awayMatches;
         const balance = homeMatches - awayMatches;
@@ -302,8 +427,8 @@ class FixtureManager {
     }
 
     // Detect date conflicts
-    detectDateConflicts(fixtures = null) {
-        const fixturesToCheck = fixtures || getData(DB_KEYS.FIXTURES);
+    async detectDateConflicts(fixtures = null) {
+        const fixturesToCheck = fixtures || await getData(DB_KEYS.FIXTURES);
         const conflicts = [];
         const dateMap = new Map();
 
@@ -321,7 +446,7 @@ class FixtureManager {
             
             dayFixtures.forEach(fixture => {
                 // Check player conflicts
-                [fixture.homePlayerId, fixture.awayPlayerId].forEach(playerId => {
+                [fixture.home_player_id, fixture.away_player_id].forEach(playerId => {
                     if (playerAppearances.has(playerId)) {
                         conflicts.push({
                             type: 'PLAYER_CONFLICT',
@@ -364,16 +489,16 @@ class FixtureManager {
     }
 
     // Get next available fixture ID
-    getNextFixtureId() {
-        const fixtures = getData(DB_KEYS.FIXTURES);
-        return fixtures.length > 0 ? Math.max(...fixtures.map(f => f.id)) + 1 : 1;
+    async getNextFixtureId() {
+        const fixtures = await getData(DB_KEYS.FIXTURES);
+        return fixtures.length > 0 ? Math.max(...fixtures.map(f => f.id || 0)) + 1 : 1;
     }
 
     // Generate fixture report
-    generateFixtureReport() {
-        const fixtures = getData(DB_KEYS.FIXTURES);
-        const players = getData(DB_KEYS.PLAYERS);
-        const results = getData(DB_KEYS.RESULTS);
+    async generateFixtureReport() {
+        const fixtures = await getData(DB_KEYS.FIXTURES);
+        const players = await getData(DB_KEYS.PLAYERS);
+        const results = await getData(DB_KEYS.RESULTS);
         
         const report = {
             generatedAt: new Date().toISOString(),
@@ -386,9 +511,9 @@ class FixtureManager {
                     (fixtures.filter(f => f.played).length / fixtures.length) * 100 : 0
             },
             venueUsage: this.getVenueUsage(fixtures),
-            playerSchedules: this.getPlayerSchedules(players, fixtures),
-            conflicts: this.detectDateConflicts(),
-            recommendations: this.getSchedulingRecommendations(players, fixtures),
+            playerSchedules: await this.getPlayerSchedules(players, fixtures),
+            conflicts: await this.detectDateConflicts(),
+            recommendations: await this.getSchedulingRecommendations(players, fixtures),
             upcomingSchedule: this.getUpcomingSchedule(fixtures, 7) // Next 7 days
         };
         
@@ -415,14 +540,14 @@ class FixtureManager {
         };
     }
 
-    getPlayerSchedules(players, fixtures) {
-        return players.map(player => {
+    async getPlayerSchedules(players, fixtures) {
+        return await Promise.all(players.map(async (player) => {
             const playerFixtures = fixtures.filter(f => 
-                f.homePlayerId === player.id || f.awayPlayerId === player.id
+                f.home_player_id === player.id || f.away_player_id === player.id
             );
             
-            const congestion = this.checkFixtureCongestion(player.id);
-            const balance = this.checkHomeAwayBalance(player.id);
+            const congestion = await this.checkFixtureCongestion(player.id);
+            const balance = await this.checkHomeAwayBalance(player.id);
             
             return {
                 playerId: player.id,
@@ -430,19 +555,19 @@ class FixtureManager {
                 totalMatches: playerFixtures.length,
                 playedMatches: playerFixtures.filter(f => f.played).length,
                 upcomingMatches: playerFixtures.filter(f => !f.played).length,
-                homeMatches: playerFixtures.filter(f => f.homePlayerId === player.id).length,
-                awayMatches: playerFixtures.filter(f => f.awayPlayerId === player.id).length,
+                homeMatches: playerFixtures.filter(f => f.home_player_id === player.id).length,
+                awayMatches: playerFixtures.filter(f => f.away_player_id === player.id).length,
                 congestion: congestion,
                 balance: balance,
                 nextMatch: this.getNextPlayerMatch(player.id, fixtures),
                 lastMatch: this.getLastPlayerMatch(player.id, fixtures)
             };
-        });
+        }));
     }
 
     getNextPlayerMatch(playerId, fixtures) {
         const upcoming = fixtures
-            .filter(f => !f.played && (f.homePlayerId === playerId || f.awayPlayerId === playerId))
+            .filter(f => !f.played && (f.home_player_id === playerId || f.away_player_id === playerId))
             .sort((a, b) => new Date(a.date) - new Date(b.date));
         
         return upcoming.length > 0 ? upcoming[0] : null;
@@ -450,19 +575,19 @@ class FixtureManager {
 
     getLastPlayerMatch(playerId, fixtures) {
         const played = fixtures
-            .filter(f => f.played && (f.homePlayerId === playerId || f.awayPlayerId === playerId))
+            .filter(f => f.played && (f.home_player_id === playerId || f.away_player_id === playerId))
             .sort((a, b) => new Date(b.date) - new Date(a.date));
         
         return played.length > 0 ? played[0] : null;
     }
 
-    getSchedulingRecommendations(players, fixtures) {
+    async getSchedulingRecommendations(players, fixtures) {
         const recommendations = [];
         
         // Check each player's schedule
-        players.forEach(player => {
-            const congestion = this.checkFixtureCongestion(player.id);
-            const balance = this.checkHomeAwayBalance(player.id);
+        for (const player of players) {
+            const congestion = await this.checkFixtureCongestion(player.id);
+            const balance = await this.checkHomeAwayBalance(player.id);
             
             if (congestion.hasCongestion) {
                 recommendations.push({
@@ -486,7 +611,7 @@ class FixtureManager {
                     suggestion: balance.recommendation
                 });
             }
-        });
+        }
         
         // Check venue usage
         const venueUsage = this.getVenueUsage(fixtures);
@@ -509,7 +634,7 @@ class FixtureManager {
         });
         
         // Check for date conflicts
-        const conflicts = this.detectDateConflicts();
+        const conflicts = await this.detectDateConflicts();
         if (conflicts.length > 0) {
             recommendations.push({
                 type: 'CONFLICTS',
@@ -548,8 +673,8 @@ class FixtureManager {
     }
 
     // Show fixture report in UI
-    showFixtureReport() {
-        const report = this.generateFixtureReport();
+    async showFixtureReport() {
+        const report = await this.generateFixtureReport();
         
         // Create modal or display report
         const reportHTML = this.generateReportHTML(report);
@@ -721,8 +846,8 @@ function showFixtureReport() {
     fixtureManager.showFixtureReport();
 }
 
-function checkFixtureConflicts() {
-    const conflicts = fixtureManager.detectDateConflicts();
+async function checkFixtureConflicts() {
+    const conflicts = await fixtureManager.detectDateConflicts();
     
     if (conflicts.length === 0) {
         showNotification('✅ No scheduling conflicts found!', 'success');
@@ -745,10 +870,10 @@ function checkFixtureConflicts() {
     }
 }
 
-function showRescheduleTool() {
+async function showRescheduleTool() {
     // Create a simple reschedule interface
-    const fixtures = getData(DB_KEYS.FIXTURES);
-    const players = getData(DB_KEYS.PLAYERS);
+    const fixtures = await getData(DB_KEYS.FIXTURES);
+    const players = await getData(DB_KEYS.PLAYERS);
     
     const upcomingFixtures = fixtures.filter(f => !f.played);
     
@@ -758,10 +883,11 @@ function showRescheduleTool() {
     }
     
     let fixtureOptions = upcomingFixtures.map(f => {
-        const homePlayer = players.find(p => p.id === f.homePlayerId);
-        const awayPlayer = players.find(p => p.id === f.awayPlayerId);
+        const homePlayer = players.find(p => p.id === f.home_player_id);
+        const awayPlayer = players.find(p => p.id === f.away_player_id);
+        if (!homePlayer || !awayPlayer) return '';
         return `<option value="${f.id}">${homePlayer.name} vs ${awayPlayer.name} (${f.date} ${f.time})</option>`;
-    }).join('');
+    }).filter(opt => opt).join('');
     
     fixtureManager.showModal('Reschedule Fixture', `
         <form id="reschedule-form">
@@ -792,7 +918,7 @@ function showRescheduleTool() {
     `);
 }
 
-function performReschedule() {
+async function performReschedule() {
     const fixtureId = parseInt(document.getElementById('reschedule-fixture-select').value);
     const newDate = document.getElementById('reschedule-date').value;
     const newTime = document.getElementById('reschedule-time').value;
@@ -803,7 +929,7 @@ function performReschedule() {
         return;
     }
     
-    const fixtures = getData(DB_KEYS.FIXTURES);
+    const fixtures = await getData(DB_KEYS.FIXTURES);
     const fixtureIndex = fixtures.findIndex(f => f.id === fixtureId);
     
     if (fixtureIndex === -1) {
@@ -820,7 +946,7 @@ function performReschedule() {
         venue: newVenue
     };
     
-    const conflicts = fixtureManager.detectDateConflicts(tempFixtures);
+    const conflicts = await fixtureManager.detectDateConflicts(tempFixtures);
     const relevantConflicts = conflicts.filter(conflict => 
         conflict.date === newDate && 
         (conflict.fixtures.includes(fixtureId))
@@ -835,9 +961,9 @@ function performReschedule() {
     fixtures[fixtureIndex].date = newDate;
     fixtures[fixtureIndex].time = newTime;
     fixtures[fixtureIndex].venue = newVenue;
-    fixtures[fixtureIndex].updatedAt = new Date();
+    fixtures[fixtureIndex].updated_at = new Date().toISOString();
     
-    saveData(DB_KEYS.FIXTURES, fixtures);
+    await saveData(DB_KEYS.FIXTURES, fixtures);
     
     // Update MongoDB if available
     if (typeof eflAPI !== 'undefined' && eflAPI.isOnline) {
