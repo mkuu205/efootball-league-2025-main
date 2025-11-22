@@ -10,7 +10,7 @@ import {
 } from './database.js';
 
 // Cache and Version Control
-const APP_VERSION = '3.1.0';
+const APP_VERSION = '3.1.1';
 
 // Enhanced avatar helper function with better fallback
 function getPlayerAvatar(player, size = 40) {
@@ -116,7 +116,7 @@ export async function renderTopScorers() {
     const container = document.getElementById('top-scorers');
     if (!container) return;
     
-    container.innerHTML = playerGoals.slice(0, 5).map((player, index) => `
+    container.innerHTML = playerGoals.map((player, index) => `
         <li class="list-group-item d-flex justify-content-between align-items-start bg-transparent text-light border-light">
             <div class="d-flex align-items-center">
                 <img src="${player.photo || getPlayerAvatar(player)}" alt="${player.name}" 
