@@ -28,6 +28,16 @@ class FixtureManager {
         this.init();
     }
 
+    // ---------------------------------------------------------------------------
+    // Simple Reschedule Tool Placeholder
+    // ---------------------------------------------------------------------------
+    showRescheduleTool() {
+        console.warn("⚠️ showRescheduleTool() was clicked, but the rescheduling feature is not implemented yet.");
+
+        // Optional: show a basic popup message
+        alert("Reschedule tool is not implemented yet.");
+    }
+
     init() {
         console.log('Fixture Manager initialized');
         this.addFixtureManagementUI();
@@ -47,13 +57,13 @@ class FixtureManager {
             return;
         }
 
-        if (confirm('This will replace all existing fixtures with Champions League format (Groups → Quarters → Semis → Final). Continue?')) {
-            showNotification('Generating Champions League fixtures...', 'info');
+        if (confirm('This will generate Champions League GROUP STAGE fixtures only. Continue?')) {
+            showNotification('Generating Champions League group stage fixtures...', 'info');
             
             try {
                 const fixtures = await this.createChampionsLeagueFixtures(players);
                 await this.saveOptimizedFixtures(fixtures);
-                showNotification('✅ Champions League fixtures generated successfully!', 'success');
+                showNotification('✅ Champions League group stage fixtures generated successfully!', 'success');
                 
                 // Refresh fixtures display
                 if (typeof renderAdminFixtures === 'function') {
@@ -70,24 +80,23 @@ class FixtureManager {
         }
     }
 
-    // Create Champions League format fixtures
+    // Create Champions League format fixtures - GROUP STAGE ONLY initially
     async createChampionsLeagueFixtures(players) {
         const fixtures = [];
-        let fixtureId = await this.getNextFixtureId();
         const baseDate = new Date();
         let currentDateOffset = 0;
 
         // Shuffle players for random group assignment
         const shuffledPlayers = [...players].sort(() => Math.random() - 0.5);
         
-        // Create 2 groups of 5 players each (or adjust if not exactly 10)
+        // Create 2 groups of 5 players each for 10 players
         const groupSize = Math.ceil(shuffledPlayers.length / 2);
         const groupA = shuffledPlayers.slice(0, groupSize);
         const groupB = shuffledPlayers.slice(groupSize);
         
         console.log(`Group A: ${groupA.length} players, Group B: ${groupB.length} players`);
 
-        // ========== GROUP STAGE ==========
+        // ========== GROUP STAGE ONLY ==========
         // Generate round-robin fixtures within each group
         const groups = [groupA, groupB];
         groups.forEach((group, groupIndex) => {
@@ -100,7 +109,6 @@ class FixtureManager {
                     const homeDate = new Date(baseDate);
                     homeDate.setDate(homeDate.getDate() + currentDateOffset);
                     fixtures.push({
-                        id: fixtureId++,
                         home_player_id: group[i].id,
                         away_player_id: group[j].id,
                         date: homeDate.toISOString().split('T')[0],
@@ -120,7 +128,6 @@ class FixtureManager {
                     const awayDate = new Date(baseDate);
                     awayDate.setDate(awayDate.getDate() + currentDateOffset);
                     fixtures.push({
-                        id: fixtureId++,
                         home_player_id: group[j].id,
                         away_player_id: group[i].id,
                         date: awayDate.toISOString().split('T')[0],
@@ -139,17 +146,54 @@ class FixtureManager {
             }
         });
 
+        return fixtures;
+    }
+
+    // Generate knockout stages after group stage is completed
+    async generateKnockoutStages() {
+        const players = await getData(DB_KEYS.PLAYERS);
+        const fixtures = await getData(DB_KEYS.FIXTURES);
+        const results = await getData(DB_KEYS.RESULTS);
+        
+        // Check if group stage is completed
+        const groupFixtures = fixtures.filter(f => f.stage === 'group');
+        const completedGroupFixtures = groupFixtures.filter(f => f.played);
+        
+        if (completedGroupFixtures.length < groupFixtures.length) {
+            showNotification('Group stage not completed yet! Finish all group matches first.', 'error');
+            return;
+        }
+        
+        // Calculate group standings
+        const groupAStandings = await this.calculateGroupStandings('A', fixtures, players, results);
+        const groupBStandings = await this.calculateGroupStandings('B', fixtures, players, results);
+        
+        // Get top 2 from each group
+        const groupAWinner = groupAStandings[0];
+        const groupARunnerUp = groupAStandings[1];
+        const groupBWinner = groupBStandings[0];
+        const groupBRunnerUp = groupBStandings[1];
+        
+        if (!groupAWinner || !groupARunnerUp || !groupBWinner || !groupBRunnerUp) {
+            showNotification('Not enough players qualified for knockout stages!', 'error');
+            return;
+        }
+        
+        const knockoutFixtures = [];
+        const baseDate = new Date();
+        
+        // Find the latest group stage match date
+        const latestGroupDate = new Date(Math.max(...groupFixtures.map(f => new Date(f.date))));
+        let currentDateOffset = 7; // Start 1 week after group stage
+
         // ========== QUARTER-FINALS ==========
-        // Top 2 from each group advance (4 teams total)
-        // For now, create placeholder fixtures that will be populated after group stage
-        const quarterDate = new Date(baseDate);
-        quarterDate.setDate(quarterDate.getDate() + currentDateOffset + 7); // 1 week after group stage
+        const quarterDate = new Date(latestGroupDate);
+        quarterDate.setDate(quarterDate.getDate() + currentDateOffset);
         
         // QF1: Group A Winner vs Group B Runner-up
-        fixtures.push({
-            id: fixtureId++,
-            home_player_id: null, // Will be set after group stage
-            away_player_id: null,
+        knockoutFixtures.push({
+            home_player_id: groupAWinner.id,
+            away_player_id: groupBRunnerUp.id,
             date: quarterDate.toISOString().split('T')[0],
             time: '15:00',
             venue: 'Champions Field',
@@ -166,10 +210,9 @@ class FixtureManager {
         // QF2: Group B Winner vs Group A Runner-up
         const qf2Date = new Date(quarterDate);
         qf2Date.setDate(qf2Date.getDate() + 1);
-        fixtures.push({
-            id: fixtureId++,
-            home_player_id: null,
-            away_player_id: null,
+        knockoutFixtures.push({
+            home_player_id: groupBWinner.id,
+            away_player_id: groupARunnerUp.id,
             date: qf2Date.toISOString().split('T')[0],
             time: '15:00',
             venue: 'Champions Field',
@@ -183,36 +226,131 @@ class FixtureManager {
             updated_at: new Date().toISOString()
         });
 
-        // ========== SEMI-FINALS ==========
-        const semiDate = new Date(quarterDate);
-        semiDate.setDate(semiDate.getDate() + 7); // 1 week after quarter-finals
+        // Save knockout fixtures
+        await saveData(DB_KEYS.FIXTURES, knockoutFixtures);
+        showNotification('Quarter-finals generated successfully!', 'success');
         
+        // Refresh fixtures display
+        if (typeof renderAdminFixtures === 'function') {
+            await renderAdminFixtures();
+        }
+    }
+
+    // Generate semi-finals after quarter-finals are completed
+    async generateSemiFinals() {
+        const fixtures = await getData(DB_KEYS.FIXTURES);
+        const results = await getData(DB_KEYS.RESULTS);
+        
+        // Check if quarter-finals are completed
+        const quarterFinals = fixtures.filter(f => f.stage === 'quarter-final');
+        const completedQuarters = quarterFinals.filter(f => f.played);
+        
+        if (completedQuarters.length < quarterFinals.length) {
+            showNotification('Quarter-finals not completed yet!', 'error');
+            return;
+        }
+        
+        // Determine semi-finalists from quarter-final results
+        const semiFinalists = [];
+        
+        for (const qf of quarterFinals) {
+            const result = results.find(r => 
+                (r.home_player_id === qf.home_player_id && r.away_player_id === qf.away_player_id) ||
+                (r.home_player_id === qf.away_player_id && r.away_player_id === qf.home_player_id)
+            );
+            
+            if (result) {
+                const winnerId = result.home_score > result.away_score ? qf.home_player_id : qf.away_player_id;
+                semiFinalists.push(winnerId);
+            }
+        }
+        
+        if (semiFinalists.length !== 2) {
+            showNotification('Could not determine semi-finalists!', 'error');
+            return;
+        }
+        
+        const semiFixtures = [];
+        
+        // Find the latest quarter-final date
+        const latestQuarterDate = new Date(Math.max(...quarterFinals.map(f => new Date(f.date))));
+        let currentDateOffset = 7; // Start 1 week after quarter-finals
+
         // SF1: Winner of QF1 vs Winner of QF2
-        fixtures.push({
-            id: fixtureId++,
-            home_player_id: null,
-            away_player_id: null,
+        const semiDate = new Date(latestQuarterDate);
+        semiDate.setDate(semiDate.getDate() + currentDateOffset);
+        
+        semiFixtures.push({
+            home_player_id: semiFinalists[0],
+            away_player_id: semiFinalists[1],
             date: semiDate.toISOString().split('T')[0],
             time: '18:00',
             venue: 'Main Arena',
             played: false,
             stage: 'semi-final',
             group: null,
-            round: 'Semi-Final 1',
-            home_team_qualifier: 'QF1 Winner',
-            away_team_qualifier: 'QF2 Winner',
+            round: 'Semi-Final',
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString()
         });
 
-        // ========== FINAL ==========
-        const finalDate = new Date(semiDate);
-        finalDate.setDate(finalDate.getDate() + 7); // 1 week after semi-finals
+        // Save semi-final fixtures
+        await saveData(DB_KEYS.FIXTURES, semiFixtures);
+        showNotification('Semi-finals generated successfully!', 'success');
         
-        fixtures.push({
-            id: fixtureId++,
-            home_player_id: null,
-            away_player_id: null,
+        // Refresh fixtures display
+        if (typeof renderAdminFixtures === 'function') {
+            await renderAdminFixtures();
+        }
+    }
+
+    // Generate final after semi-finals are completed
+    async generateFinal() {
+        const fixtures = await getData(DB_KEYS.FIXTURES);
+        const results = await getData(DB_KEYS.RESULTS);
+        
+        // Check if semi-finals are completed
+        const semiFinals = fixtures.filter(f => f.stage === 'semi-final');
+        const completedSemis = semiFinals.filter(f => f.played);
+        
+        if (completedSemis.length < semiFinals.length) {
+            showNotification('Semi-finals not completed yet!', 'error');
+            return;
+        }
+        
+        // Determine finalists from semi-final results
+        let finalist = null;
+        
+        for (const sf of semiFinals) {
+            const result = results.find(r => 
+                (r.home_player_id === sf.home_player_id && r.away_player_id === sf.away_player_id) ||
+                (r.home_player_id === sf.away_player_id && r.away_player_id === sf.home_player_id)
+            );
+            
+            if (result) {
+                finalist = result.home_score > result.away_score ? sf.home_player_id : sf.away_player_id;
+                break; // We only need one finalist from the single semi-final
+            }
+        }
+        
+        if (!finalist) {
+            showNotification('Could not determine finalist!', 'error');
+            return;
+        }
+        
+        const finalFixture = [];
+        
+        // Find the latest semi-final date
+        const latestSemiDate = new Date(Math.max(...semiFinals.map(f => new Date(f.date))));
+        let currentDateOffset = 7; // Start 1 week after semi-finals
+
+        // FINAL
+        const finalDate = new Date(latestSemiDate);
+        finalDate.setDate(finalDate.getDate() + currentDateOffset);
+        
+        finalFixture.push({
+            home_player_id: finalist,
+            away_player_id: null, // Only one finalist determined from single semi-final
             date: finalDate.toISOString().split('T')[0],
             time: '20:00',
             venue: 'Champions Field',
@@ -220,13 +358,75 @@ class FixtureManager {
             stage: 'final',
             group: null,
             round: 'Final',
-            home_team_qualifier: 'SF1 Winner',
+            home_team_qualifier: 'Semi-Final Winner',
             away_team_qualifier: null,
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString()
         });
 
-        return fixtures;
+        // Save final fixture
+        await saveData(DB_KEYS.FIXTURES, finalFixture);
+        showNotification('Final generated successfully!', 'success');
+        
+        // Refresh fixtures display
+        if (typeof renderAdminFixtures === 'function') {
+            await renderAdminFixtures();
+        }
+    }
+
+    // Calculate group standings
+    async calculateGroupStandings(groupName, fixtures, players, results) {
+        const groupFixtures = fixtures.filter(f => f.stage === 'group' && f.group === groupName);
+        const groupPlayerIds = new Set();
+        
+        groupFixtures.forEach(f => {
+            if (f.home_player_id) groupPlayerIds.add(f.home_player_id);
+            if (f.away_player_id) groupPlayerIds.add(f.away_player_id);
+        });
+        
+        const groupPlayers = players.filter(p => groupPlayerIds.has(p.id));
+        
+        const standings = await Promise.all(groupPlayers.map(async (player) => {
+            const playerGroupResults = results.filter(r => {
+                const fixture = groupFixtures.find(f => 
+                    (f.home_player_id === r.home_player_id && f.away_player_id === r.away_player_id) ||
+                    (f.home_player_id === r.away_player_id && f.away_player_id === r.home_player_id)
+                );
+                return fixture && (r.home_player_id === player.id || r.away_player_id === player.id);
+            });
+            
+            let stats = { played: 0, wins: 0, draws: 0, losses: 0, goalsFor: 0, goalsAgainst: 0, points: 0 };
+            
+            playerGroupResults.forEach(result => {
+                const isHome = result.home_player_id === player.id;
+                const playerScore = isHome ? (result.home_score || 0) : (result.away_score || 0);
+                const opponentScore = isHome ? (result.away_score || 0) : (result.home_score || 0);
+                
+                stats.played++;
+                stats.goalsFor += playerScore;
+                stats.goalsAgainst += opponentScore;
+                
+                if (playerScore > opponentScore) {
+                    stats.wins++;
+                    stats.points += 3;
+                } else if (playerScore === opponentScore) {
+                    stats.draws++;
+                    stats.points += 1;
+                } else {
+                    stats.losses++;
+                }
+            });
+            
+            stats.goalDifference = stats.goalsFor - stats.goalsAgainst;
+            
+            return { ...player, ...stats };
+        }));
+        
+        return standings.sort((a, b) => 
+            b.points - a.points || 
+            b.goalDifference - a.goalDifference || 
+            b.goalsFor - a.goalsFor
+        );
     }
 
     // Legacy method for backward compatibility
@@ -343,8 +543,14 @@ class FixtureManager {
             }
         }
         
-        // Save new fixtures
-        await saveData(DB_KEYS.FIXTURES, fixtures);
+        // Remove numeric IDs and let Supabase generate UUIDs
+        const fixturesWithoutIds = fixtures.map(fixture => {
+            const { id, ...fixtureWithoutId } = fixture;
+            return fixtureWithoutId;
+        });
+        
+        // Save new fixtures without IDs
+        await saveData(DB_KEYS.FIXTURES, fixturesWithoutIds);
         
         // Also sync with MongoDB if available
         if (typeof eflAPI !== 'undefined' && eflAPI.isOnline) {
@@ -486,12 +692,6 @@ class FixtureManager {
         });
 
         return conflicts;
-    }
-
-    // Get next available fixture ID
-    async getNextFixtureId() {
-        const fixtures = await getData(DB_KEYS.FIXTURES);
-        return fixtures.length > 0 ? Math.max(...fixtures.map(f => f.id || 0)) + 1 : 1;
     }
 
     // Generate fixture report
@@ -846,6 +1046,19 @@ function showFixtureReport() {
     fixtureManager.showFixtureReport();
 }
 
+// New knockout stage functions
+function generateKnockoutStages() {
+    fixtureManager.generateKnockoutStages();
+}
+
+function generateSemiFinals() {
+    fixtureManager.generateSemiFinals();
+}
+
+function generateFinal() {
+    fixtureManager.generateFinal();
+}
+
 async function checkFixtureConflicts() {
     const conflicts = await fixtureManager.detectDateConflicts();
     
@@ -871,51 +1084,7 @@ async function checkFixtureConflicts() {
 }
 
 async function showRescheduleTool() {
-    // Create a simple reschedule interface
-    const fixtures = await getData(DB_KEYS.FIXTURES);
-    const players = await getData(DB_KEYS.PLAYERS);
-    
-    const upcomingFixtures = fixtures.filter(f => !f.played);
-    
-    if (upcomingFixtures.length === 0) {
-        showNotification('No upcoming fixtures to reschedule!', 'warning');
-        return;
-    }
-    
-    let fixtureOptions = upcomingFixtures.map(f => {
-        const homePlayer = players.find(p => p.id === f.home_player_id);
-        const awayPlayer = players.find(p => p.id === f.away_player_id);
-        if (!homePlayer || !awayPlayer) return '';
-        return `<option value="${f.id}">${homePlayer.name} vs ${awayPlayer.name} (${f.date} ${f.time})</option>`;
-    }).filter(opt => opt).join('');
-    
-    fixtureManager.showModal('Reschedule Fixture', `
-        <form id="reschedule-form">
-            <div class="mb-3">
-                <label class="form-label">Select Fixture to Reschedule:</label>
-                <select class="form-select bg-dark text-light" id="reschedule-fixture-select">
-                    ${fixtureOptions}
-                </select>
-            </div>
-            <div class="row mb-3">
-                <div class="col-md-6">
-                    <label class="form-label">New Date:</label>
-                    <input type="date" class="form-control bg-dark text-light" id="reschedule-date" value="${new Date().toISOString().split('T')[0]}">
-                </div>
-                <div class="col-md-6">
-                    <label class="form-label">New Time:</label>
-                    <input type="time" class="form-control bg-dark text-light" id="reschedule-time" value="15:00">
-                </div>
-            </div>
-            <div class="mb-3">
-                <label class="form-label">New Venue:</label>
-                <input type="text" class="form-control bg-dark text-light" id="reschedule-venue" value="Virtual Stadium A">
-            </div>
-            <button type="button" class="btn btn-primary w-100" onclick="performReschedule()">
-                <i class="fas fa-calendar-alt me-2"></i> Reschedule Fixture
-            </button>
-        </form>
-    `);
+    fixtureManager.showRescheduleTool();
 }
 
 async function performReschedule() {
@@ -976,4 +1145,10 @@ async function performReschedule() {
     // Close modal
     const modal = bootstrap.Modal.getInstance(document.getElementById('fixtureReportModal'));
     if (modal) modal.hide();
-    }
+}
+
+// Make knockout functions globally available
+window.generateKnockoutStages = generateKnockoutStages;
+window.generateSemiFinals = generateSemiFinals;
+window.generateFinal = generateFinal;
+window.showRescheduleTool = showRescheduleTool;
