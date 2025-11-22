@@ -191,8 +191,8 @@
                             <div class="carousel-content" style="background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);">
                                 <div class="text-white">
                                     <h2 class="display-4 fw-bold">eFootball League 2025</h2>
-                                    <p class="lead">Competition - Round Robin Tournament</p>
-                                    <p>All players face each other in home and away matches</p>
+                                    <p class="lead">Champions League Format</p>
+                                    <p>Group stages → Quarter-finals → Semi-finals → Final</p>
                                 </div>
                             </div>
                         </div>
@@ -241,13 +241,14 @@
                                 <i class="fas fa-trophy me-2"></i> Tournament Overview
                             </div>
                             <div class="card-body">
-                                <p>Welcome to the eFootball League 2025! This is our class competition where each player will face off against every other player in home and away matches.</p>
-                                <p>The tournament follows a round-robin format with balanced teams to ensure fairness and competitive gameplay.</p>
-                                <h5>Key Information:</h5>
+                                <p>Welcome to the eFootball League 2025! This is our Champions League style tournament with group stages, quarter-finals, semi-finals, and a grand final.</p>
+                                <p>The tournament follows a Champions League format: players compete in groups, then advance to knockout stages.</p>
+                                <h5>Tournament Structure:</h5>
                                 <ul>
-                                    <li>Round-robin format (home and away matches)</li>
-                                    <li>All players must play each other</li>
-                                    <li>Team strength balanced for fairness</li>
+                                    <li><strong>Group Stage:</strong> 2 groups of 5 players each (home and away matches)</li>
+                                    <li><strong>Quarter-Finals:</strong> Top 2 from each group advance (4 teams)</li>
+                                    <li><strong>Semi-Finals:</strong> 2 matches (4 teams → 2 winners)</li>
+                                    <li><strong>Final:</strong> Championship match (2 teams → 1 winner)</li>
                                     <li>Points system: Win = 3, Draw = 1, Loss = 0</li>
                                     <li>Prize: 500 KES for the winner</li>
                                     <li><strong>Real-time updates with Supabase</strong></li>
@@ -324,7 +325,8 @@
                     <div class="card-header d-flex justify-content-between align-items-center">
                         <span><i class="fas fa-calendar me-2"></i> Fixtures</span>
                         <div>
-                            <button class="btn btn-sm btn-primary me-2" id="show-upcoming">Upcoming</button>
+                            <button class="btn btn-sm btn-primary me-2" id="show-group">Group Stage</button>
+                            <button class="btn btn-sm btn-warning me-2" id="show-knockout">Knockout</button>
                             <button class="btn btn-sm btn-outline-light" id="show-all">All Fixtures</button>
                             <button class="btn btn-sm btn-outline-info ms-2" onclick="imageExporter.exportMatchDayFixtures()">
                                 <i class="fas fa-image me-1"></i> Export
@@ -332,10 +334,34 @@
                         </div>
                     </div>
                     <div class="card-body">
+                        <!-- Stage Filter Tabs -->
+                        <ul class="nav nav-pills mb-3" id="fixture-stages" role="tablist">
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link active" id="group-tab" data-bs-toggle="pill" data-stage="group">
+                                    <i class="fas fa-users me-1"></i> Group Stage
+                                </button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="quarter-tab" data-bs-toggle="pill" data-stage="quarter-final">
+                                    <i class="fas fa-trophy me-1"></i> Quarter-Finals
+                                </button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="semi-tab" data-bs-toggle="pill" data-stage="semi-final">
+                                    <i class="fas fa-trophy me-1"></i> Semi-Finals
+                                </button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="final-tab" data-bs-toggle="pill" data-stage="final">
+                                    <i class="fas fa-crown me-1"></i> Final
+                                </button>
+                            </li>
+                        </ul>
                         <div class="table-responsive">
                             <table class="table table-dark table-hover" id="fixtures-table">
                                 <thead>
                                     <tr>
+                                        <th>Stage</th>
                                         <th>Date</th>
                                         <th>Time</th>
                                         <th>Home Team</th>
@@ -367,12 +393,89 @@
 
             <!-- League Table Tab -->
             <div class="tab-pane fade" id="table" role="tabpanel">
+                <!-- Group Tables -->
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header bg-primary text-white">
+                                <i class="fas fa-users me-2"></i> Group A
+                            </div>
+                            <div class="card-body">
+                                <div class="table-responsive">
+                                    <table class="table table-dark table-hover" id="group-a-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Pos</th>
+                                                <th>Player</th>
+                                                <th>P</th>
+                                                <th>W</th>
+                                                <th>D</th>
+                                                <th>L</th>
+                                                <th>GF</th>
+                                                <th>GA</th>
+                                                <th>GD</th>
+                                                <th>Pts</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <!-- Dynamically loaded -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header bg-warning text-dark">
+                                <i class="fas fa-users me-2"></i> Group B
+                            </div>
+                            <div class="card-body">
+                                <div class="table-responsive">
+                                    <table class="table table-dark table-hover" id="group-b-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Pos</th>
+                                                <th>Player</th>
+                                                <th>P</th>
+                                                <th>W</th>
+                                                <th>D</th>
+                                                <th>L</th>
+                                                <th>GF</th>
+                                                <th>GA</th>
+                                                <th>GD</th>
+                                                <th>Pts</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <!-- Dynamically loaded -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Knockout Stages -->
                 <div class="card">
                     <div class="card-header d-flex justify-content-between align-items-center">
-                        <span><i class="fas fa-table me-2"></i> League Table</span>
+                        <span><i class="fas fa-trophy me-2"></i> Knockout Stages</span>
                         <button class="btn btn-sm btn-outline-info" onclick="imageExporter.exportLeagueTable()">
                             <i class="fas fa-image me-1"></i> Export Image
                         </button>
+                    </div>
+                    <div class="card-body">
+                        <div id="knockout-bracket">
+                            <!-- Knockout bracket will be loaded here -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Overall League Table (for reference) -->
+                <div class="card mt-4">
+                    <div class="card-header">
+                        <span><i class="fas fa-table me-2"></i> Overall Standings</span>
                     </div>
                     <div class="card-body">
                         <div class="table-responsive">
@@ -598,35 +701,65 @@
                 let indicatorsHTML = '';
                 
                 upcomingFixtures.forEach((fixture, index) => {
-                    const homePlayer = players.find(p => p.id === fixture.home_player_id);
-                    const awayPlayer = players.find(p => p.id === fixture.away_player_id);
+                    const homePlayer = fixture.home_player_id ? players.find(p => p.id === fixture.home_player_id) : null;
+                    const awayPlayer = fixture.away_player_id ? players.find(p => p.id === fixture.away_player_id) : null;
                     
-                    if (!homePlayer || !awayPlayer) return;
+                    // Skip if both players are missing (for knockout stages with qualifiers)
+                    if (!homePlayer && !awayPlayer && !fixture.home_team_qualifier) return;
                     
                     const isActive = index === 0 ? 'active' : '';
+                    
+                    // Stage badge
+                    let stageBadge = '';
+                    let stageText = '';
+                    if (fixture.stage === 'group') {
+                        stageBadge = '<span class="badge bg-primary mb-2">Group Stage</span>';
+                        stageText = `Group ${fixture.group || ''}`;
+                    } else if (fixture.stage === 'quarter-final') {
+                        stageBadge = '<span class="badge bg-warning mb-2">Quarter-Final</span>';
+                        stageText = fixture.round || 'Quarter-Final';
+                    } else if (fixture.stage === 'semi-final') {
+                        stageBadge = '<span class="badge bg-info mb-2">Semi-Final</span>';
+                        stageText = fixture.round || 'Semi-Final';
+                    } else if (fixture.stage === 'final') {
+                        stageBadge = '<span class="badge bg-danger mb-2">Final</span>';
+                        stageText = 'Championship Match';
+                    } else {
+                        stageBadge = '<span class="badge bg-secondary mb-2">Match</span>';
+                        stageText = 'Tournament Match';
+                    }
+                    
+                    const homeName = homePlayer ? homePlayer.name : (fixture.home_team_qualifier || 'TBD');
+                    const awayName = awayPlayer ? awayPlayer.name : (fixture.away_team_qualifier || 'TBD');
+                    const homePhoto = homePlayer ? (homePlayer.photo || getPlayerAvatar(homePlayer, 80)) : null;
+                    const awayPhoto = awayPlayer ? (awayPlayer.photo || getPlayerAvatar(awayPlayer, 80)) : null;
                     
                     slidesHTML += `
                         <div class="carousel-item ${isActive}">
                             <div class="match-slide">
+                                <div class="text-center mb-2">
+                                    ${stageBadge}
+                                    ${stageText ? `<div class="small text-muted">${stageText}</div>` : ''}
+                                </div>
                                 <div class="match-teams">
                                     <div class="team-info">
-                                        <img src="${homePlayer.photo || getPlayerAvatar(homePlayer, 80)}" 
-                                             alt="${homePlayer.name}" 
+                                        ${homePhoto ? `<img src="${homePhoto}" 
+                                             alt="${homeName}" 
                                              class="team-logo"
-                                             onerror="this.src='${getPlayerAvatar(homePlayer, 80)}'">
-                                        <div class="fw-bold">${homePlayer.name}</div>
-                                        <small class="text-muted">${homePlayer.team}</small>
+                                             onerror="this.src='${getPlayerAvatar({name: homeName}, 80)}'">` : '<div class="team-logo bg-secondary d-flex align-items-center justify-content-center"><i class="fas fa-user fa-2x"></i></div>'}
+                                        <div class="fw-bold">${homeName}</div>
+                                        ${homePlayer ? `<small class="text-muted">${homePlayer.team}</small>` : ''}
                                     </div>
                                     
                                     <div class="vs-badge">VS</div>
                                     
                                     <div class="team-info">
-                                        <img src="${awayPlayer.photo || getPlayerAvatar(awayPlayer, 80)}" 
-                                             alt="${awayPlayer.name}" 
+                                        ${awayPhoto ? `<img src="${awayPhoto}" 
+                                             alt="${awayName}" 
                                              class="team-logo"
-                                             onerror="this.src='${getPlayerAvatar(awayPlayer, 80)}'">
-                                        <div class="fw-bold">${awayPlayer.name}</div>
-                                        <small class="text-muted">${awayPlayer.team}</small>
+                                             onerror="this.src='${getPlayerAvatar({name: awayName}, 80)}'">` : '<div class="team-logo bg-secondary d-flex align-items-center justify-content-center"><i class="fas fa-user fa-2x"></i></div>'}
+                                        <div class="fw-bold">${awayName}</div>
+                                        ${awayPlayer ? `<small class="text-muted">${awayPlayer.team}</small>` : ''}
                                     </div>
                                 </div>
                                 
