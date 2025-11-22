@@ -29,13 +29,264 @@ class FixtureManager {
     }
 
     // ---------------------------------------------------------------------------
-    // Simple Reschedule Tool Placeholder
+    // Full Reschedule Tool Implementation
     // ---------------------------------------------------------------------------
-    showRescheduleTool() {
-        console.warn("⚠️ showRescheduleTool() was clicked, but the rescheduling feature is not implemented yet.");
+    async showRescheduleTool() {
+        console.log("🔄 Loading reschedule tool...");
 
-        // Optional: show a basic popup message
-        alert("Reschedule tool is not implemented yet.");
+        try {
+            const fixtures = await getData(DB_KEYS.FIXTURES);
+            const players = await getData(DB_KEYS.PLAYERS);
+            
+            const upcomingFixtures = fixtures.filter(f => !f.played);
+            
+            if (upcomingFixtures.length === 0) {
+                showNotification('No upcoming fixtures to reschedule!', 'warning');
+                return;
+            }
+            
+            let fixtureOptions = upcomingFixtures.map(f => {
+                const homePlayer = players.find(p => p.id === f.home_player_id);
+                const awayPlayer = players.find(p => p.id === f.away_player_id);
+                
+                if (!homePlayer || !awayPlayer) {
+                    // Handle knockout stage fixtures with qualifiers
+                    const homeName = f.home_team_qualifier || 'TBD';
+                    const awayName = f.away_team_qualifier || 'TBD';
+                    return `<option value="${f.id}">${homeName} vs ${awayName} (${f.date} ${f.time}) - ${f.stage}</option>`;
+                }
+                
+                return `<option value="${f.id}">${homePlayer.name} vs ${awayPlayer.name} (${f.date} ${f.time}) - ${f.stage}</option>`;
+            }).filter(opt => opt).join('');
+
+            const today = new Date().toISOString().split('T')[0];
+            
+            const modalContent = `
+                <div class="reschedule-tool">
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        Select a fixture to reschedule and choose new date, time, and venue.
+                    </div>
+                    
+                    <form id="reschedule-form">
+                        <div class="mb-3">
+                            <label class="form-label">Select Fixture to Reschedule:</label>
+                            <select class="form-select bg-dark text-light" id="reschedule-fixture-select" required>
+                                <option value="" selected disabled>Choose a fixture...</option>
+                                ${fixtureOptions}
+                            </select>
+                        </div>
+                        
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label">New Date:</label>
+                                <input type="date" class="form-control bg-dark text-light" id="reschedule-date" value="${today}" required min="${today}">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">New Time:</label>
+                                <select class="form-select bg-dark text-light" id="reschedule-time" required>
+                                    <option value="14:00">14:00</option>
+                                    <option value="15:00" selected>15:00</option>
+                                    <option value="16:00">16:00</option>
+                                    <option value="17:00">17:00</option>
+                                    <option value="18:00">18:00</option>
+                                    <option value="19:00">19:00</option>
+                                    <option value="20:00">20:00</option>
+                                    <option value="21:00">21:00</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">New Venue:</label>
+                            <select class="form-select bg-dark text-light" id="reschedule-venue" required>
+                                <option value="Virtual Stadium A">Virtual Stadium A</option>
+                                <option value="Virtual Stadium B">Virtual Stadium B</option>
+                                <option value="Virtual Stadium C">Virtual Stadium C</option>
+                                <option value="Virtual Stadium D">Virtual Stadium D</option>
+                                <option value="Main Arena">Main Arena</option>
+                                <option value="Champions Field" selected>Champions Field</option>
+                                <option value="Elite Arena">Elite Arena</option>
+                            </select>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Reschedule Reason (Optional):</label>
+                            <textarea class="form-control bg-dark text-light" id="reschedule-reason" placeholder="Enter reason for rescheduling..." rows="2"></textarea>
+                        </div>
+                        
+                        <div class="d-grid gap-2">
+                            <button type="button" class="btn btn-primary" onclick="fixtureManager.performReschedule()">
+                                <i class="fas fa-calendar-check me-2"></i> Reschedule Fixture
+                            </button>
+                            <button type="button" class="btn btn-secondary" onclick="fixtureManager.checkRescheduleConflicts()">
+                                <i class="fas fa-search me-2"></i> Check for Conflicts
+                            </button>
+                        </div>
+                    </form>
+                    
+                    <div id="conflict-results" class="mt-3" style="display: none;"></div>
+                </div>
+            `;
+
+            this.showModal('Reschedule Fixture', modalContent);
+            
+        } catch (error) {
+            console.error('Error loading reschedule tool:', error);
+            showNotification('Error loading reschedule tool: ' + error.message, 'error');
+        }
+    }
+
+    // ---------------------------------------------------------------------------
+    // Check for scheduling conflicts before rescheduling
+    // ---------------------------------------------------------------------------
+    async checkRescheduleConflicts() {
+        const fixtureId = document.getElementById('reschedule-fixture-select')?.value;
+        const newDate = document.getElementById('reschedule-date')?.value;
+        const newTime = document.getElementById('reschedule-time')?.value;
+        const newVenue = document.getElementById('reschedule-venue')?.value;
+        
+        if (!fixtureId || !newDate || !newTime || !newVenue) {
+            showNotification('Please select a fixture and fill in all fields!', 'error');
+            return;
+        }
+        
+        try {
+            const fixtures = await getData(DB_KEYS.FIXTURES);
+            const players = await getData(DB_KEYS.PLAYERS);
+            
+            const fixtureToReschedule = fixtures.find(f => f.id == fixtureId);
+            if (!fixtureToReschedule) {
+                showNotification('Fixture not found!', 'error');
+                return;
+            }
+            
+            // Create temporary fixture with new details
+            const tempFixtures = fixtures.map(f => {
+                if (f.id == fixtureId) {
+                    return {
+                        ...f,
+                        date: newDate,
+                        time: newTime,
+                        venue: newVenue
+                    };
+                }
+                return f;
+            });
+            
+            // Check for conflicts
+            const conflicts = await this.detectDateConflicts(tempFixtures);
+            const relevantConflicts = conflicts.filter(conflict => 
+                conflict.date === newDate
+            );
+            
+            const conflictResults = document.getElementById('conflict-results');
+            if (!conflictResults) return;
+            
+            if (relevantConflicts.length === 0) {
+                conflictResults.innerHTML = `
+                    <div class="alert alert-success">
+                        <i class="fas fa-check-circle me-2"></i>
+                        No scheduling conflicts detected! You can safely reschedule this fixture.
+                    </div>
+                `;
+            } else {
+                let conflictHTML = `
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        Found ${relevantConflicts.length} potential conflict(s):
+                        <ul class="mt-2 mb-0">
+                `;
+                
+                relevantConflicts.forEach(conflict => {
+                    if (conflict.type === 'PLAYER_CONFLICT') {
+                        const player = players.find(p => p.id == conflict.playerId);
+                        conflictHTML += `<li>Player ${player?.name || conflict.playerId} has multiple matches on ${conflict.date}</li>`;
+                    } else if (conflict.type === 'VENUE_CONFLICT') {
+                        conflictHTML += `<li>Venue ${conflict.venue} has multiple matches at ${conflict.time}</li>`;
+                    }
+                });
+                
+                conflictHTML += `
+                        </ul>
+                    </div>
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        You can still proceed, but consider adjusting the schedule to avoid conflicts.
+                    </div>
+                `;
+                
+                conflictResults.innerHTML = conflictHTML;
+            }
+            
+            conflictResults.style.display = 'block';
+            
+        } catch (error) {
+            console.error('Error checking conflicts:', error);
+            showNotification('Error checking conflicts: ' + error.message, 'error');
+        }
+    }
+
+    // ---------------------------------------------------------------------------
+    // Perform the actual rescheduling
+    // ---------------------------------------------------------------------------
+    async performReschedule() {
+        const fixtureId = document.getElementById('reschedule-fixture-select')?.value;
+        const newDate = document.getElementById('reschedule-date')?.value;
+        const newTime = document.getElementById('reschedule-time')?.value;
+        const newVenue = document.getElementById('reschedule-venue')?.value;
+        const reason = document.getElementById('reschedule-reason')?.value;
+        
+        if (!fixtureId || !newDate || !newTime || !newVenue) {
+            showNotification('Please fill in all required fields!', 'error');
+            return;
+        }
+        
+        try {
+            const fixtures = await getData(DB_KEYS.FIXTURES);
+            const fixtureIndex = fixtures.findIndex(f => f.id == fixtureId);
+            
+            if (fixtureIndex === -1) {
+                showNotification('Fixture not found!', 'error');
+                return;
+            }
+            
+            const originalFixture = fixtures[fixtureIndex];
+            
+            // Update the fixture
+            fixtures[fixtureIndex] = {
+                ...originalFixture,
+                date: newDate,
+                time: newTime,
+                venue: newVenue,
+                updated_at: new Date().toISOString()
+            };
+            
+            // Save changes
+            await saveData(DB_KEYS.FIXTURES, fixtures);
+            
+            // Log the reschedule activity
+            console.log(`Fixture ${fixtureId} rescheduled:`, {
+                from: `${originalFixture.date} ${originalFixture.time} at ${originalFixture.venue}`,
+                to: `${newDate} ${newTime} at ${newVenue}`,
+                reason: reason || 'No reason provided'
+            });
+            
+            showNotification('Fixture rescheduled successfully!', 'success');
+            
+            // Refresh displays
+            if (typeof renderAdminFixtures === 'function') {
+                await renderAdminFixtures();
+            }
+            
+            // Close modal
+            const modal = bootstrap.Modal.getInstance(document.getElementById('fixtureReportModal'));
+            if (modal) modal.hide();
+            
+        } catch (error) {
+            console.error('Error rescheduling fixture:', error);
+            showNotification('Error rescheduling fixture: ' + error.message, 'error');
+        }
     }
 
     init() {
@@ -1083,72 +1334,5 @@ async function checkFixtureConflicts() {
     }
 }
 
-async function showRescheduleTool() {
-    fixtureManager.showRescheduleTool();
-}
-
-async function performReschedule() {
-    const fixtureId = parseInt(document.getElementById('reschedule-fixture-select').value);
-    const newDate = document.getElementById('reschedule-date').value;
-    const newTime = document.getElementById('reschedule-time').value;
-    const newVenue = document.getElementById('reschedule-venue').value;
-    
-    if (!fixtureId || !newDate || !newTime || !newVenue) {
-        showNotification('Please fill in all fields!', 'error');
-        return;
-    }
-    
-    const fixtures = await getData(DB_KEYS.FIXTURES);
-    const fixtureIndex = fixtures.findIndex(f => f.id === fixtureId);
-    
-    if (fixtureIndex === -1) {
-        showNotification('Fixture not found!', 'error');
-        return;
-    }
-    
-    // Check for conflicts
-    const tempFixtures = [...fixtures];
-    tempFixtures[fixtureIndex] = {
-        ...tempFixtures[fixtureIndex],
-        date: newDate,
-        time: newTime,
-        venue: newVenue
-    };
-    
-    const conflicts = await fixtureManager.detectDateConflicts(tempFixtures);
-    const relevantConflicts = conflicts.filter(conflict => 
-        conflict.date === newDate && 
-        (conflict.fixtures.includes(fixtureId))
-    );
-    
-    if (relevantConflicts.length > 0) {
-        showNotification('Schedule conflict detected! Please choose different date/time.', 'error');
-        return;
-    }
-    
-    // Apply changes
-    fixtures[fixtureIndex].date = newDate;
-    fixtures[fixtureIndex].time = newTime;
-    fixtures[fixtureIndex].venue = newVenue;
-    fixtures[fixtureIndex].updated_at = new Date().toISOString();
-    
-    await saveData(DB_KEYS.FIXTURES, fixtures);
-    
-    // Update MongoDB if available
-    if (typeof eflAPI !== 'undefined' && eflAPI.isOnline) {
-        eflAPI.updateFixture(fixtureId, fixtures[fixtureIndex]);
-    }
-    
-    showNotification('Fixture rescheduled successfully!', 'success');
-    renderAdminFixtures();
-    
-    // Close modal
-    const modal = bootstrap.Modal.getInstance(document.getElementById('fixtureReportModal'));
-    if (modal) modal.hide();
-}
-
-// Make knockout functions globally available
-window.generateKnockoutStages = generateKnockoutStages;
-window.generateSemiFinals = generateSemiFinals;
-window.generateFinal = generateFinal;
-window.showRescheduleTool = showRescheduleTool;
+// Make reschedule functions globally available
+window.showRescheduleTool = () => fixtureManager.showRescheduleTool();
