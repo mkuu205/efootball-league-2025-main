@@ -10,7 +10,7 @@ import {
 } from './database.js';
 
 // Cache and Version Control
-const APP_VERSION = '3.0.0';
+const APP_VERSION = '3.1.0';
 
 // Enhanced avatar helper function with better fallback
 function getPlayerAvatar(player, size = 40) {
@@ -146,7 +146,7 @@ export async function renderRecentForm() {
     const container = document.getElementById('recent-form');
     if (!container) return;
     
-    const formHTML = await Promise.all(players.slice(0, 5).map(async (player) => {
+    const formHTML = await Promise.all(players.map(async (player) => {
         const playerResults = sortedResults.filter(r => 
             r.home_player_id === player.id || r.away_player_id === player.id
         ).slice(0, 5);
