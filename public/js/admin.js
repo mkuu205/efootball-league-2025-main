@@ -277,10 +277,18 @@ export async function renderAdminFixtures() {
         tbody.innerHTML = '';
         
         if (fixtures.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-4">No fixtures scheduled. Add some fixtures to get started.</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted py-4">No fixtures scheduled. Add some fixtures to get started.</td></tr>';
             console.log('ℹ️ No fixtures to display');
             return;
         }
+        
+        // Sort fixtures by stage and date
+        const stageOrder = { 'group': 1, 'quarter-final': 2, 'semi-final': 3, 'final': 4 };
+        fixtures.sort((a, b) => {
+            const stageDiff = (stageOrder[a.stage] || 99) - (stageOrder[b.stage] || 99);
+            if (stageDiff !== 0) return stageDiff;
+            return new Date(a.date) - new Date(b.date);
+        });
         
         console.log(`📅 Rendering ${fixtures.length} fixtures`);
         
@@ -295,12 +303,30 @@ export async function renderAdminFixtures() {
             const matchDate = fixture.date ? new Date(fixture.date) : new Date();
             const isCompleted = fixture.played || false;
             
+            // Stage badge
+            let stageBadge = '';
+            if (fixture.stage === 'group') {
+                stageBadge = `<span class="badge bg-primary">Group ${fixture.group || ''}</span>`;
+            } else if (fixture.stage === 'quarter-final') {
+                stageBadge = '<span class="badge bg-warning">Quarter-Final</span>';
+            } else if (fixture.stage === 'semi-final') {
+                stageBadge = '<span class="badge bg-info">Semi-Final</span>';
+            } else if (fixture.stage === 'final') {
+                stageBadge = '<span class="badge bg-danger">Final</span>';
+            } else {
+                stageBadge = '<span class="badge bg-secondary">Other</span>';
+            }
+            
+            const homeName = homePlayer ? homePlayer.name : (fixture.home_team_qualifier || 'TBD');
+            const awayName = awayPlayer ? awayPlayer.name : (fixture.away_team_qualifier || 'TBD');
+            
             const row = document.createElement('tr');
             row.innerHTML = `
+                <td>${stageBadge}</td>
                 <td>${matchDate.toLocaleDateString()}</td>
                 <td>${fixture.time || 'TBD'}</td>
-                <td>${homePlayer?.name || 'Player Not Found'}</td>
-                <td>${awayPlayer?.name || 'Player Not Found'}</td>
+                <td>${homeName}</td>
+                <td>${awayName}</td>
                 <td>${fixture.venue || 'TBD'}</td>
                 <td>
                     <span class="badge ${isCompleted ? 'bg-success' : 'bg-warning'}">
