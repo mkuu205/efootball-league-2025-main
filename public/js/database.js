@@ -107,10 +107,26 @@ export async function getData(tableName, forceRefresh = false) {
     const requestPromise = (async () => {
         try {
             console.log(`📋 Fetching data from table: ${tableName}`);
-            const { data, error } = await supabaseClient.from(tableName).select('*');
+            
+            // Add timeout to prevent hanging requests
+            const timeoutPromise = new Promise((_, reject) => {
+                setTimeout(() => reject(new Error('Request timeout')), 10000); // 10 second timeout
+            });
+            
+            const fetchPromise = supabaseClient.from(tableName).select('*');
+            
+            const { data, error } = await Promise.race([fetchPromise, timeoutPromise]);
+            
             if (error) {
                 console.error(`Error getting ${tableName}:`, error);
                 pendingRequests.delete(tableName);
+                
+                // Return cached data if available, otherwise empty array
+                const cached = dataCache.get(tableName);
+                if (cached) {
+                    console.log(`⚠️ Using cached data for ${tableName} due to error`);
+                    return cached.data;
+                }
                 return [];
             }
             
@@ -130,6 +146,13 @@ export async function getData(tableName, forceRefresh = false) {
         } catch (err) {
             console.error(`Error in getData for ${tableName}:`, err);
             pendingRequests.delete(tableName);
+            
+            // Return cached data if available
+            const cached = dataCache.get(tableName);
+            if (cached) {
+                console.log(`⚠️ Using cached data for ${tableName} due to error`);
+                return cached.data;
+            }
             return [];
         }
     })();
@@ -221,7 +244,7 @@ export async function updateData(tableName, updates, id) {
     }
 }
 
-// Delete data from Supabase
+// Delete data from Supabase - FIXED VERSION
 export async function deleteData(tableName, id) {
     if (!tableName || tableName === 'undefined' || typeof tableName !== 'string') {
         console.error('Invalid table name:', tableName);
@@ -907,10 +930,8 @@ export async function importTournamentData(data) {
         
         showNotification('Importing data to Supabase...', 'info');
         
-        // Clear existing data
-        await supabaseClient.from(DB_KEYS.RESULTS).delete().neq('id', 0);
-        await supabaseClient.from(DB_KEYS.FIXTURES).delete().neq('id', 0);
-        await supabaseClient.from(DB_KEYS.PLAYERS).delete().neq('id', 0);
+        // Clear existing data using proper method
+        await resetTournament();
         
         // Import new data
         if (data.players && data.players.length > 0) {
@@ -939,8 +960,11 @@ export async function resetAllResults() {
     }
     
     try {
-        // Delete all results
-        await supabaseClient.from(DB_KEYS.RESULTS).delete().neq('id', 0);
+        // Get all results and delete them one by one
+        const results = await getData(DB_KEYS.RESULTS);
+        for (const result of results) {
+            await deleteResult(result.id);
+        }
         
         // Reset all fixtures to not played
         const fixtures = await getData(DB_KEYS.FIXTURES);
@@ -962,16 +986,32 @@ export async function resetAllResults() {
     }
 }
 
+// FIXED: Reset Tournament - Proper deletion method
 export async function resetTournament() {
     if (!confirm('Are you sure you want to reset the entire tournament? This will delete ALL data including players, fixtures, and results. This cannot be undone.')) {
         return false;
     }
     
     try {
-        // Delete all data
-        await supabaseClient.from(DB_KEYS.RESULTS).delete().neq('id', 0);
-        await supabaseClient.from(DB_KEYS.FIXTURES).delete().neq('id', 0);
-        await supabaseClient.from(DB_KEYS.PLAYERS).delete().neq('id', 0);
+        showNotification('Resetting tournament...', 'info');
+        
+        // Delete all results one by one
+        const results = await getData(DB_KEYS.RESULTS);
+        for (const result of results) {
+            await deleteResult(result.id);
+        }
+        
+        // Delete all fixtures one by one
+        const fixtures = await getData(DB_KEYS.FIXTURES);
+        for (const fixture of fixtures) {
+            await deleteFixture(fixture.id);
+        }
+        
+        // Delete all players one by one
+        const players = await getData(DB_KEYS.PLAYERS);
+        for (const player of players) {
+            await deletePlayer(player.id);
+        }
         
         // Reinitialize with default data
         databaseInitialized = false; // Reset flag
@@ -982,7 +1022,7 @@ export async function resetTournament() {
         return true;
     } catch (error) {
         console.error('Error resetting tournament:', error);
-        showNotification('Error resetting tournament', 'error');
+        showNotification('Error resetting tournament: ' + error.message, 'error');
         return false;
     }
 }
