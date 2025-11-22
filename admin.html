@@ -334,6 +334,32 @@
                                 </div>
                             </div>
 
+                            <!-- Champions League Stages -->
+                            <div class="card mt-4">
+                                <div class="card-header">
+                                    <i class="fas fa-trophy me-2"></i>Champions League Stages
+                                </div>
+                                <div class="card-body">
+                                    <div class="d-grid gap-2">
+                                        <button class="btn btn-warning" onclick="generateOptimizedFixtures()">
+                                            <i class="fas fa-magic me-2"></i>Generate Group Stage
+                                        </button>
+                                        <button class="btn btn-info" onclick="generateKnockoutStages()">
+                                            <i class="fas fa-flag me-2"></i>Generate Quarter-Finals
+                                        </button>
+                                        <button class="btn btn-primary" onclick="generateSemiFinals()">
+                                            <i class="fas fa-star me-2"></i>Generate Semi-Finals
+                                        </button>
+                                        <button class="btn btn-danger" onclick="generateFinal()">
+                                            <i class="fas fa-trophy me-2"></i>Generate Final
+                                        </button>
+                                        <button class="btn btn-secondary" onclick="showFixtureReport()">
+                                            <i class="fas fa-chart-bar me-2"></i>Fixture Report
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
                             <!-- Fixture Tools -->
                             <div class="card mt-4">
                                 <div class="card-header">
@@ -341,13 +367,7 @@
                                 </div>
                                 <div class="card-body">
                                     <div class="d-grid gap-2">
-                                        <button class="btn btn-warning" onclick="generateOptimizedFixtures()">
-                                            <i class="fas fa-magic me-2"></i>Generate Champions League Fixtures
-                                        </button>
-                                        <button class="btn btn-info" onclick="showFixtureReport()">
-                                            <i class="fas fa-chart-bar me-2"></i>Fixture Report
-                                        </button>
-                                        <button class="btn btn-secondary" onclick="checkFixtureConflicts()">
+                                        <button class="btn btn-info" onclick="checkFixtureConflicts()">
                                             <i class="fas fa-exclamation-triangle me-2"></i>Check Conflicts
                                         </button>
                                         <button class="btn btn-primary" onclick="showRescheduleTool()">
