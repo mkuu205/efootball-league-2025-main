@@ -70,6 +70,11 @@ export async function ensureSupabaseInitialized() {
     return supabaseClient !== null;
 }
 
+// Data cache to prevent excessive API calls
+const dataCache = new Map();
+const CACHE_DURATION = 2000; // 2 seconds cache
+const pendingRequests = new Map(); // Track pending requests to prevent duplicates
+
 // Core Database Functions
 export async function getData(tableName, forceRefresh = false) {
     // Validate tableName
@@ -83,21 +88,56 @@ export async function getData(tableName, forceRefresh = false) {
         return [];
     }
     
-    try {
-        console.log(`📋 Fetching data from table: ${tableName}`);
-        const { data, error } = await supabaseClient.from(tableName).select('*');
-        if (error) {
-            console.error(`Error getting ${tableName}:`, error);
-            return [];
+    // Check cache first (unless force refresh)
+    if (!forceRefresh) {
+        const cached = dataCache.get(tableName);
+        if (cached && (Date.now() - cached.timestamp) < CACHE_DURATION) {
+            // Return cached data without logging
+            return cached.data;
         }
         
-        const result = data || [];
-        console.log(`✅ Retrieved ${result.length} records from ${tableName}`);
-        return result;
-    } catch (err) {
-        console.error(`Error in getData for ${tableName}:`, err);
-        return [];
+        // Check if there's already a pending request for this table
+        if (pendingRequests.has(tableName)) {
+            // Wait for the pending request to complete
+            return await pendingRequests.get(tableName);
+        }
     }
+    
+    // Create a promise for this request
+    const requestPromise = (async () => {
+        try {
+            console.log(`📋 Fetching data from table: ${tableName}`);
+            const { data, error } = await supabaseClient.from(tableName).select('*');
+            if (error) {
+                console.error(`Error getting ${tableName}:`, error);
+                pendingRequests.delete(tableName);
+                return [];
+            }
+            
+            const result = data || [];
+            console.log(`✅ Retrieved ${result.length} records from ${tableName}`);
+            
+            // Cache the result
+            dataCache.set(tableName, {
+                data: result,
+                timestamp: Date.now()
+            });
+            
+            // Remove from pending requests
+            pendingRequests.delete(tableName);
+            
+            return result;
+        } catch (err) {
+            console.error(`Error in getData for ${tableName}:`, err);
+            pendingRequests.delete(tableName);
+            return [];
+        }
+    })();
+    
+    // Store the pending request
+    pendingRequests.set(tableName, requestPromise);
+    
+    return await requestPromise;
 }
 
 // Save data to Supabase
@@ -115,15 +155,33 @@ export async function saveData(tableName, data) {
     try {
         console.log(`💾 Saving data to table: ${tableName}`, data);
         
-        if (Array.isArray(data) && data.length > 0) {
-            const { data: result, error } = await supabaseClient.from(tableName).insert(data).select();
+        // Convert numeric IDs to strings for UUID compatibility
+        const processedData = Array.isArray(data) 
+            ? data.map(item => {
+                if (item && typeof item.id === 'number') {
+                    return { ...item, id: item.id.toString() };
+                }
+                return item;
+            })
+            : data;
+
+        if (Array.isArray(processedData) && processedData.length > 0) {
+            const { data: result, error } = await supabaseClient.from(tableName).insert(processedData).select();
             if (error) throw error;
             console.log(`✅ Inserted ${result?.length || 0} records into ${tableName}`);
+            
+            // Invalidate cache for this table
+            dataCache.delete(tableName);
+            
             return result;
         } else {
-            const { data: result, error } = await supabaseClient.from(tableName).upsert(data).select();
+            const { data: result, error } = await supabaseClient.from(tableName).upsert(processedData).select();
             if (error) throw error;
             console.log(`✅ Upserted record into ${tableName}`);
+            
+            // Invalidate cache for this table
+            dataCache.delete(tableName);
+            
             return result;
         }
     } catch (error) {
@@ -152,6 +210,10 @@ export async function updateData(tableName, updates, id) {
             .select();
             
         if (error) throw error;
+        
+        // Invalidate cache for this table
+        dataCache.delete(tableName);
+        
         return data?.[0] || null;
     } catch (error) {
         console.error(`Error updating ${tableName}:`, error);
@@ -189,10 +251,45 @@ export async function getCurrentPassword() {
             throw new Error('Database not available');
         }
 
-        const adminConfig = await getData(DB_KEYS.ADMIN_CONFIG);
+        // Force refresh to get latest data
+        const adminConfig = await getData(DB_KEYS.ADMIN_CONFIG, true);
+        
         if (!adminConfig || adminConfig.length === 0) {
-            throw new Error('Admin password not configured!');
+            // Try to initialize the database first
+            console.log('⚠️ Admin config not found, attempting to initialize...');
+            await initializeDatabase();
+            
+            // Try again after initialization
+            const retryConfig = await getData(DB_KEYS.ADMIN_CONFIG, true);
+            if (!retryConfig || retryConfig.length === 0) {
+                throw new Error('Admin password not configured! Please set it up in the admin panel.');
+            }
+            
+            // Check if password field exists
+            if (!retryConfig[0].password) {
+                console.log('⚠️ Admin config exists but no password field, setting default...');
+                const updatedConfig = {
+                    ...retryConfig[0],
+                    password: 'admin123'
+                };
+                await updateAdminConfig(updatedConfig);
+                return 'admin123';
+            }
+            
+            return retryConfig[0].password;
         }
+        
+        // Check if password field exists
+        if (!adminConfig[0].password) {
+            console.log('⚠️ Admin config exists but no password field, setting default...');
+            const updatedConfig = {
+                ...adminConfig[0],
+                password: 'admin123'
+            };
+            await updateAdminConfig(updatedConfig);
+            return 'admin123';
+        }
+        
         return adminConfig[0].password;
     } catch (error) {
         console.error('❌ Error getting admin password:', error);
@@ -395,13 +492,21 @@ export async function deletePlayer(playerId) {
 }
 
 // Fixture Management
+// Supports Champions League format with fields: stage, group, round, home_team_qualifier, away_team_qualifier
 export async function addFixture(fixture) {
     const fixtures = await getData(DB_KEYS.FIXTURES);
-    const maxId = fixtures.length > 0 ? Math.max(...fixtures.map(f => f.id || 0)) : 0;
+    
+    // Remove any numeric ID and let Supabase generate UUID
+    const { id, ...fixtureWithoutId } = fixture;
     
     const newFixture = {
-        ...fixture,
-        id: maxId + 1,
+        ...fixtureWithoutId,
+        // Ensure Champions League fields are included
+        stage: fixture.stage || null, // 'group', 'quarter-final', 'semi-final', 'final'
+        group: fixture.group || null, // 'A', 'B', etc.
+        round: fixture.round || null, // Descriptive round name
+        home_team_qualifier: fixture.home_team_qualifier || null, // For knockout stages
+        away_team_qualifier: fixture.away_team_qualifier || null, // For knockout stages
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
     };
@@ -409,14 +514,25 @@ export async function addFixture(fixture) {
     return await saveData(DB_KEYS.FIXTURES, [newFixture]);
 }
 
+// Update fixture - supports Champions League fields
 export async function updateFixture(fixture) {
     if (!await ensureSupabaseInitialized()) return null;
+    
+    // Prepare update object with all fields including Champions League fields
+    const updateData = {
+        ...fixture,
+        // Ensure Champions League fields are preserved
+        stage: fixture.stage !== undefined ? fixture.stage : null,
+        group: fixture.group !== undefined ? fixture.group : null,
+        round: fixture.round !== undefined ? fixture.round : null,
+        home_team_qualifier: fixture.home_team_qualifier !== undefined ? fixture.home_team_qualifier : null,
+        away_team_qualifier: fixture.away_team_qualifier !== undefined ? fixture.away_team_qualifier : null,
+        updated_at: new Date().toISOString()
+    };
+    
     const { data, error } = await supabaseClient
         .from(DB_KEYS.FIXTURES)
-        .update({ 
-            ...fixture, 
-            updated_at: new Date().toISOString() 
-        })
+        .update(updateData)
         .eq('id', fixture.id)
         .select();
         
@@ -506,6 +622,26 @@ export async function getResultById(resultId) {
     return results.find(r => r.id === resultId);
 }
 
+// Champions League Helper Functions
+export async function getFixturesByStage(stage) {
+    const fixtures = await getData(DB_KEYS.FIXTURES);
+    return fixtures.filter(f => f.stage === stage);
+}
+
+export async function getGroupFixtures(groupName) {
+    const fixtures = await getData(DB_KEYS.FIXTURES);
+    return fixtures.filter(f => f.stage === 'group' && f.group === groupName);
+}
+
+export async function getKnockoutFixtures() {
+    const fixtures = await getData(DB_KEYS.FIXTURES);
+    return fixtures.filter(f => 
+        f.stage === 'quarter-final' || 
+        f.stage === 'semi-final' || 
+        f.stage === 'final'
+    );
+}
+
 export function getDefaultStats() {
     return { 
         played: 0, 
@@ -520,16 +656,18 @@ export function getDefaultStats() {
 }
 
 // Statistics & League Table
-export async function calculatePlayerStats(playerId) {
+// Accept results as parameter to avoid multiple fetches
+export async function calculatePlayerStats(playerId, results = null) {
     try {
-        const results = await getData(DB_KEYS.RESULTS);
+        // Use provided results or fetch once
+        const allResults = results || await getData(DB_KEYS.RESULTS);
         
-        if (!Array.isArray(results)) {
-            console.error('Results data is not an array:', results);
+        if (!Array.isArray(allResults)) {
+            console.error('Results data is not an array:', allResults);
             return getDefaultStats();
         }
 
-        const playerResults = results.filter(r => 
+        const playerResults = allResults.filter(r => 
             r && (r.home_player_id === playerId || r.away_player_id === playerId)
         );
 
@@ -565,16 +703,17 @@ export async function calculatePlayerStats(playerId) {
     }
 }
 
-export async function getRecentForm(playerId, matches = 5) {
+export async function getRecentForm(playerId, matches = 5, results = null) {
     try {
-        const results = await getData(DB_KEYS.RESULTS);
+        // Use provided results or fetch once
+        const allResults = results || await getData(DB_KEYS.RESULTS);
         
-        if (!Array.isArray(results)) {
-            console.error('Results data is not an array in getRecentForm:', results);
+        if (!Array.isArray(allResults)) {
+            console.error('Results data is not an array in getRecentForm:', allResults);
             return [];
         }
 
-        const playerResults = results
+        const playerResults = allResults
             .filter(r => r && (r.home_player_id === playerId || r.away_player_id === playerId))
             .sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0))
             .slice(0, matches);
@@ -598,7 +737,11 @@ export async function getRecentForm(playerId, matches = 5) {
 
 export async function getLeagueTable() {
     try {
-        const players = await getData(DB_KEYS.PLAYERS);
+        // Fetch all data once
+        const [players, results] = await Promise.all([
+            getData(DB_KEYS.PLAYERS),
+            getData(DB_KEYS.RESULTS)
+        ]);
         
         if (!Array.isArray(players)) {
             console.error('Players data is not an array:', players);
@@ -610,9 +753,10 @@ export async function getLeagueTable() {
             return [];
         }
 
+        // Calculate stats for all players using the same results array
         const tableData = await Promise.all(players.map(async p => {
-            const stats = await calculatePlayerStats(p.id);
-            const form = await getRecentForm(p.id);
+            const stats = await calculatePlayerStats(p.id, results);
+            const form = await getRecentForm(p.id, 5, results);
             return { ...p, ...stats, form };
         }));
 
@@ -627,9 +771,30 @@ export async function getLeagueTable() {
     }
 }
 
-// Refresh UI & Subscriptions
-export async function refreshAllDisplays() {
+// Refresh UI & Subscriptions with debouncing
+let refreshTimeout = null;
+let isRefreshing = false;
+
+export async function refreshAllDisplays(forceRefresh = false) {
+    // Debounce rapid refresh calls
+    if (refreshTimeout) {
+        clearTimeout(refreshTimeout);
+    }
+    
+    // If already refreshing and not forced, queue the refresh
+    if (isRefreshing && !forceRefresh) {
+        refreshTimeout = setTimeout(() => refreshAllDisplays(true), 500);
+        return;
+    }
+    
+    isRefreshing = true;
+    
     try {
+        // Clear cache to force fresh data
+        if (forceRefresh) {
+            dataCache.clear();
+        }
+        
         console.log('Refreshing all displays...');
         
         // Refresh admin displays if on admin page
@@ -650,28 +815,30 @@ export async function refreshAllDisplays() {
                 await window.updateAdminStatistics();
             }
         } else {
-            // Refresh main site displays
-            if (typeof window.renderHomePage === 'function') {
+            // Refresh main site displays - only refresh current tab
+            const currentTab = window.currentTab || 'home';
+            
+            if (currentTab === 'home' && typeof window.renderHomePage === 'function') {
                 await window.renderHomePage();
-            }
-            if (typeof window.renderFixtures === 'function') {
+            } else if (currentTab === 'fixtures' && typeof window.renderFixtures === 'function') {
                 await window.renderFixtures();
-            }
-            if (typeof window.renderResults === 'function') {
+            } else if (currentTab === 'results' && typeof window.renderResults === 'function') {
                 await window.renderResults();
-            }
-            if (typeof window.renderLeagueTable === 'function') {
+            } else if (currentTab === 'table' && typeof window.renderLeagueTable === 'function') {
                 await window.renderLeagueTable();
-            }
-            if (typeof window.renderPlayers === 'function') {
+            } else if (currentTab === 'players' && typeof window.renderPlayers === 'function') {
                 await window.renderPlayers();
             }
         }
         
-        showNotification('Data refreshed successfully!', 'success');
+        if (forceRefresh) {
+            showNotification('Data refreshed successfully!', 'success');
+        }
     } catch (error) {
         console.error('Error refreshing displays:', error);
         showNotification('Error refreshing data', 'error');
+    } finally {
+        isRefreshing = false;
     }
 }
 
@@ -947,6 +1114,11 @@ window.getPlayerById = getPlayerById;
 window.getFixtureById = getFixtureById;
 window.getResultById = getResultById;
 
+// -------------------- CHAMPIONS LEAGUE HELPERS ---------
+window.getFixturesByStage = getFixturesByStage;
+window.getGroupFixtures = getGroupFixtures;
+window.getKnockoutFixtures = getKnockoutFixtures;
+
 // -------------------- LEAGUE & STATS -------------------
 window.calculatePlayerStats = calculatePlayerStats;
 window.getRecentForm = getRecentForm;
@@ -993,6 +1165,9 @@ function initFixtureManagerGlobals() {
         window.showFixtureReport = () => fixtureManager.showFixtureReport();
         window.checkFixtureConflicts = () => fixtureManager.detectDateConflicts();
         window.showRescheduleTool = () => fixtureManager.showRescheduleTool();
+        window.generateKnockoutStages = () => fixtureManager.generateKnockoutStages();
+        window.generateSemiFinals = () => fixtureManager.generateSemiFinals();
+        window.generateFinal = () => fixtureManager.generateFinal();
         console.log('✅ fixtureManager functions exposed globally');
     } else {
         // Retry after 500ms until fixtureManager exists
