@@ -1,137 +1,785 @@
-// Advanced Statistics System
-import { getData, getPlayerById, DB_KEYS, getSupabase } from './database.js'; // ✅ ADD getSupabase if needed
+// Advanced Fixture Management System
+import { getData, saveData, deleteData, DB_KEYS, getSupabase } from './database.js'; // ✅ ADD getSupabase
 
-class AdvancedStatistics {
+// ✅ ADD: Get the supabase client instance
+const supabase = getSupabase();
+
+class FixtureManager {
     constructor() {
-        this.playerMetrics = new Map();
-        this.teamAnalytics = new Map();
+        this.venues = [
+            'Virtual Stadium A',
+            'Virtual Stadium B', 
+            'Virtual Stadium C',
+            'Virtual Stadium D',
+            'Main Arena',
+            'Champions Field',
+            'Elite Arena'
+        ];
+        
+        this.timeSlots = [
+            '14:00', '15:00', '16:00', '17:00', 
+            '18:00', '19:00', '20:00', '21:00'
+        ];
+        
+        this.minDaysBetweenMatches = 2;
+        this.maxMatchesPerDay = 4;
+        this.maxMatchesPerWeek = 2;
+        
         this.init();
     }
 
     init() {
-        console.log('Advanced Statistics initialized');
-        this.setupEventListeners();
+        console.log('Fixture Manager initialized');
+        this.addFixtureManagementUI();
     }
 
-    // Avatar helper function
-    getPlayerAvatar(player, size = 40) {
-        // If player has a valid photo URL, use it
-        if (player?.photo && player.photo.startsWith('http')) {
-            return player.photo;
+    addFixtureManagementUI() {
+        // UI elements are added in admin.js
+        console.log('Fixture management UI ready');
+    }
+
+    // Generate optimized fixtures - Champions League Format
+    async generateOptimizedFixtures() {
+        const players = await getData(DB_KEYS.PLAYERS);
+        
+        if (players.length < 2) {
+            showNotification('Need at least 2 players to generate fixtures', 'error');
+            return;
+        }
+
+        if (confirm('This will replace all existing fixtures with Champions League format (Groups → Quarters → Semis → Final). Continue?')) {
+            showNotification('Generating Champions League fixtures...', 'info');
+            
+            try {
+                const fixtures = await this.createChampionsLeagueFixtures(players);
+                await this.saveOptimizedFixtures(fixtures);
+                showNotification('✅ Champions League fixtures generated successfully!', 'success');
+                
+                // Refresh fixtures display
+                if (typeof renderAdminFixtures === 'function') {
+                    await renderAdminFixtures();
+                }
+                
+                // Show fixture report
+                this.showFixtureReport();
+                
+            } catch (error) {
+                console.error('Fixture generation failed:', error);
+                showNotification('❌ Failed to generate fixtures: ' + error.message, 'error');
+            }
+        }
+    }
+
+    // Create Champions League format fixtures
+    async createChampionsLeagueFixtures(players) {
+        const fixtures = [];
+        let fixtureId = await this.getNextFixtureId();
+        const baseDate = new Date();
+        let currentDateOffset = 0;
+
+        // Shuffle players for random group assignment
+        const shuffledPlayers = [...players].sort(() => Math.random() - 0.5);
+        
+        // Create 2 groups of 5 players each (or adjust if not exactly 10)
+        const groupSize = Math.ceil(shuffledPlayers.length / 2);
+        const groupA = shuffledPlayers.slice(0, groupSize);
+        const groupB = shuffledPlayers.slice(groupSize);
+        
+        console.log(`Group A: ${groupA.length} players, Group B: ${groupB.length} players`);
+
+        // ========== GROUP STAGE ==========
+        // Generate round-robin fixtures within each group
+        const groups = [groupA, groupB];
+        groups.forEach((group, groupIndex) => {
+            const groupName = groupIndex === 0 ? 'A' : 'B';
+            
+            // Generate all match pairs within group (home and away)
+            for (let i = 0; i < group.length; i++) {
+                for (let j = i + 1; j < group.length; j++) {
+                    // Home match
+                    const homeDate = new Date(baseDate);
+                    homeDate.setDate(homeDate.getDate() + currentDateOffset);
+                    fixtures.push({
+                        id: fixtureId++,
+                        home_player_id: group[i].id,
+                        away_player_id: group[j].id,
+                        date: homeDate.toISOString().split('T')[0],
+                        time: this.timeSlots[currentDateOffset % this.timeSlots.length],
+                        venue: this.venues[currentDateOffset % this.venues.length],
+                        played: false,
+                        stage: 'group',
+                        group: groupName,
+                        round: `Group ${groupName}`,
+                        created_at: new Date().toISOString(),
+                        updated_at: new Date().toISOString()
+                    });
+                    
+                    currentDateOffset += this.minDaysBetweenMatches;
+                    
+                    // Away match (reverse fixture)
+                    const awayDate = new Date(baseDate);
+                    awayDate.setDate(awayDate.getDate() + currentDateOffset);
+                    fixtures.push({
+                        id: fixtureId++,
+                        home_player_id: group[j].id,
+                        away_player_id: group[i].id,
+                        date: awayDate.toISOString().split('T')[0],
+                        time: this.timeSlots[currentDateOffset % this.timeSlots.length],
+                        venue: this.venues[currentDateOffset % this.venues.length],
+                        played: false,
+                        stage: 'group',
+                        group: groupName,
+                        round: `Group ${groupName}`,
+                        created_at: new Date().toISOString(),
+                        updated_at: new Date().toISOString()
+                    });
+                    
+                    currentDateOffset += this.minDaysBetweenMatches;
+                }
+            }
+        });
+
+        // ========== QUARTER-FINALS ==========
+        // Top 2 from each group advance (4 teams total)
+        // For now, create placeholder fixtures that will be populated after group stage
+        const quarterDate = new Date(baseDate);
+        quarterDate.setDate(quarterDate.getDate() + currentDateOffset + 7); // 1 week after group stage
+        
+        // QF1: Group A Winner vs Group B Runner-up
+        fixtures.push({
+            id: fixtureId++,
+            home_player_id: null, // Will be set after group stage
+            away_player_id: null,
+            date: quarterDate.toISOString().split('T')[0],
+            time: '15:00',
+            venue: 'Champions Field',
+            played: false,
+            stage: 'quarter-final',
+            group: null,
+            round: 'Quarter-Final 1',
+            home_team_qualifier: 'Group A Winner',
+            away_team_qualifier: 'Group B Runner-up',
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+        });
+
+        // QF2: Group B Winner vs Group A Runner-up
+        const qf2Date = new Date(quarterDate);
+        qf2Date.setDate(qf2Date.getDate() + 1);
+        fixtures.push({
+            id: fixtureId++,
+            home_player_id: null,
+            away_player_id: null,
+            date: qf2Date.toISOString().split('T')[0],
+            time: '15:00',
+            venue: 'Champions Field',
+            played: false,
+            stage: 'quarter-final',
+            group: null,
+            round: 'Quarter-Final 2',
+            home_team_qualifier: 'Group B Winner',
+            away_team_qualifier: 'Group A Runner-up',
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+        });
+
+        // ========== SEMI-FINALS ==========
+        const semiDate = new Date(quarterDate);
+        semiDate.setDate(semiDate.getDate() + 7); // 1 week after quarter-finals
+        
+        // SF1: Winner of QF1 vs Winner of QF2
+        fixtures.push({
+            id: fixtureId++,
+            home_player_id: null,
+            away_player_id: null,
+            date: semiDate.toISOString().split('T')[0],
+            time: '18:00',
+            venue: 'Main Arena',
+            played: false,
+            stage: 'semi-final',
+            group: null,
+            round: 'Semi-Final 1',
+            home_team_qualifier: 'QF1 Winner',
+            away_team_qualifier: 'QF2 Winner',
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+        });
+
+        // ========== FINAL ==========
+        const finalDate = new Date(semiDate);
+        finalDate.setDate(finalDate.getDate() + 7); // 1 week after semi-finals
+        
+        fixtures.push({
+            id: fixtureId++,
+            home_player_id: null,
+            away_player_id: null,
+            date: finalDate.toISOString().split('T')[0],
+            time: '20:00',
+            venue: 'Champions Field',
+            played: false,
+            stage: 'final',
+            group: null,
+            round: 'Final',
+            home_team_qualifier: 'SF1 Winner',
+            away_team_qualifier: null,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+        });
+
+        return fixtures;
+    }
+
+    // Legacy method for backward compatibility
+    createOptimizedFixtures(players) {
+        return this.createChampionsLeagueFixtures(players);
+    }
+
+    createBalancedSchedule(matchPairs, players) {
+        const schedule = [];
+        let currentDay = [];
+        const playerMatchCount = new Map();
+        
+        // Initialize match counts
+        players.forEach(player => {
+            playerMatchCount.set(player.id, 0);
+        });
+
+        let dayIndex = 0;
+        
+        while (matchPairs.length > 0) {
+            const availableMatches = matchPairs.filter(match => 
+                this.canScheduleMatch(currentDay, match, playerMatchCount, dayIndex)
+            );
+
+            if (availableMatches.length > 0) {
+                // Pick the best available match (closest strength)
+                const bestMatch = availableMatches[0];
+                currentDay.push(bestMatch);
+                
+                // Update player match counts
+                playerMatchCount.set(bestMatch.homePlayer.id, playerMatchCount.get(bestMatch.homePlayer.id) + 1);
+                playerMatchCount.set(bestMatch.awayPlayer.id, playerMatchCount.get(bestMatch.awayPlayer.id) + 1);
+                
+                // Remove from available pairs
+                const matchIndex = matchPairs.findIndex(m => 
+                    m.homePlayer.id === bestMatch.homePlayer.id && 
+                    m.awayPlayer.id === bestMatch.awayPlayer.id
+                );
+                if (matchIndex > -1) {
+                    matchPairs.splice(matchIndex, 1);
+                }
+            } else {
+                // Start new day
+                if (currentDay.length > 0) {
+                    schedule.push([...currentDay]);
+                    dayIndex++;
+                }
+                currentDay = [];
+                
+                // If still no matches available, force one
+                if (matchPairs.length > 0 && currentDay.length === 0) {
+                    const forcedMatch = matchPairs.shift();
+                    currentDay.push(forcedMatch);
+                    playerMatchCount.set(forcedMatch.homePlayer.id, playerMatchCount.get(forcedMatch.homePlayer.id) + 1);
+                    playerMatchCount.set(forcedMatch.awayPlayer.id, playerMatchCount.get(forcedMatch.awayPlayer.id) + 1);
+                }
+            }
+
+            // Force new day if max matches reached
+            if (currentDay.length >= this.maxMatchesPerDay) {
+                schedule.push([...currentDay]);
+                currentDay = [];
+                dayIndex++;
+            }
+        }
+
+        // Add remaining matches
+        if (currentDay.length > 0) {
+            schedule.push(currentDay);
+        }
+
+        return schedule;
+    }
+
+    canScheduleMatch(dayMatches, match, playerMatchCount, dayIndex) {
+        // Check if players already have matches this day
+        for (const dayMatch of dayMatches) {
+            if (dayMatch.homePlayer.id === match.homePlayer.id ||
+                dayMatch.homePlayer.id === match.awayPlayer.id ||
+                dayMatch.awayPlayer.id === match.homePlayer.id ||
+                dayMatch.awayPlayer.id === match.awayPlayer.id) {
+                return false;
+            }
+        }
+
+        // Check if players have reached weekly limit
+        const homePlayerWeeklyMatches = this.getPlayerMatchesThisWeek(match.homePlayer.id, dayIndex);
+        const awayPlayerWeeklyMatches = this.getPlayerMatchesThisWeek(match.awayPlayer.id, dayIndex);
+        
+        if (homePlayerWeeklyMatches >= this.maxMatchesPerWeek || 
+            awayPlayerWeeklyMatches >= this.maxMatchesPerWeek) {
+            return false;
+        }
+
+        return true;
+    }
+
+    getPlayerMatchesThisWeek(playerId, currentDayIndex) {
+        // Simplified weekly match count
+        const daysInWeek = Math.floor(7 / this.minDaysBetweenMatches);
+        return Math.floor(currentDayIndex / daysInWeek) * this.maxMatchesPerWeek;
+    }
+
+    async saveOptimizedFixtures(fixtures) {
+        // Clear existing fixtures first
+        const existingFixtures = await getData(DB_KEYS.FIXTURES);
+        if (existingFixtures && existingFixtures.length > 0) {
+            for (const fixture of existingFixtures) {
+                try {
+                    await deleteData(DB_KEYS.FIXTURES, fixture.id);
+                } catch (err) {
+                    console.warn('Could not delete fixture:', err);
+                }
+            }
         }
         
-        // Otherwise generate avatar from name
-        const initial = player?.name?.charAt(0)?.toUpperCase() || 'P';
-        return `https://ui-avatars.com/api/?name=${initial}&background=6a11cb&color=fff&size=${size}`;
+        // Save new fixtures
+        await saveData(DB_KEYS.FIXTURES, fixtures);
+        
+        // Also sync with MongoDB if available
+        if (typeof eflAPI !== 'undefined' && eflAPI.isOnline) {
+            this.syncFixturesWithMongoDB(fixtures);
+        }
     }
 
-    setupEventListeners() {
-        // Listen for tab changes to load advanced stats
-        document.addEventListener('DOMContentLoaded', () => {
-            const advancedStatsTab = document.querySelector('[data-tab="advanced-stats"]');
-            if (advancedStatsTab) {
-                advancedStatsTab.addEventListener('click', () => {
-                    this.loadAdvancedStatsDashboard();
+    async syncFixturesWithMongoDB(fixtures) {
+        try {
+            // Clear existing fixtures
+            const existingFixtures = await eflAPI.getFixtures();
+            for (const fixture of existingFixtures) {
+                await eflAPI.deleteFixture(fixture.id);
+            }
+            
+            // Add new fixtures
+            for (const fixture of fixtures) {
+                await eflAPI.addFixture(fixture);
+            }
+            
+            console.log('✅ Fixtures synced with MongoDB');
+        } catch (error) {
+            console.log('MongoDB sync failed, using local storage:', error);
+        }
+    }
+
+    // Check for fixture congestion
+    async checkFixtureCongestion(playerId) {
+        const fixtures = await getData(DB_KEYS.FIXTURES);
+        const playerFixtures = fixtures.filter(f => 
+            (f.home_player_id === playerId || f.away_player_id === playerId) && !f.played
+        );
+        
+        // Check next 7 days
+        const nextWeek = new Date();
+        nextWeek.setDate(nextWeek.getDate() + 7);
+        
+        const upcomingFixtures = playerFixtures.filter(f => {
+            const fixtureDate = new Date(f.date);
+            return fixtureDate <= nextWeek;
+        });
+
+        return {
+            hasCongestion: upcomingFixtures.length > this.maxMatchesPerWeek,
+            matchesInNextWeek: upcomingFixtures.length,
+            recommendation: upcomingFixtures.length > this.maxMatchesPerWeek ? 
+                'Consider rescheduling some matches' : 'Schedule looks good'
+        };
+    }
+
+    // Check home/away balance
+    async checkHomeAwayBalance(playerId) {
+        const fixtures = await getData(DB_KEYS.FIXTURES);
+        const playerFixtures = fixtures.filter(f => 
+            f.home_player_id === playerId || f.away_player_id === playerId
+        );
+        
+        const homeMatches = playerFixtures.filter(f => f.home_player_id === playerId).length;
+        const awayMatches = playerFixtures.filter(f => f.away_player_id === playerId).length;
+        
+        const totalMatches = homeMatches + awayMatches;
+        const balance = homeMatches - awayMatches;
+        const balancePercentage = totalMatches > 0 ? (homeMatches / totalMatches) * 100 : 50;
+        
+        let status = 'balanced';
+        if (Math.abs(balance) > 2) status = 'critical';
+        else if (Math.abs(balance) > 1) status = 'warning';
+        
+        return {
+            homeMatches,
+            awayMatches,
+            totalMatches,
+            balance,
+            balancePercentage,
+            status,
+            isBalanced: Math.abs(balance) <= 1,
+            recommendation: balance > 1 ? 'Schedule more away matches' : 
+                           balance < -1 ? 'Schedule more home matches' : 'Well balanced'
+        };
+    }
+
+    // Detect date conflicts
+    async detectDateConflicts(fixtures = null) {
+        const fixturesToCheck = fixtures || await getData(DB_KEYS.FIXTURES);
+        const conflicts = [];
+        const dateMap = new Map();
+
+        fixturesToCheck.forEach(fixture => {
+            const dateKey = fixture.date;
+            if (!dateMap.has(dateKey)) {
+                dateMap.set(dateKey, []);
+            }
+            dateMap.get(dateKey).push(fixture);
+        });
+
+        dateMap.forEach((dayFixtures, date) => {
+            const playerAppearances = new Map();
+            const venueUsage = new Map();
+            
+            dayFixtures.forEach(fixture => {
+                // Check player conflicts
+                [fixture.home_player_id, fixture.away_player_id].forEach(playerId => {
+                    if (playerAppearances.has(playerId)) {
+                        conflicts.push({
+                            type: 'PLAYER_CONFLICT',
+                            date: date,
+                            playerId: playerId,
+                            fixture1: playerAppearances.get(playerId),
+                            fixture2: fixture.id,
+                            message: `Player has multiple matches on ${date}`
+                        });
+                    }
+                    playerAppearances.set(playerId, fixture.id);
+                });
+
+                // Check venue conflicts
+                if (!venueUsage.has(fixture.venue)) {
+                    venueUsage.set(fixture.venue, []);
+                }
+                venueUsage.get(fixture.venue).push(fixture);
+                
+                if (venueUsage.get(fixture.venue).length > 1) {
+                    // Check if venue is used at the same time
+                    const sameVenueFixtures = venueUsage.get(fixture.venue);
+                    const timeConflicts = sameVenueFixtures.filter(f => f.time === fixture.time);
+                    
+                    if (timeConflicts.length > 1) {
+                        conflicts.push({
+                            type: 'VENUE_CONFLICT',
+                            date: date,
+                            venue: fixture.venue,
+                            time: fixture.time,
+                            fixtures: timeConflicts.map(f => f.id),
+                            message: `Venue ${fixture.venue} has multiple matches at ${fixture.time} on ${date}`
+                        });
+                    }
+                }
+            });
+        });
+
+        return conflicts;
+    }
+
+    // Get next available fixture ID
+    async getNextFixtureId() {
+        const fixtures = await getData(DB_KEYS.FIXTURES);
+        return fixtures.length > 0 ? Math.max(...fixtures.map(f => f.id || 0)) + 1 : 1;
+    }
+
+    // Generate fixture report
+    async generateFixtureReport() {
+        const fixtures = await getData(DB_KEYS.FIXTURES);
+        const players = await getData(DB_KEYS.PLAYERS);
+        const results = await getData(DB_KEYS.RESULTS);
+        
+        const report = {
+            generatedAt: new Date().toISOString(),
+            summary: {
+                totalFixtures: fixtures.length,
+                playedFixtures: fixtures.filter(f => f.played).length,
+                upcomingFixtures: fixtures.filter(f => !f.played).length,
+                totalPlayers: players.length,
+                completionPercentage: fixtures.length > 0 ? 
+                    (fixtures.filter(f => f.played).length / fixtures.length) * 100 : 0
+            },
+            venueUsage: this.getVenueUsage(fixtures),
+            playerSchedules: await this.getPlayerSchedules(players, fixtures),
+            conflicts: await this.detectDateConflicts(),
+            recommendations: await this.getSchedulingRecommendations(players, fixtures),
+            upcomingSchedule: this.getUpcomingSchedule(fixtures, 7) // Next 7 days
+        };
+        
+        return report;
+    }
+
+    getVenueUsage(fixtures) {
+        const usage = {};
+        const upcomingUsage = {};
+        
+        fixtures.forEach(fixture => {
+            usage[fixture.venue] = (usage[fixture.venue] || 0) + 1;
+            if (!fixture.played) {
+                upcomingUsage[fixture.venue] = (upcomingUsage[fixture.venue] || 0) + 1;
+            }
+        });
+        
+        const venues = Object.keys(usage);
+        return {
+            total: usage,
+            upcoming: upcomingUsage,
+            mostUsed: venues.length > 0 ? venues.reduce((a, b) => usage[a] > usage[b] ? a : b) : 'None',
+            leastUsed: venues.length > 0 ? venues.reduce((a, b) => usage[a] < usage[b] ? a : b) : 'None'
+        };
+    }
+
+    async getPlayerSchedules(players, fixtures) {
+        return await Promise.all(players.map(async (player) => {
+            const playerFixtures = fixtures.filter(f => 
+                f.home_player_id === player.id || f.away_player_id === player.id
+            );
+            
+            const congestion = await this.checkFixtureCongestion(player.id);
+            const balance = await this.checkHomeAwayBalance(player.id);
+            
+            return {
+                playerId: player.id,
+                playerName: player.name,
+                totalMatches: playerFixtures.length,
+                playedMatches: playerFixtures.filter(f => f.played).length,
+                upcomingMatches: playerFixtures.filter(f => !f.played).length,
+                homeMatches: playerFixtures.filter(f => f.home_player_id === player.id).length,
+                awayMatches: playerFixtures.filter(f => f.away_player_id === player.id).length,
+                congestion: congestion,
+                balance: balance,
+                nextMatch: this.getNextPlayerMatch(player.id, fixtures),
+                lastMatch: this.getLastPlayerMatch(player.id, fixtures)
+            };
+        }));
+    }
+
+    getNextPlayerMatch(playerId, fixtures) {
+        const upcoming = fixtures
+            .filter(f => !f.played && (f.home_player_id === playerId || f.away_player_id === playerId))
+            .sort((a, b) => new Date(a.date) - new Date(b.date));
+        
+        return upcoming.length > 0 ? upcoming[0] : null;
+    }
+
+    getLastPlayerMatch(playerId, fixtures) {
+        const played = fixtures
+            .filter(f => f.played && (f.home_player_id === playerId || f.away_player_id === playerId))
+            .sort((a, b) => new Date(b.date) - new Date(a.date));
+        
+        return played.length > 0 ? played[0] : null;
+    }
+
+    async getSchedulingRecommendations(players, fixtures) {
+        const recommendations = [];
+        
+        // Check each player's schedule
+        for (const player of players) {
+            const congestion = await this.checkFixtureCongestion(player.id);
+            const balance = await this.checkHomeAwayBalance(player.id);
+            
+            if (congestion.hasCongestion) {
+                recommendations.push({
+                    type: 'CONGESTION',
+                    player: player.name,
+                    priority: 'HIGH',
+                    matchesInWeek: congestion.matchesInNextWeek,
+                    message: `${player.name} has ${congestion.matchesInNextWeek} matches in the next week - consider rescheduling`,
+                    suggestion: 'Spread matches more evenly across weeks'
+                });
+            }
+            
+            if (!balance.isBalanced) {
+                recommendations.push({
+                    type: 'BALANCE',
+                    player: player.name,
+                    priority: balance.status === 'critical' ? 'HIGH' : 'MEDIUM',
+                    homeMatches: balance.homeMatches,
+                    awayMatches: balance.awayMatches,
+                    message: `${player.name} has home/away imbalance (${balance.homeMatches}H/${balance.awayMatches}A)`,
+                    suggestion: balance.recommendation
+                });
+            }
+        }
+        
+        // Check venue usage
+        const venueUsage = this.getVenueUsage(fixtures);
+        const totalFixtures = fixtures.length;
+        const venueCount = Object.keys(venueUsage.total).length;
+        const expectedPerVenue = venueCount > 0 ? totalFixtures / venueCount : 0;
+        
+        Object.entries(venueUsage.total).forEach(([venue, count]) => {
+            if (count > expectedPerVenue * 1.5) {
+                recommendations.push({
+                    type: 'VENUE_OVERUSE',
+                    venue: venue,
+                    priority: 'LOW',
+                    usage: count,
+                    expected: Math.round(expectedPerVenue),
+                    message: `Venue ${venue} is being overused (${count} matches vs expected ${Math.round(expectedPerVenue)})`,
+                    suggestion: 'Consider using other venues more frequently'
                 });
             }
         });
+        
+        // Check for date conflicts
+        const conflicts = await this.detectDateConflicts();
+        if (conflicts.length > 0) {
+            recommendations.push({
+                type: 'CONFLICTS',
+                priority: 'HIGH',
+                conflictCount: conflicts.length,
+                message: `Found ${conflicts.length} scheduling conflicts that need resolution`,
+                suggestion: 'Use the conflict resolution tool to fix these issues'
+            });
+        }
+        
+        return recommendations.sort((a, b) => {
+            const priorityOrder = { HIGH: 3, MEDIUM: 2, LOW: 1 };
+            return priorityOrder[b.priority] - priorityOrder[a.priority];
+        });
     }
 
-    // Load the advanced statistics dashboard
-    async loadAdvancedStatsDashboard() {
-        const container = document.getElementById('advanced-stats-container');
-        if (!container) return;
-
-        container.innerHTML = this.generateDashboardHTML();
-        await this.populatePlayerStats();
-        this.setupComparisonTool();
+    getUpcomingSchedule(fixtures, days = 7) {
+        const today = new Date();
+        const endDate = new Date();
+        endDate.setDate(today.getDate() + days);
+        
+        const upcoming = fixtures
+            .filter(f => !f.played && new Date(f.date) <= endDate)
+            .sort((a, b) => new Date(a.date) - new Date(b.date));
+        
+        // Group by date
+        const schedule = {};
+        upcoming.forEach(fixture => {
+            if (!schedule[fixture.date]) {
+                schedule[fixture.date] = [];
+            }
+            schedule[fixture.date].push(fixture);
+        });
+        
+        return schedule;
     }
 
-    generateDashboardHTML() {
+    // Show fixture report in UI
+    async showFixtureReport() {
+        const report = await this.generateFixtureReport();
+        
+        // Create modal or display report
+        const reportHTML = this.generateReportHTML(report);
+        
+        // Show in a modal or dedicated section
+        this.showModal('Fixture Analysis Report', reportHTML);
+    }
+
+    generateReportHTML(report) {
         return `
-            <div class="text-center mb-5">
-                <h1 class="text-warning"><i class="fas fa-chart-line me-3"></i>Advanced Statistics</h1>
-                <p class="text-muted">Deep insights into player and team performance</p>
-            </div>
-
-            <!-- Player Performance Analysis -->
-            <div class="row mb-4">
-                <div class="col-12">
-                    <div class="stat-card">
-                        <h4 class="text-warning mb-4">
-                            <i class="fas fa-user me-2"></i>Player Performance Analysis
-                        </h4>
-                        <div class="row mb-4">
-                            <div class="col-md-6">
-                                <label for="player-select" class="form-label">Select Player</label>
-                                <select class="form-select bg-dark text-light" id="player-select">
-                                    <option value="">Choose a player...</option>
-                                </select>
+            <div class="fixture-report">
+                <div class="row mb-4">
+                    <div class="col-md-3">
+                        <div class="card text-center bg-dark text-light">
+                            <div class="card-body">
+                                <h3 class="text-warning">${report.summary.totalFixtures}</h3>
+                                <p class="mb-0">Total Fixtures</p>
                             </div>
-                            <div class="col-md-6">
-                                <label for="compare-player-select" class="form-label">Compare With</label>
-                                <select class="form-select bg-dark text-light" id="compare-player-select">
-                                    <option value="">Select player to compare...</option>
-                                </select>
-                            </div>
-                        </div>
-                        <div id="player-stats-container">
-                            <!-- Player stats will be loaded here -->
                         </div>
                     </div>
-                </div>
-            </div>
-
-            <!-- Player Comparison -->
-            <div class="row mb-4">
-                <div class="col-12">
-                    <div class="stat-card">
-                        <h4 class="text-warning mb-4">
-                            <i class="fas fa-users me-2"></i>Player Comparison
-                        </h4>
-                        <div id="player-comparison-container">
-                            <div class="text-center text-muted p-5">
-                                <i class="fas fa-users fa-3x mb-3"></i>
-                                <p>Select two players to compare their performance</p>
+                    <div class="col-md-3">
+                        <div class="card text-center bg-dark text-light">
+                            <div class="card-body">
+                                <h3 class="text-success">${report.summary.playedFixtures}</h3>
+                                <p class="mb-0">Played</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card text-center bg-dark text-light">
+                            <div class="card-body">
+                                <h3 class="text-warning">${report.summary.upcomingFixtures}</h3>
+                                <p class="mb-0">Upcoming</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card text-center bg-dark text-light">
+                            <div class="card-body">
+                                <h3 class="text-info">${Math.round(report.summary.completionPercentage)}%</h3>
+                                <p class="mb-0">Completion</p>
                             </div>
                         </div>
                     </div>
                 </div>
-            </div>
 
-            <!-- Team Performance -->
-            <div class="row">
-                <div class="col-md-6">
-                    <div class="stat-card">
-                        <h5 class="text-info mb-3">
-                            <i class="fas fa-shield-alt me-2"></i>Team Performance
-                        </h5>
-                        <div id="team-stats-container">
-                            <!-- Team stats will be loaded here -->
+                ${report.recommendations.length > 0 ? `
+                    <div class="card bg-dark text-light mb-4">
+                        <div class="card-header bg-warning text-dark">
+                            <h5 class="mb-0"><i class="fas fa-exclamation-triangle me-2"></i>Recommendations</h5>
+                        </div>
+                        <div class="card-body">
+                            ${report.recommendations.map(rec => `
+                                <div class="alert alert-${rec.priority === 'HIGH' ? 'danger' : rec.priority === 'MEDIUM' ? 'warning' : 'info'}">
+                                    <strong>${rec.type}</strong>: ${rec.message}
+                                    ${rec.suggestion ? `<br><small>Suggestion: ${rec.suggestion}</small>` : ''}
+                                </div>
+                            `).join('')}
                         </div>
                     </div>
-                </div>
-                <div class="col-md-6">
-                    <div class="stat-card">
-                        <h5 class="text-info mb-3">
-                            <i class="fas fa-trophy me-2"></i>Tournament Leaders
-                        </h5>
-                        <div id="tournament-leaders-container">
-                            <!-- Tournament leaders will be loaded here -->
-                        </div>
-                    </div>
-                </div>
-            </div>
+                ` : '<div class="alert alert-success">No issues found! Schedule looks good.</div>'}
 
-            <!-- Advanced Metrics -->
-            <div class="row mt-4">
-                <div class="col-12">
-                    <div class="stat-card">
-                        <h4 class="text-warning mb-4">
-                            <i class="fas fa-chart-bar me-2"></i>Advanced Metrics
-                        </h4>
-                        <div class="row" id="advanced-metrics-container">
-                            <!-- Advanced metrics will be loaded here -->
+                <div class="card bg-dark text-light">
+                    <div class="card-header bg-primary">
+                        <h5 class="mb-0"><i class="fas fa-users me-2"></i>Player Schedule Analysis</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-dark table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Player</th>
+                                        <th>Total</th>
+                                        <th>Home/Away</th>
+                                        <th>Balance</th>
+                                        <th>Congestion</th>
+                                        <th>Next Match</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${report.playerSchedules.map(player => `
+                                        <tr>
+                                            <td>${player.playerName}</td>
+                                            <td>${player.totalMatches}</td>
+                                            <td>${player.homeMatches}H/${player.awayMatches}A</td>
+                                            <td>
+                                                <span class="badge ${player.balance.status === 'balanced' ? 'bg-success' : player.balance.status === 'warning' ? 'bg-warning' : 'bg-danger'}">
+                                                    ${player.balance.isBalanced ? 'Good' : 'Needs Attention'}
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <span class="badge ${player.congestion.hasCongestion ? 'bg-danger' : 'bg-success'}">
+                                                    ${player.congestion.matchesInNextWeek}/week
+                                                </span>
+                                            </td>
+                                            <td>
+                                                ${player.nextMatch ? 
+                                                    `${this.formatDisplayDate(player.nextMatch.date)} ${player.nextMatch.time}` : 
+                                                    'No upcoming'
+                                                }
+                                            </td>
+                                        </tr>
+                                    `).join('')}
+                                </tbody>
+                            </table>
                         </div>
                     </div>
                 </div>
@@ -139,762 +787,193 @@ class AdvancedStatistics {
         `;
     }
 
-    // Populate player select dropdowns
-    async populatePlayerSelects() {
-        try {
-            const players = await getData(DB_KEYS.PLAYERS);
-            const playerSelect = document.getElementById('player-select');
-            const compareSelect = document.getElementById('compare-player-select');
-
-            if (!playerSelect || !compareSelect) return;
-
-            // Clear existing options
-            playerSelect.innerHTML = '<option value="">Choose a player...</option>';
-            compareSelect.innerHTML = '<option value="">Select player to compare...</option>';
-
-            // Validate players is an array
-            if (!Array.isArray(players)) {
-                console.error('Players data is not an array:', players);
-                return;
-            }
-
-            // Remove duplicate players
-            const uniquePlayers = [];
-            const seenPlayerIds = new Set();
-            
-            players.forEach(player => {
-                if (player && !seenPlayerIds.has(player.id)) {
-                    seenPlayerIds.add(player.id);
-                    uniquePlayers.push(player);
-                }
-            });
-
-            // Add player options
-            uniquePlayers.forEach(player => {
-                const option1 = document.createElement('option');
-                option1.value = player.id;
-                option1.textContent = `${player.name} (${player.team})`;
-                playerSelect.appendChild(option1);
-
-                const option2 = document.createElement('option');
-                option2.value = player.id;
-                option2.textContent = `${player.name} (${player.team})`;
-                compareSelect.appendChild(option2);
-            });
-
-            // Add event listeners
-            playerSelect.addEventListener('change', (e) => {
-                this.loadPlayerStats(parseInt(e.target.value));
-                this.updateComparison();
-            });
-
-            compareSelect.addEventListener('change', () => {
-                this.updateComparison();
-            });
-        } catch (error) {
-            console.error('Error populating player selects:', error);
-        }
-    }
-
-    // Load player statistics
-    async loadPlayerStats(playerId) {
-        if (!playerId) {
-            document.getElementById('player-stats-container').innerHTML = `
-                <div class="text-center text-muted p-4">
-                    <i class="fas fa-user fa-2x mb-2"></i>
-                    <p>Select a player to view detailed statistics</p>
+    showModal(title, content) {
+        // Create and show a Bootstrap modal with the content
+        const modalId = 'fixtureReportModal';
+        let modal = document.getElementById(modalId);
+        
+        if (!modal) {
+            modal = document.createElement('div');
+            modal.id = modalId;
+            modal.className = 'modal fade';
+            modal.innerHTML = `
+                <div class="modal-dialog modal-xl">
+                    <div class="modal-content bg-dark text-light">
+                        <div class="modal-header bg-primary">
+                            <h5 class="modal-title">${title}</h5>
+                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            ${content}
+                        </div>
+                        <div class="modal-footer bg-secondary">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                            <button type="button" class="btn btn-primary" onclick="imageExporter.exportLeagueTable()">
+                                <i class="fas fa-image me-1"></i> Export Report
+                            </button>
+                        </div>
+                    </div>
                 </div>
             `;
-            return;
+            document.body.appendChild(modal);
+        } else {
+            modal.querySelector('.modal-title').textContent = title;
+            modal.querySelector('.modal-body').innerHTML = content;
         }
-
-        const player = await getPlayerById(playerId);
-        if (!player) return;
-
-        const stats = await this.analyzePlayerPerformance(playerId);
         
-        document.getElementById('player-stats-container').innerHTML = this.generatePlayerStatsHTML(player, stats);
+        const bsModal = new bootstrap.Modal(modal);
+        bsModal.show();
     }
 
-    // Analyze player performance comprehensively
-    async analyzePlayerPerformance(playerId) {
-        const results = await getData(DB_KEYS.RESULTS);
-        const playerResults = results.filter(r => 
-            r && (r.home_player_id === playerId || r.away_player_id === playerId)
-        );
-
-        return {
-            basicStats: this.getBasicStats(playerResults, playerId),
-            formAnalysis: this.analyzeForm(playerResults, playerId),
-            strengthAnalysis: this.analyzeStrengthProgression(playerId),
-            predictiveAnalytics: this.predictFuturePerformance(playerId)
-        };
-    }
-
-    getBasicStats(results, playerId) {
-        let stats = {
-            matches: results.length,
-            wins: 0, draws: 0, losses: 0,
-            goalsFor: 0, goalsAgainst: 0,
-            homeRecord: { wins: 0, draws: 0, losses: 0 },
-            awayRecord: { wins: 0, draws: 0, losses: 0 },
-            cleanSheets: 0,
-            avgGoalsPerMatch: 0,
-            winPercentage: 0
-        };
-
-        if (results.length === 0) return stats;
-
-        results.forEach(result => {
-            const isHome = result.home_player_id === playerId;
-            const playerScore = isHome ? result.home_score : result.away_score;
-            const opponentScore = isHome ? result.away_score : result.home_score;
-
-            // Win/draw/loss
-            if (playerScore > opponentScore) {
-                stats.wins++;
-                if (isHome) stats.homeRecord.wins++;
-                else stats.awayRecord.wins++;
-            } else if (playerScore === opponentScore) {
-                stats.draws++;
-                if (isHome) stats.homeRecord.draws++;
-                else stats.awayRecord.draws++;
-            } else {
-                stats.losses++;
-                if (isHome) stats.homeRecord.losses++;
-                else stats.awayRecord.losses++;
-            }
-
-            // Goals
-            stats.goalsFor += playerScore || 0;
-            stats.goalsAgainst += opponentScore || 0;
-
-            // Clean sheets
-            if (opponentScore === 0) stats.cleanSheets++;
-        });
-
-        // Calculate averages and percentages
-        stats.avgGoalsPerMatch = (stats.goalsFor / stats.matches).toFixed(1);
-        stats.winPercentage = ((stats.wins / stats.matches) * 100).toFixed(1);
-        stats.homeWinRate = stats.homeRecord.wins > 0 ? 
-            ((stats.homeRecord.wins / (stats.homeRecord.wins + stats.homeRecord.draws + stats.homeRecord.losses)) * 100).toFixed(1) : 0;
-        stats.awayWinRate = stats.awayRecord.wins > 0 ? 
-            ((stats.awayRecord.wins / (stats.awayRecord.wins + stats.awayRecord.draws + stats.awayRecord.losses)) * 100).toFixed(1) : 0;
-
-        return stats;
-    }
-
-    analyzeForm(results, playerId) {
-        // Last 5 matches form
-        const last5 = results.slice(-5).reverse();
-        const form = last5.map(result => {
-            const isHome = result.home_player_id === playerId;
-            const playerScore = isHome ? result.home_score : result.away_score;
-            const opponentScore = isHome ? result.away_score : result.home_score;
-
-            if (playerScore > opponentScore) return 'W';
-            if (playerScore === opponentScore) return 'D';
-            return 'L';
-        });
-
-        // Form trend analysis
-        const pointsPerGame = last5.reduce((acc, result) => {
-            const isHome = result.home_player_id === playerId;
-            const playerScore = isHome ? result.home_score : result.away_score;
-            const opponentScore = isHome ? result.away_score : result.home_score;
-
-            if (playerScore > opponentScore) return acc + 3;
-            if (playerScore === opponentScore) return acc + 1;
-            return acc;
-        }, 0) / (last5.length || 1);
-
-        return {
-            recentForm: form,
-            currentStreak: this.calculateStreak(form),
-            pointsPerGame: pointsPerGame.toFixed(2),
-            formRating: this.calculateFormRating(form)
-        };
-    }
-
-    calculateStreak(form) {
-        if (form.length === 0) return { type: 'none', length: 0 };
-        
-        let currentType = form[0];
-        let length = 1;
-
-        for (let i = 1; i < form.length; i++) {
-            if (form[i] === currentType) {
-                length++;
-            } else {
-                break;
-            }
-        }
-
-        return { type: currentType, length: length };
-    }
-
-    calculateFormRating(form) {
-        if (form.length === 0) return 0;
-        
-        const weights = { 'W': 1, 'D': 0.5, 'L': 0 };
-        const rating = form.reduce((acc, result) => acc + weights[result], 0) / form.length;
-        return Math.round(rating * 100);
-    }
-
-    generatePlayerStatsHTML(player, stats) {
-        const formBadges = stats.formAnalysis.recentForm.map(result => {
-            const badgeClass = result === 'W' ? 'bg-success' : result === 'D' ? 'bg-warning' : 'bg-danger';
-            return `<span class="badge ${badgeClass} me-1">${result}</span>`;
-        }).join('');
-
-        return `
-            <div class="row">
-                <div class="col-md-3 text-center">
-                    <img src="${player.photo || this.getPlayerAvatar(player, 100)}" class="rounded-circle mb-3" 
-                         style="width: 100px; height: 100px; object-fit: cover;"
-                         onerror="this.src='${this.getPlayerAvatar(player, 100)}'">
-                    <h5 class="text-warning">${player.name}</h5>
-                    <span class="badge" style="background-color: ${player.team_color || '#6c757d'}; color: white;">
-                        ${player.team}
-                    </span>
-                    <div class="mt-2">
-                        <small class="text-muted">Strength: ${player.strength}</small>
-                    </div>
-                </div>
-
-                <div class="col-md-5">
-                    <h6 class="text-info">Basic Statistics</h6>
-                    <div class="row">
-                        <div class="col-4 mb-3">
-                            <div class="text-center p-2 rounded" style="background: rgba(106, 17, 203, 0.2);">
-                                <div class="h5 text-warning mb-1">${stats.basicStats.matches}</div>
-                                <small>Matches</small>
-                            </div>
-                        </div>
-                        <div class="col-4 mb-3">
-                            <div class="text-center p-2 rounded" style="background: rgba(40, 167, 69, 0.2);">
-                                <div class="h5 text-success mb-1">${stats.basicStats.wins}</div>
-                                <small>Wins</small>
-                            </div>
-                        </div>
-                        <div class="col-4 mb-3">
-                            <div class="text-center p-2 rounded" style="background: rgba(255, 193, 7, 0.2);">
-                                <div class="h5 text-warning mb-1">${stats.basicStats.draws}</div>
-                                <small>Draws</small>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="mb-3">
-                        <div class="d-flex justify-content-between mb-1">
-                            <span>Win Rate</span>
-                            <span class="text-warning">${stats.basicStats.winPercentage}%</span>
-                        </div>
-                        <div class="progress progress-custom">
-                            <div class="progress-bar bg-success" style="width: ${stats.basicStats.winPercentage}%"></div>
-                        </div>
-                    </div>
-
-                    <div class="mb-3">
-                        <div class="d-flex justify-content-between mb-1">
-                            <span>Goals Scored</span>
-                            <span class="text-warning">${stats.basicStats.goalsFor}</span>
-                        </div>
-                    </div>
-
-                    <div class="mb-3">
-                        <div class="d-flex justify-content-between mb-1">
-                            <span>Goals Conceded</span>
-                            <span class="text-warning">${stats.basicStats.goalsAgainst}</span>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="col-md-4">
-                    <h6 class="text-info">Form Analysis</h6>
-                    <div class="mb-3">
-                        <strong>Recent Form:</strong>
-                        <div class="mt-1">${formBadges || '<span class="text-muted">No matches</span>'}</div>
-                    </div>
-                    
-                    <div class="mb-3">
-                        <div class="d-flex justify-content-between">
-                            <span>Current Streak:</span>
-                            <span class="badge ${stats.formAnalysis.currentStreak.type === 'W' ? 'bg-success' : 
-                                stats.formAnalysis.currentStreak.type === 'D' ? 'bg-warning' : 'bg-danger'}">
-                                ${stats.formAnalysis.currentStreak.type} ${stats.formAnalysis.currentStreak.length}
-                            </span>
-                        </div>
-                    </div>
-
-                    <div class="mb-3">
-                        <div class="d-flex justify-content-between">
-                            <span>Form Rating:</span>
-                            <span class="text-warning">${stats.formAnalysis.formRating}/100</span>
-                        </div>
-                        <div class="progress progress-custom">
-                            <div class="progress-bar bg-warning" style="width: ${stats.formAnalysis.formRating}%"></div>
-                        </div>
-                    </div>
-
-                    <div class="mb-3">
-                        <div class="d-flex justify-content-between">
-                            <span>Points/Game:</span>
-                            <span class="text-warning">${stats.formAnalysis.pointsPerGame}</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        `;
-    }
-
-    // Setup player comparison tool
-    setupComparisonTool() {
-        this.populatePlayerSelects();
-    }
-
-    // Update player comparison
-    async updateComparison() {
-        const player1Id = parseInt(document.getElementById('player-select').value);
-        const player2Id = parseInt(document.getElementById('compare-player-select').value);
-
-        if (!player1Id || !player2Id) {
-            document.getElementById('player-comparison-container').innerHTML = `
-                <div class="text-center text-muted p-5">
-                    <i class="fas fa-users fa-3x mb-3"></i>
-                    <p>Select two players to compare their performance</p>
-                </div>
-            `;
-            return;
-        }
-
-        const comparison = await this.generatePlayerComparison(player1Id, player2Id);
-        document.getElementById('player-comparison-container').innerHTML = comparison;
-    }
-
-    // Generate player comparison HTML
-    async generatePlayerComparison(player1Id, player2Id) {
-        const player1 = await getPlayerById(player1Id);
-        const player2 = await getPlayerById(player2Id);
-        const stats1 = await this.analyzePlayerPerformance(player1Id);
-        const stats2 = await this.analyzePlayerPerformance(player2Id);
-
-        return `
-            <div class="player-comparison">
-                <div class="row text-center mb-4">
-                    <div class="col-md-5">
-                        <img src="${player1.photo || this.getPlayerAvatar(player1, 80)}" 
-                             class="rounded-circle mb-2" style="width: 80px; height: 80px; object-fit: cover;"
-                             onerror="this.src='${this.getPlayerAvatar(player1, 80)}'">
-                        <h5 class="text-warning">${player1.name}</h5>
-                        <small class="text-muted">${player1.team}</small>
-                    </div>
-                    <div class="col-md-2 d-flex align-items-center justify-content-center">
-                        <h3 class="text-muted">VS</h3>
-                    </div>
-                    <div class="col-md-5">
-                        <img src="${player2.photo || this.getPlayerAvatar(player2, 80)}" 
-                             class="rounded-circle mb-2" style="width: 80px; height: 80px; object-fit: cover;"
-                             onerror="this.src='${this.getPlayerAvatar(player2, 80)}'">
-                        <h5 class="text-info">${player2.name}</h5>
-                        <small class="text-muted">${player2.team}</small>
-                    </div>
-                </div>
-
-                <!-- Comparison Stats -->
-                <div class="row">
-                    <div class="col-md-6">
-                        <div class="mb-3">
-                            <div class="d-flex justify-content-between">
-                                <span>Win Rate</span>
-                                <span>${stats1.basicStats.winPercentage}% vs ${stats2.basicStats.winPercentage}%</span>
-                            </div>
-                            <div class="progress progress-custom mt-1">
-                                <div class="progress-bar bg-warning" style="width: ${stats1.basicStats.winPercentage}%"></div>
-                                <div class="progress-bar bg-info" style="width: ${stats2.basicStats.winPercentage}%"></div>
-                            </div>
-                        </div>
-                        <div class="mb-3">
-                            <div class="d-flex justify-content-between">
-                                <span>Goals/Match</span>
-                                <span>${stats1.basicStats.avgGoalsPerMatch} vs ${stats2.basicStats.avgGoalsPerMatch}</span>
-                            </div>
-                            <div class="progress progress-custom mt-1">
-                                <div class="progress-bar bg-warning" style="width: ${(parseFloat(stats1.basicStats.avgGoalsPerMatch) / 5) * 100}%"></div>
-                                <div class="progress-bar bg-info" style="width: ${(parseFloat(stats2.basicStats.avgGoalsPerMatch) / 5) * 100}%"></div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="mb-3">
-                            <div class="d-flex justify-content-between">
-                                <span>Form Rating</span>
-                                <span>${stats1.formAnalysis.formRating} vs ${stats2.formAnalysis.formRating}</span>
-                            </div>
-                            <div class="progress progress-custom mt-1">
-                                <div class="progress-bar bg-warning" style="width: ${stats1.formAnalysis.formRating}%"></div>
-                                <div class="progress-bar bg-info" style="width: ${stats2.formAnalysis.formRating}%"></div>
-                            </div>
-                        </div>
-                        <div class="mb-3">
-                            <div class="d-flex justify-content-between">
-                                <span>Points/Game</span>
-                                <span>${stats1.formAnalysis.pointsPerGame} vs ${stats2.formAnalysis.pointsPerGame}</span>
-                            </div>
-                            <div class="progress progress-custom mt-1">
-                                <div class="progress-bar bg-warning" style="width: ${(parseFloat(stats1.formAnalysis.pointsPerGame) / 3) * 100}%"></div>
-                                <div class="progress-bar bg-info" style="width: ${(parseFloat(stats2.formAnalysis.pointsPerGame) / 3) * 100}%"></div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Head-to-Head Record -->
-                <div class="mt-4">
-                    <h6 class="text-info">Head-to-Head Record</h6>
-                    ${await this.generateHeadToHeadRecord(player1Id, player2Id)}
-                </div>
-            </div>
-        `;
-    }
-
-    // Generate head-to-head record between two players
-    async generateHeadToHeadRecord(player1Id, player2Id) {
-        const results = await getData(DB_KEYS.RESULTS);
-        const headToHead = results.filter(result => 
-            result && ((result.home_player_id === player1Id && result.away_player_id === player2Id) ||
-            (result.home_player_id === player2Id && result.away_player_id === player1Id))
-        );
-
-        if (headToHead.length === 0) {
-            return '<p class="text-muted text-center">No head-to-head matches yet</p>';
-        }
-
-        let player1Wins = 0, player2Wins = 0, draws = 0;
-
-        headToHead.forEach(result => {
-            const isPlayer1Home = result.home_player_id === player1Id;
-            const player1Score = isPlayer1Home ? result.home_score : result.away_score;
-            const player2Score = isPlayer1Home ? result.away_score : result.home_score;
-
-            if (player1Score > player2Score) player1Wins++;
-            else if (player2Score > player1Score) player2Wins++;
-            else draws++;
-        });
-
-        const player1 = await getPlayerById(player1Id);
-        const player2 = await getPlayerById(player2Id);
-
-        return `
-            <div class="row text-center">
-                <div class="col-4">
-                    <div class="h4 text-warning">${player1Wins}</div>
-                    <small>${player1.name} Wins</small>
-                </div>
-                <div class="col-4">
-                    <div class="h4 text-muted">${draws}</div>
-                    <small>Draws</small>
-                </div>
-                <div class="col-4">
-                    <div class="h4 text-info">${player2Wins}</div>
-                    <small>${player2.name} Wins</small>
-                </div>
-            </div>
-        `;
-    }
-
-    // Analyze strength progression (placeholder for future enhancement)
-    analyzeStrengthProgression(playerId) {
-        // This would track strength changes over time
-        return {
-            currentStrength: 0, // Will be populated from player data
-            trend: 'stable', // rising, falling, stable
-            progression: [] // historical strength data
-        };
-    }
-
-    // Predict future performance (basic implementation)
-    predictFuturePerformance(playerId) {
-        // This is a simplified implementation - in real scenario, we'd use the actual stats
-        const formRating = 50; // Default value
-        
-        let prediction = 'Stable';
-        if (formRating >= 80) prediction = 'Excellent';
-        else if (formRating >= 60) prediction = 'Good';
-        else if (formRating >= 40) prediction = 'Average';
-        else prediction = 'Needs Improvement';
-
-        return {
-            formPrediction: prediction,
-            nextMatchConfidence: Math.min(formRating + 10, 95),
-            recommendedStrategy: "Balanced approach recommended"
-        };
-    }
-
-    // Load team statistics
-    async loadTeamStats() {
-        const teams = await this.getUniqueTeams();
-        const container = document.getElementById('team-stats-container');
-        
-        if (!container) return;
-
-        let html = '';
-        for (const team of teams) {
-            const stats = await this.analyzeTeamPerformance(team);
-            html += this.generateTeamStatsHTML(team, stats);
-        }
-
-        container.innerHTML = html || '<p class="text-muted text-center">No team data available</p>';
-    }
-
-    // Get unique teams from players
-    async getUniqueTeams() {
-        const players = await getData(DB_KEYS.PLAYERS);
-        if (!Array.isArray(players)) return [];
-        const teams = [...new Set(players.map(p => p.team))];
-        return teams.filter(team => team); // Remove empty/null teams
-    }
-
-    // Analyze team performance
-    async analyzeTeamPerformance(teamName) {
-        const players = await getData(DB_KEYS.PLAYERS);
-        const teamPlayers = players.filter(p => p && p.team === teamName);
-        const results = await getData(DB_KEYS.RESULTS);
-        
-        const teamResults = results.filter(result => {
-            if (!result) return false;
-            const homePlayer = teamPlayers.find(p => p.id === result.home_player_id);
-            const awayPlayer = teamPlayers.find(p => p.id === result.away_player_id);
-            return homePlayer || awayPlayer;
-        });
-
-        return this.getTeamOverview(teamResults, teamName);
-    }
-
-    getTeamOverview(results, teamName) {
-        let overview = {
-            totalMatches: results.length,
-            wins: 0, draws: 0, losses: 0,
-            goalsFor: 0, goalsAgainst: 0,
-            homePerformance: { played: 0, wins: 0 },
-            awayPerformance: { played: 0, wins: 0 }
-        };
-
-        results.forEach(result => {
-            const isHomeTeam = result.home_player_id && teamName === this.getPlayerTeam(result.home_player_id);
-            const teamScore = isHomeTeam ? result.home_score : result.away_score;
-            const opponentScore = isHomeTeam ? result.away_score : result.home_score;
-
-            if (teamScore > opponentScore) overview.wins++;
-            else if (teamScore === opponentScore) overview.draws++;
-            else overview.losses++;
-
-            overview.goalsFor += teamScore || 0;
-            overview.goalsAgainst += opponentScore || 0;
-
-            if (isHomeTeam) {
-                overview.homePerformance.played++;
-                if (teamScore > opponentScore) overview.homePerformance.wins++;
-            } else {
-                overview.awayPerformance.played++;
-                if (teamScore > opponentScore) overview.awayPerformance.wins++;
-            }
-        });
-
-        overview.winPercentage = overview.totalMatches > 0 ? 
-            ((overview.wins / overview.totalMatches) * 100).toFixed(1) : 0;
-        overview.homeWinRate = overview.homePerformance.played > 0 ? 
-            ((overview.homePerformance.wins / overview.homePerformance.played) * 100).toFixed(1) : 0;
-        overview.awayWinRate = overview.awayPerformance.played > 0 ? 
-            ((overview.awayPerformance.wins / overview.awayPerformance.played) * 100).toFixed(1) : 0;
-
-        return overview;
-    }
-
-    // Helper method to get player team
-    async getPlayerTeam(playerId) {
-        try {
-            const player = await getPlayerById(playerId);
-            return player ? player.team : null;
-        } catch (error) {
-            console.error('Error getting player team:', error);
-            return null;
-        }
-    }
-
-    generateTeamStatsHTML(teamName, stats) {
-        return `
-            <div class="mb-3 p-3 rounded" style="background: rgba(255, 255, 255, 0.05);">
-                <h6 class="text-warning">${teamName}</h6>
-                <div class="row text-center">
-                    <div class="col-4">
-                        <div class="small text-muted">Win Rate</div>
-                        <div class="h6 text-success">${stats.winPercentage}%</div>
-                    </div>
-                    <div class="col-4">
-                        <div class="small text-muted">Goals</div>
-                        <div class="h6 text-info">${stats.goalsFor}:${stats.goalsAgainst}</div>
-                    </div>
-                    <div class="col-4">
-                        <div class="small text-muted">Form</div>
-                        <div class="h6 text-warning">${stats.wins}-${stats.draws}-${stats.losses}</div>
-                    </div>
-                </div>
-            </div>
-        `;
-    }
-
-    // Load tournament leaders
-    async loadTournamentLeaders() {
-        const container = document.getElementById('tournament-leaders-container');
-        if (!container) return;
-
-        const players = await getData(DB_KEYS.PLAYERS);
-        const results = await getData(DB_KEYS.RESULTS);
-
-        // Calculate top scorers
-        const topScorers = await this.getTopScorers(players, results);
-        // Calculate best defense
-        const bestDefense = await this.getBestDefense(players, results);
-        // Calculate best form
-        const bestForm = await this.getBestForm(players, results);
-
-        container.innerHTML = `
-            <div class="list-group list-group-flush bg-transparent">
-                <div class="list-group-item bg-transparent text-light d-flex justify-content-between align-items-center">
-                    <span>🥇 Top Scorer</span>
-                    <span class="text-warning">${topScorers[0]?.name || 'N/A'} (${topScorers[0]?.goals || 0} goals)</span>
-                </div>
-                <div class="list-group-item bg-transparent text-light d-flex justify-content-between align-items-center">
-                    <span>🛡️ Best Defense</span>
-                    <span class="text-info">${bestDefense[0]?.name || 'N/A'} (${bestDefense[0]?.goalsConceded || 0} conceded)</span>
-                </div>
-                <div class="list-group-item bg-transparent text-light d-flex justify-content-between align-items-center">
-                    <span>📈 Best Form</span>
-                    <span class="text-success">${bestForm[0]?.name || 'N/A'} (${bestForm[0]?.formRating || 0}/100)</span>
-                </div>
-                <div class="list-group-item bg-transparent text-light d-flex justify-content-between align-items-center">
-                    <span>⚡ Most Wins</span>
-                    <span class="text-primary">${(await this.getMostWins(players, results))[0]?.name || 'N/A'} (${(await this.getMostWins(players, results))[0]?.wins || 0} wins)</span>
-                </div>
-            </div>
-        `;
-    }
-
-    async getTopScorers(players, results) {
-        const playerGoals = players.map(player => {
-            let goals = 0;
-            results.forEach(result => {
-                if (result.home_player_id === player.id) goals += result.home_score || 0;
-                if (result.away_player_id === player.id) goals += result.away_score || 0;
-            });
-            return { ...player, goals };
-        });
-
-        return playerGoals.sort((a, b) => b.goals - a.goals).slice(0, 3);
-    }
-
-    async getBestDefense(players, results) {
-        const playerDefense = players.map(player => {
-            let goalsConceded = 0;
-            results.forEach(result => {
-                if (result.home_player_id === player.id) goalsConceded += result.away_score || 0;
-                if (result.away_player_id === player.id) goalsConceded += result.home_score || 0;
-            });
-            return { ...player, goalsConceded };
-        });
-
-        return playerDefense.sort((a, b) => a.goalsConceded - b.goalsConceded).slice(0, 3);
-    }
-
-    async getBestForm(players, results) {
-        const playerForms = await Promise.all(players.map(async player => {
-            const stats = await this.analyzePlayerPerformance(player.id);
-            return { ...player, formRating: stats.formAnalysis.formRating };
-        }));
-
-        return playerForms.sort((a, b) => b.formRating - a.formRating).slice(0, 3);
-    }
-
-    async getMostWins(players, results) {
-        const playerWins = players.map(player => {
-            let wins = 0;
-            results.forEach(result => {
-                const isHome = result.home_player_id === player.id;
-                const playerScore = isHome ? result.home_score : result.away_score;
-                const opponentScore = isHome ? result.away_score : result.home_score;
-                if (playerScore > opponentScore) wins++;
-            });
-            return { ...player, wins };
-        });
-
-        return playerWins.sort((a, b) => b.wins - a.wins).slice(0, 3);
-    }
-
-    // Populate all statistics when dashboard loads
-    async populatePlayerStats() {
-        await this.populatePlayerSelects();
-        await this.loadTeamStats();
-        await this.loadTournamentLeaders();
-        await this.loadAdvancedMetrics();
-    }
-
-    // Load advanced metrics
-    async loadAdvancedMetrics() {
-        const container = document.getElementById('advanced-metrics-container');
-        if (!container) return;
-
-        const results = await getData(DB_KEYS.RESULTS);
-
-        // Calculate various advanced metrics
-        const totalGoals = results.reduce((acc, result) => acc + (result.home_score || 0) + (result.away_score || 0), 0);
-        const avgGoalsPerMatch = results.length > 0 ? (totalGoals / results.length).toFixed(2) : 0;
-        const drawPercentage = results.length > 0 ? 
-            ((results.filter(r => r.home_score === r.away_score).length / results.length) * 100).toFixed(1) : 0;
-        const homeAdvantage = this.calculateHomeAdvantage(results);
-
-        container.innerHTML = `
-            <div class="col-md-3">
-                <div class="text-center p-3">
-                    <div class="h2 text-warning">${totalGoals}</div>
-                    <div class="text-muted">Total Goals</div>
-                </div>
-            </div>
-            <div class="col-md-3">
-                <div class="text-center p-3">
-                    <div class="h2 text-info">${avgGoalsPerMatch}</div>
-                    <div class="text-muted">Avg Goals/Match</div>
-                </div>
-            </div>
-            <div class="col-md-3">
-                <div class="text-center p-3">
-                    <div class="h2 text-success">${drawPercentage}%</div>
-                    <div class="text-muted">Draw Rate</div>
-                </div>
-            </div>
-            <div class="col-md-3">
-                <div class="text-center p-3">
-                    <div class="h2 text-primary">${homeAdvantage}%</div>
-                    <div class="text-muted">Home Advantage</div>
-                </div>
-            </div>
-        `;
-    }
-
-    calculateHomeAdvantage(results) {
-        if (results.length === 0) return 0;
-
-        let homeWins = 0;
-        results.forEach(result => {
-            if ((result.home_score || 0) > (result.away_score || 0)) homeWins++;
-        });
-
-        return ((homeWins / results.length) * 100).toFixed(1);
+    formatDisplayDate(dateString) {
+        const options = { day: 'numeric', month: 'short' };
+        return new Date(dateString).toLocaleDateString('en-US', options);
     }
 }
 
-// Initialize advanced statistics
-export const advancedStats = new AdvancedStatistics();
+// Initialize fixture manager
+const fixtureManager = new FixtureManager();
 
-// Optional: still make it global
-window.advancedStats = advancedStats;
+// Global access
+window.fixtureManager = fixtureManager;
+
+// Helper functions for admin panel integration
+function generateOptimizedFixtures() {
+    fixtureManager.generateOptimizedFixtures();
+}
+
+function showFixtureReport() {
+    fixtureManager.showFixtureReport();
+}
+
+async function checkFixtureConflicts() {
+    const conflicts = await fixtureManager.detectDateConflicts();
+    
+    if (conflicts.length === 0) {
+        showNotification('✅ No scheduling conflicts found!', 'success');
+    } else {
+        let message = `Found ${conflicts.length} scheduling conflict(s):\n`;
+        conflicts.forEach(conflict => {
+            message += `• ${conflict.message}\n`;
+        });
+        
+        // Show detailed modal instead of alert
+        fixtureManager.showModal('Scheduling Conflicts', `
+            <div class="alert alert-danger">
+                <h5><i class="fas fa-exclamation-triangle me-2"></i>Found ${conflicts.length} Scheduling Conflicts</h5>
+                <ul class="mb-0">
+                    ${conflicts.map(conflict => `<li>${conflict.message}</li>`).join('')}
+                </ul>
+            </div>
+            <p>Use the fixture report for detailed analysis and recommendations.</p>
+        `);
+    }
+}
+
+async function showRescheduleTool() {
+    // Create a simple reschedule interface
+    const fixtures = await getData(DB_KEYS.FIXTURES);
+    const players = await getData(DB_KEYS.PLAYERS);
+    
+    const upcomingFixtures = fixtures.filter(f => !f.played);
+    
+    if (upcomingFixtures.length === 0) {
+        showNotification('No upcoming fixtures to reschedule!', 'warning');
+        return;
+    }
+    
+    let fixtureOptions = upcomingFixtures.map(f => {
+        const homePlayer = players.find(p => p.id === f.home_player_id);
+        const awayPlayer = players.find(p => p.id === f.away_player_id);
+        if (!homePlayer || !awayPlayer) return '';
+        return `<option value="${f.id}">${homePlayer.name} vs ${awayPlayer.name} (${f.date} ${f.time})</option>`;
+    }).filter(opt => opt).join('');
+    
+    fixtureManager.showModal('Reschedule Fixture', `
+        <form id="reschedule-form">
+            <div class="mb-3">
+                <label class="form-label">Select Fixture to Reschedule:</label>
+                <select class="form-select bg-dark text-light" id="reschedule-fixture-select">
+                    ${fixtureOptions}
+                </select>
+            </div>
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <label class="form-label">New Date:</label>
+                    <input type="date" class="form-control bg-dark text-light" id="reschedule-date" value="${new Date().toISOString().split('T')[0]}">
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">New Time:</label>
+                    <input type="time" class="form-control bg-dark text-light" id="reschedule-time" value="15:00">
+                </div>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">New Venue:</label>
+                <input type="text" class="form-control bg-dark text-light" id="reschedule-venue" value="Virtual Stadium A">
+            </div>
+            <button type="button" class="btn btn-primary w-100" onclick="performReschedule()">
+                <i class="fas fa-calendar-alt me-2"></i> Reschedule Fixture
+            </button>
+        </form>
+    `);
+}
+
+async function performReschedule() {
+    const fixtureId = parseInt(document.getElementById('reschedule-fixture-select').value);
+    const newDate = document.getElementById('reschedule-date').value;
+    const newTime = document.getElementById('reschedule-time').value;
+    const newVenue = document.getElementById('reschedule-venue').value;
+    
+    if (!fixtureId || !newDate || !newTime || !newVenue) {
+        showNotification('Please fill in all fields!', 'error');
+        return;
+    }
+    
+    const fixtures = await getData(DB_KEYS.FIXTURES);
+    const fixtureIndex = fixtures.findIndex(f => f.id === fixtureId);
+    
+    if (fixtureIndex === -1) {
+        showNotification('Fixture not found!', 'error');
+        return;
+    }
+    
+    // Check for conflicts
+    const tempFixtures = [...fixtures];
+    tempFixtures[fixtureIndex] = {
+        ...tempFixtures[fixtureIndex],
+        date: newDate,
+        time: newTime,
+        venue: newVenue
+    };
+    
+    const conflicts = await fixtureManager.detectDateConflicts(tempFixtures);
+    const relevantConflicts = conflicts.filter(conflict => 
+        conflict.date === newDate && 
+        (conflict.fixtures.includes(fixtureId))
+    );
+    
+    if (relevantConflicts.length > 0) {
+        showNotification('Schedule conflict detected! Please choose different date/time.', 'error');
+        return;
+    }
+    
+    // Apply changes
+    fixtures[fixtureIndex].date = newDate;
+    fixtures[fixtureIndex].time = newTime;
+    fixtures[fixtureIndex].venue = newVenue;
+    fixtures[fixtureIndex].updated_at = new Date().toISOString();
+    
+    await saveData(DB_KEYS.FIXTURES, fixtures);
+    
+    // Update MongoDB if available
+    if (typeof eflAPI !== 'undefined' && eflAPI.isOnline) {
+        eflAPI.updateFixture(fixtureId, fixtures[fixtureIndex]);
+    }
+    
+    showNotification('Fixture rescheduled successfully!', 'success');
+    renderAdminFixtures();
+    
+    // Close modal
+    const modal = bootstrap.Modal.getInstance(document.getElementById('fixtureReportModal'));
+    if (modal) modal.hide();
+    }
