@@ -7,7 +7,7 @@ const firebaseConfig = {
   apiKey: "AIzaSyDX99S2FDS3yd8NBEREBKK-P77G4OOWfoM",
   authDomain: "efootball-league-4f456.firebaseapp.com",
   projectId: "efootball-league-4f456",
-  storageBucket: "efootball-league-4f456.firebasestorage.app",
+  storageBucket: "efootball-league-4f456.appspot.com",
   messagingSenderId: "688740313852",
   appId: "1:688740313852:web:9bbf8fe7e4318a11874579",
   measurementId: "G-MW8F3RD48D"
@@ -59,3 +59,4 @@ self.addEventListener("notificationclick", (event) => {
       })
   );
 });
+
