@@ -5,25 +5,18 @@ const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Content-Type": "application/json"
 };
 
 serve(async (req) => {
-  // Handle CORS preflight
+  // Handle browser preflight request
   if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders });
+    return new Response("OK", { status: 200, headers: corsHeaders });
   }
 
   try {
-    // FIX: Read raw body ALWAYS
-    const text = await req.text();
-    console.log("RAW BODY:", text);
-
-    let json = {};
-    try {
-      json = text ? JSON.parse(text) : {};
-    } catch (e) {
-      console.log("JSON PARSE ERROR", e);
-    }
+    const bodyText = await req.text();
+    const json = bodyText ? JSON.parse(bodyText) : {};
 
     const token = json.token;
     const player_id = json.player_id || null;
@@ -31,29 +24,27 @@ serve(async (req) => {
 
     if (!token) {
       return new Response(
-        JSON.stringify({
-          success: false,
-          message: "Missing token",
-          received: json
-        }),
+        JSON.stringify({ success: false, message: "Missing token" }),
         { status: 400, headers: corsHeaders }
       );
     }
 
-    // Create Supabase service client
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    // Save or update token
+    // UPSERT using Postgres
     const { error } = await supabase
       .from("fcm_tokens")
-      .upsert({
-        token,
-        player_id,
-        device_info
-      });
+      .upsert(
+        {
+          token,
+          player_id,
+          device_info
+        },
+        { onConflict: "token" }
+      );
 
     if (error) {
       return new Response(
@@ -69,7 +60,7 @@ serve(async (req) => {
 
   } catch (err) {
     return new Response(
-      JSON.stringify({ success: false, error: err.message }),
+      JSON.stringify({ success: false, message: String(err) }),
       { status: 500, headers: corsHeaders }
     );
   }
