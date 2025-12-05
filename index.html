@@ -336,6 +336,13 @@
 
                 <!-- Right Side - Auth & Actions -->
                 <ul class="navbar-nav align-items-lg-center">
+                    <li class="nav-item position-relative me-2" id="nav-bell-wrapper" style="display:flex;align-items:center;">
+                        <a class="nav-link" href="#" id="nav-notifications-link" style="position:relative;" title="Notifications">
+                            <i class="fas fa-bell"></i>
+                            <span id="notif-badge" class="badge bg-danger rounded-pill position-absolute" style="top:-6px; right:-6px; display:none; font-size:0.7rem; min-width:22px; padding:3px 6px;">0</span>
+                        </a>
+                    </li>
+    
                     <!-- Sync Status - Desktop only -->
                     <li class="nav-item d-none d-lg-block me-2">
                         <span id="sync-status" class="badge bg-success">
@@ -1282,6 +1289,294 @@
     
     <!-- Notifications Script -->
     <script src="/js/notifications.js"></script>
+
+<!-- Slide-in Notification Panel (Right side) -->
+<div id="notif-panel" aria-hidden="true" style="position:fixed; top:0; right:0; height:100vh; width:360px; max-width:95vw; background:linear-gradient(180deg, rgba(10,14,20,0.98), rgba(15,23,42,0.98)); color:#e6eef8; box-shadow: -24px 0 48px rgba(0,0,0,0.6); transform:translateX(110%); transition:transform 320ms ease; z-index:2000; display:flex; flex-direction:column;">
+  <div style="padding:14px 16px; border-bottom:1px solid rgba(255,255,255,0.03); display:flex; align-items:center; justify-content:space-between;">
+    <div style="display:flex; align-items:center; gap:12px;">
+      <i class="fas fa-bell" style="font-size:1.15rem; color:#06B6D4;"></i>
+      <div>
+        <div style="font-weight:700;">Notifications</div>
+        <div id="notif-panel-count" style="font-size:0.8rem; color:#94a3b8;">0 unread</div>
+      </div>
+    </div>
+    <div style="display:flex; gap:8px; align-items:center;">
+      <button id="mark-all-read-btn" class="btn btn-sm btn-outline-light" title="Mark all read">Mark all read</button>
+      <button id="close-notif-panel" class="btn btn-sm btn-light">Close</button>
+    </div>
+  </div>
+  <div id="notif-panel-list" style="overflow:auto; padding:12px; flex:1;">
+    <div style="text-align:center; color:#94a3b8; padding:28px;">No notifications yet</div>
+  </div>
+</div>
+
+
+<!-- Live toast popup -->
+<div id="live-toast" style="position:fixed; bottom:20px; right:20px; background:rgba(15,23,42,0.98); color:#fff; padding:14px 18px; border-radius:12px; box-shadow:0 8px 30px rgba(0,0,0,0.5); display:none; z-index:3000; min-width:260px; max-width:92vw; transform:translateY(30px); opacity:0; transition:all 320ms ease;">
+  <strong id="toast-title"></strong>
+  <div id="toast-body" style="margin-top:6px; font-size:0.95rem; color:#dfe9f2;"></div>
+</div>
+
+<!-- Notification sound -->
+<audio id="notif-sound" src="/sounds/notification.mp3" preload="auto"></audio>
+
+
+<script>
+/* ===== Notification UI & FCM Integration (Injected) ===== */
+
+// Helper: get supabase instance from existing function or create one
+function getOrCreateSupabase() {
+    try {
+        if (typeof getSupabaseInstance === 'function') return getSupabaseInstance();
+    } catch (e) {}
+    if (window.supabase) {
+        // try to create using the same URL & anon key used elsewhere
+        try {
+            return window.supabase.createClient(
+                'https://zliedzrqzvywlsyfggcq.supabase.co',
+                'REPLACE_WITH_YOUR_ANON_KEY'
+            );
+        } catch (e) { return null; }
+    }
+    return null;
+}
+
+function showToastNotification(title, body) {
+    const toast = document.getElementById("live-toast");
+    const tTitle = document.getElementById("toast-title");
+    const tBody = document.getElementById("toast-body");
+
+    if (!toast) return;
+    tTitle.textContent = title || 'Notification';
+    tBody.textContent = body || '';
+
+    toast.style.display = 'block';
+    setTimeout(()=>{ toast.style.transform = 'translateY(0)'; toast.style.opacity = '1'; }, 10);
+
+    // play sound
+    playNotificationSound();
+
+    // auto-hide
+    setTimeout(()=>{
+        toast.style.transform = 'translateY(30px)';
+        toast.style.opacity = '0';
+        setTimeout(()=>{ toast.style.display = 'none'; }, 300);
+    }, 4200);
+
+    toast.onclick = () => {
+        // open panel and mark as read
+        openNotifPanel();
+        markNotificationsAsRead();
+    };
+}
+
+function playNotificationSound(){
+    const audio = document.getElementById('notif-sound');
+    if (!audio) return;
+    audio.currentTime = 0;
+    audio.volume = 0.8;
+    audio.play().catch(()=>{});
+}
+
+let panelOpen = false;
+function openNotifPanel() {
+    const panel = document.getElementById('notif-panel');
+    if (!panel) return;
+    panel.style.transform = 'translateX(0)';
+    panel.setAttribute('aria-hidden','false');
+    panelOpen = true;
+    document.body.style.overflow = 'hidden';
+    // mark read when opened
+    markNotificationsAsRead();
+}
+
+function closeNotifPanel() {
+    const panel = document.getElementById('notif-panel');
+    if (!panel) return;
+    panel.style.transform = 'translateX(110%)';
+    panel.setAttribute('aria-hidden','true');
+    panelOpen = false;
+    document.body.style.overflow = '';
+}
+
+document.addEventListener('click', function(e){
+    const bell = document.getElementById('nav-notifications-link');
+    const panel = document.getElementById('notif-panel');
+    if (bell && bell.contains(e.target)) {
+        if (!panelOpen) openNotifPanel();
+        else closeNotifPanel();
+    }
+});
+document.getElementById && document.getElementById('close-notif-panel') && document.getElementById('close-notif-panel').addEventListener('click', closeNotifPanel);
+document.getElementById && document.getElementById('mark-all-read-btn') && document.getElementById('mark-all-read-btn').addEventListener('click', function(){
+    markNotificationsAsRead();
+});
+
+// Unread badge & loading notifications
+async function updateUnreadBadge() {
+    const supabase = getOrCreateSupabase();
+    const badge = document.getElementById("notif-badge");
+    const panelCount = document.getElementById("notif-panel-count");
+    if (!badge) return;
+    const sessionData = localStorage.getItem("player_session");
+    if (!sessionData) { badge.style.display='none'; return; }
+    const session = JSON.parse(sessionData);
+    const playerId = session.account_id || session.id || null;
+    if (!playerId) { badge.style.display='none'; return; }
+
+    const { data, error } = await supabase
+        .from('app_notifications')
+        .select('id, read_by')
+        .order('created_at', {ascending:false})
+        .limit(100);
+
+    if (error || !data) { badge.style.display='none'; return; }
+
+    let unread = 0;
+    data.forEach(n=>{
+        const readers = n.read_by || [];
+        if (!Array.isArray(readers)) return;
+        if (!readers.includes(playerId)) unread++;
+    });
+
+    if (unread > 0) {
+        badge.textContent = unread;
+        badge.style.display = 'inline-block';
+        if (panelCount) panelCount.textContent = `${unread} unread`;
+    } else {
+        badge.style.display = 'none';
+        if (panelCount) panelCount.textContent = `0 unread`;
+    }
+}
+
+// Load notifications content into panel
+async function loadNotifications() {
+    const supabase = getOrCreateSupabase();
+    const list = document.getElementById('notif-panel-list');
+    if (!list) return;
+    list.innerHTML = '<div style="text-align:center; color:#94a3b8; padding:28px;"><i class="fas fa-spinner fa-spin"></i> Loading...</div>';
+
+    const { data, error } = await supabase
+        .from('app_notifications')
+        .select('id, title, body, created_at, read_by')
+        .order('created_at', { ascending: false })
+        .limit(50);
+
+    if (error || !data) {
+        list.innerHTML = '<div style="text-align:center; color:#ffb4b4; padding:24px;">Failed to load notifications</div>';
+        return;
+    }
+
+    if (!data || data.length === 0) {
+        list.innerHTML = '<div style="text-align:center; color:#94a3b8; padding:28px;"><i class="fas fa-bell-slash fa-2x mb-2"></i><div>No notifications yet</div></div>';
+        return;
+    }
+
+    list.innerHTML = data.map(n=>{
+        const isRead = Array.isArray(n.read_by) && (n.read_by.length && (localStorage.getItem('player_session') ? JSON.parse(localStorage.getItem('player_session')).account_id : null) && n.read_by.includes(JSON.parse(localStorage.getItem('player_session')).account_id));
+        const time = new Date(n.created_at).toLocaleString();
+        return `
+            <div class="alert alert-dark mb-2" style="background:rgba(255,255,255,0.02); border-left:4px solid ${isRead? 'rgba(255,255,255,0.03)':'#06B6D4'}; padding:10px 12px; cursor:pointer;">
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <div style="max-width:78%;">
+                        <div style="font-weight:700; font-size:0.95rem;">${escapeHtml(n.title)}</div>
+                        <div style="font-size:0.9rem; color:#cbd5e1; margin-top:6px;">${escapeHtml(n.body)}</div>
+                    </div>
+                    <div style="font-size:0.75rem; color:#94a3b8;">${time}</div>
+                </div>
+            </div>
+        `;
+    }).join('');
+
+    // attach click handlers to mark item read and optionally navigate
+    Array.from(list.querySelectorAll('.alert')).forEach((el, idx)=>{
+        el.addEventListener('click', async ()=>{
+            const item = data[idx];
+            // open detailed? for now just mark this one as read and refresh
+            await markSingleNotificationRead(item.id);
+            updateUnreadBadge();
+            loadNotifications();
+        });
+    });
+}
+
+// Mark all notifications as read for current player
+async function markNotificationsAsRead() {
+    const supabase = getOrCreateSupabase();
+    const sessionData = localStorage.getItem('player_session');
+    if (!sessionData) return;
+    const session = JSON.parse(sessionData);
+    const playerId = session.account_id || session.id;
+    if (!playerId) return;
+
+    // fetch unread notifications
+    const { data } = await supabase.from('app_notifications').select('id, read_by').limit(100);
+    if (!data) return;
+    for (const n of data) {
+        const readers = Array.isArray(n.read_by) ? n.read_by : [];
+        if (!readers.includes(playerId)) {
+            readers.push(playerId);
+            await supabase.from('app_notifications').update({ read_by: readers }).eq('id', n.id);
+        }
+    }
+    updateUnreadBadge();
+    loadNotifications();
+}
+
+// mark single notification as read by id
+async function markSingleNotificationRead(id) {
+    const supabase = getOrCreateSupabase();
+    const sessionData = localStorage.getItem('player_session');
+    if (!sessionData) return;
+    const session = JSON.parse(sessionData);
+    const playerId = session.account_id || session.id;
+    if (!playerId) return;
+    const { data } = await supabase.from('app_notifications').select('read_by').eq('id', id).single();
+    if (!data) return;
+    const readers = Array.isArray(data.read_by) ? data.read_by : [];
+    if (!readers.includes(playerId)) {
+        readers.push(playerId);
+        await supabase.from('app_notifications').update({ read_by: readers }).eq('id', id);
+    }
+}
+
+// small helper to escape HTML
+function escapeHtml(str) {
+    if (!str) return '';
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+}
+
+/* ===== FCM foreground handler integration ===== */
+try {
+    if (typeof firebase !== 'undefined' && firebase.messaging) {
+        // ensure firebase initialized elsewhere
+        const messaging = firebase.messaging();
+
+        messaging.onMessage((payload) => {
+            const title = payload.notification?.title || 'eFootball League';
+            const body = payload.notification?.body || 'You have a new update';
+
+            // show toast + sound + badge update
+            showToastNotification(title, body);
+            updateUnreadBadge();
+            // also refresh panel list if open
+            if (panelOpen) loadNotifications();
+        });
+    }
+} catch (e) {
+    console.warn('FCM handler init failed', e);
+}
+
+// auto run badge update every 15s
+setInterval(updateUnreadBadge, 15000);
+document.addEventListener('DOMContentLoaded', ()=>{ updateUnreadBadge(); });
+</script>
+
 </body>
 
 </html>
