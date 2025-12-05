@@ -60,14 +60,13 @@ async function requestNotificationPermission() {
     const registration = await navigator.serviceWorker.register("/firebase-messaging-sw.js");
     console.log("✅ Service Worker registered");
 
-    // Get Token
+    // Get Token (BUT DO NOT LOG IT)
     fcmToken = await messaging.getToken({
       vapidKey: VAPID_KEY,
       serviceWorkerRegistration: registration
     });
 
     if (fcmToken) {
-      console.log("✅ FCM Token:", fcmToken);
       await saveTokenToBackend(fcmToken);
       return fcmToken;
     } else {
@@ -120,7 +119,7 @@ function setupForegroundMessageHandler() {
   if (!messaging) return;
 
   messaging.onMessage((payload) => {
-    console.log("📩 Foreground message:", payload);
+    console.log("📩 Foreground message received.");
 
     const notificationTitle = payload.notification?.title || "eFootball League";
     const notificationOptions = {
@@ -135,13 +134,13 @@ function setupForegroundMessageHandler() {
   });
 }
 
-// ==================== Modern Token Refresh (Firebase v10+) ====================
+// ==================== Modern Token Refresh ====================
 async function checkForTokenChange() {
   try {
     const newToken = await messaging.getToken({ vapidKey: VAPID_KEY });
 
     if (newToken && newToken !== fcmToken) {
-      console.log("🔄 Token changed:", newToken);
+      // DO NOT LOG TOKENS
       fcmToken = newToken;
       await saveTokenToBackend(newToken);
     }
@@ -178,11 +177,11 @@ async function initializeNotifications() {
   }
 }
 
-// ==================== Public API ====================
+// ==================== PUBLIC API ====================
 window.notificationManager = {
   initialize: initializeNotifications,
   requestPermission: requestNotificationPermission,
-  getToken: () => fcmToken
+  getToken: () => fcmToken // returns token but doesn't log it
 };
 
 // Auto-run
