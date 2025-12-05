@@ -1,5 +1,5 @@
 // database.js - FINAL FIXED VERSION (Single Supabase Client)
-console.log('🚀 database.js STARTED loading...');
+if (DEBUG) console.log('🚀 database.js STARTED loading...');
 
 // Database table keys
 export const DB_KEYS = {
@@ -17,13 +17,15 @@ let supabaseInitialized = false;
 let databaseInitialized = false;
 
 // Supabase Configuration
+const DEBUG = false; // set to true to enable debug logs
+
 const SUPABASE_URL = 'https://zliedzrqzvywlsyfggcq.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpsaWVkenJxenZ5d2xzeWZnZ2NxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjEwOTE4NjYsImV4cCI6MjA3NjY2Nzg2Nn0.NbzEZ4ievehtrlyOxCK_mheb7YU4SnNgC0uXuOKPNOI';
 
 // SINGLE SUPABASE CLIENT FUNCTION
 export function getSupabase() {
     if (!supabaseClient) {
-        console.log('🔥 Creating SINGLE Supabase client instance...');
+        if (DEBUG) console.log('🔥 Creating SINGLE Supabase client instance...');
         
         // Use global supabase if available (from CDN)
         if (typeof window !== 'undefined' && window.supabase) {
@@ -35,7 +37,7 @@ export function getSupabase() {
                     detectSessionInUrl: true
                 }
             });
-            console.log('✅ Supabase SINGLE client created via window.supabase');
+            if (DEBUG) console.log('✅ Supabase SINGLE client created via window.supabase');
         } else {
             console.error('❌ window.supabase not available - make sure CDN script is loaded first');
             throw new Error('Supabase CDN not loaded');
@@ -84,7 +86,7 @@ export async function getData(tableName, forceRefresh = false) {
     }
     
     try {
-        console.log(`📋 Fetching data from table: ${tableName}`);
+        if (DEBUG) console.log(`📋 Fetching data from table: ${tableName}`);
         
         // Special handling for players table to sync photos from player_accounts
         if (tableName === 'players') {
@@ -111,7 +113,7 @@ export async function getData(tableName, forceRefresh = false) {
                 return player;
             });
             
-            console.log(`✅ Retrieved ${result.length} players with synced photos`);
+            if (DEBUG) console.log(`✅ Retrieved ${result.length} players with synced photos`);
             return result;
         }
         
@@ -123,7 +125,7 @@ export async function getData(tableName, forceRefresh = false) {
         }
         
         const result = data || [];
-        console.log(`✅ Retrieved ${result.length} records from ${tableName}`);
+        if (DEBUG) console.log(`✅ Retrieved ${result.length} records from ${tableName}`);
         return result;
     } catch (err) {
         console.error(`Error in getData for ${tableName}:`, err);
@@ -144,17 +146,17 @@ export async function saveData(tableName, data) {
     }
     
     try {
-        console.log(`💾 Saving data to table: ${tableName}`, data);
+        if (DEBUG) console.log(`💾 Saving data to table: ${tableName}`, data);
         
         if (Array.isArray(data) && data.length > 0) {
             const { data: result, error } = await supabaseClient.from(tableName).insert(data).select();
             if (error) throw error;
-            console.log(`✅ Inserted ${result?.length || 0} records into ${tableName}`);
+            if (DEBUG) console.log(`✅ Inserted ${result?.length || 0} records into ${tableName}`);
             return result;
         } else {
             const { data: result, error } = await supabaseClient.from(tableName).upsert(data).select();
             if (error) throw error;
-            console.log(`✅ Upserted record into ${tableName}`);
+            if (DEBUG) console.log(`✅ Upserted record into ${tableName}`);
             return result;
         }
     } catch (error) {
@@ -267,11 +269,11 @@ export async function updateAdminPassword(newPassword) {
 // Initialize database with default data
 export async function initializeDatabase() {
     if (databaseInitialized) {
-        console.log('⚙️ Database already initialized, skipping...');
+        if (DEBUG) console.log('⚙️ Database already initialized, skipping...');
         return;
     }
     
-    console.log('⚙️ Initializing Supabase database...');
+    if (DEBUG) console.log('⚙️ Initializing Supabase database...');
     
     if (!await ensureSupabaseInitialized()) {
         console.error('Cannot initialize database: Supabase not available');
@@ -288,10 +290,10 @@ export async function initializeDatabase() {
         }
         
         if (!existingConfig || existingConfig.length === 0) {
-            console.log('Setting up default admin configuration...');
+            if (DEBUG) console.log('Setting up default admin configuration...');
             try {
                 await saveData(DB_KEYS.ADMIN_CONFIG, [DEFAULT_ADMIN_CONFIG]);
-                console.log('✅ Default admin configuration inserted');
+                if (DEBUG) console.log('✅ Default admin configuration inserted');
             } catch (err) {
                 console.error('Failed to insert admin config:', err);
             }
@@ -299,17 +301,17 @@ export async function initializeDatabase() {
             // Ensure existing config has password field
             const existing = existingConfig[0];
             if (!existing.password) {
-                console.log('Adding password field to existing admin configuration...');
+                if (DEBUG) console.log('Adding password field to existing admin configuration...');
                 existing.password = 'admin123';
                 existing.updated_at = new Date().toISOString();
                 await saveData(DB_KEYS.ADMIN_CONFIG, [existing]);
             }
-            console.log('✅ Admin configuration already exists');
+            if (DEBUG) console.log('✅ Admin configuration already exists');
         }
 
         // Mark database as initialized
         databaseInitialized = true;
-        console.log('✅ Database initialization completed');
+        if (DEBUG) console.log('✅ Database initialization completed');
 
     } catch (error) {
         console.error('Database initialization failed:', error);
@@ -377,7 +379,7 @@ export async function addPlayer(playerData) {
     };
 
     const inserted = await saveData(DB_KEYS.PLAYERS, [newPlayer]);
-    console.log('Player added:', newPlayer.name);
+    if (DEBUG) console.log('Player added:', newPlayer.name);
 
     // If email and phone are provided, create a player account
     if (playerData.email && playerData.phone) {
@@ -410,7 +412,7 @@ export async function addPlayer(playerData) {
                     .from(DB_KEYS.PLAYERS)
                     .update({ player_account_id: newAccount.id })
                     .eq('id', inserted[0].id);
-                console.log(`✅ Player account created for ${playerData.name} (default password: ${defaultPassword})`);
+                if (DEBUG) console.log(`✅ Player account created for ${playerData.name} (default password: ${defaultPassword})`);
             }
         } catch (err) {
             console.error('⚠️ Error creating player account:', err);
@@ -428,7 +430,7 @@ export async function updatePlayer(player) {
         // Create a copy of the player data WITHOUT the id field
         const { id, ...updateData } = player;
         
-        console.log('🔄 Updating player:', { playerId: id, updateData });
+        if (DEBUG) console.log('🔄 Updating player:', { playerId: id, updateData });
         
         const { data, error } = await supabaseClient
             .from(DB_KEYS.PLAYERS)
@@ -476,7 +478,7 @@ export async function deletePlayer(playerId) {
 export async function addFixture(fixture) {
     if (!await ensureSupabaseInitialized()) return null;
     try {
-        console.log('🔄 Adding fixture:', fixture);
+        if (DEBUG) console.log('🔄 Adding fixture:', fixture);
         
         // Prepare fixture data for database - handle time field properly
         const fixtureData = {
@@ -519,7 +521,7 @@ export async function updateFixture(fixture) {
         // Create a copy without id for update
         const { id, ...updateData } = fixture;
         
-        console.log('🔄 Updating fixture:', { fixtureId: id, updateData });
+        if (DEBUG) console.log('🔄 Updating fixture:', { fixtureId: id, updateData });
         
         const { data, error } = await supabaseClient
             .from(DB_KEYS.FIXTURES)
@@ -773,7 +775,7 @@ export async function getLeagueTable() {
         }
 
         if (players.length === 0) {
-            console.log('No players found for league table');
+            if (DEBUG) console.log('No players found for league table');
             return [];
         }
 
@@ -797,7 +799,7 @@ export async function getLeagueTable() {
 // Refresh UI & Subscriptions
 export async function refreshAllDisplays() {
     try {
-        console.log('Refreshing all displays...');
+        if (DEBUG) console.log('Refreshing all displays...');
         
         // Refresh admin displays if on admin page
         if (window.location.pathname.includes('admin.html')) {
@@ -851,7 +853,7 @@ export function subscribeToChanges(callback) {
             .on('postgres_changes', 
                 { event: '*', schema: 'public' }, 
                 payload => {
-                    console.log('DB change detected', payload);
+                    if (DEBUG) console.log('DB change detected', payload);
                     if (callback) callback(payload);
                     refreshAllDisplays();
                 }
@@ -1080,24 +1082,24 @@ if (typeof document !== 'undefined') {
     
     document.addEventListener('DOMContentLoaded', async function() {
         if (domInitialized) {
-            console.log('📦 DOM already initialized, skipping...');
+            if (DEBUG) console.log('📦 DOM already initialized, skipping...');
             return;
         }
         
-        console.log('📦 DOM loaded, initializing Supabase...');
+        if (DEBUG) console.log('📦 DOM loaded, initializing Supabase...');
         domInitialized = true;
         
         // Initialize Supabase
         try {
             await ensureSupabaseInitialized();
-            console.log('✅ Supabase ready');
+            if (DEBUG) console.log('✅ Supabase ready');
         } catch (error) {
             console.error('❌ Supabase initialization error:', error);
         }
     });
 }
 
-console.log('✅ database.js COMPLETED loading - all functions available');
+if (DEBUG) console.log('✅ database.js COMPLETED loading - all functions available');
 
 // =======================================================
 //  COMPATIBILITY PATCH FOR admin.html + advanced-stats.js
@@ -1168,7 +1170,7 @@ function initFixtureManagerGlobals() {
         window.showFixtureReport = () => fixtureManager.showFixtureReport();
         window.checkFixtureConflicts = () => fixtureManager.detectDateConflicts();
         window.showRescheduleTool = () => fixtureManager.showRescheduleTool();
-        console.log('✅ fixtureManager functions exposed globally');
+        if (DEBUG) console.log('✅ fixtureManager functions exposed globally');
     } else {
         // Retry after 500ms until fixtureManager exists
         setTimeout(initFixtureManagerGlobals, 500);
