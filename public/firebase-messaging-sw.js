@@ -1,34 +1,35 @@
-// Firebase Cloud Messaging Service Worker
+// Firebase Cloud Messaging Service Worker 
 importScripts('https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js');
 importScripts('https://www.gstatic.com/firebasejs/10.7.1/firebase-messaging-compat.js');
 
-// Firebase configuration
+// 🔥 Correct Firebase configuration for your project
 const firebaseConfig = {
-  apiKey: "AIzaSyDxVZ8QZ9Z8Z8Z8Z8Z8Z8Z8Z8Z8Z8Z8Z8Z",
+  apiKey: "AIzaSyDX99S2FDS3yd8NBEREBKK-P77G4OOWfoM",
   authDomain: "efootball-league-4f456.firebaseapp.com",
   projectId: "efootball-league-4f456",
-  storageBucket: "efootball-league-4f456.appspot.com",
-  messagingSenderId: "110568943036951744666",
-  appId: "1:110568943036951744666:web:YOUR_APP_ID"
+  storageBucket: "efootball-league-4f456.firebasestorage.app",
+  messagingSenderId: "688740313852",
+  appId: "1:688740313852:web:9bbf8fe7e4318a11874579",
+  measurementId: "G-MW8F3RD48D"
 };
 
-// Initialize Firebase
+// Initialize Firebase inside the Service Worker
 firebase.initializeApp(firebaseConfig);
 
-// Retrieve an instance of Firebase Messaging
+// Retrieve Messaging instance
 const messaging = firebase.messaging();
 
 // Handle background messages
 messaging.onBackgroundMessage((payload) => {
-  console.log('📩 Received background message:', payload);
+  console.log("📩 Received background message:", payload);
 
-  const notificationTitle = payload.notification?.title || 'eFootball League 2025';
+  const notificationTitle = payload.notification?.title || "eFootball League 2025";
   const notificationOptions = {
-    body: payload.notification?.body || 'You have a new update!',
-    icon: '/icons/icon-192x192.png',
-    badge: '/icons/icon-192x192.png',
+    body: payload.notification?.body || "You have a new update!",
+    icon: "/icons/icon-192x192.png",
+    badge: "/icons/icon-192x192.png",
     data: payload.data || {},
-    tag: 'efl-notification',
+    tag: "efl-notification",
     requireInteraction: false
   };
 
@@ -36,22 +37,22 @@ messaging.onBackgroundMessage((payload) => {
 });
 
 // Handle notification clicks
-self.addEventListener('notificationclick', (event) => {
-  console.log('🔔 Notification clicked:', event);
+self.addEventListener("notificationclick", (event) => {
+  console.log("🔔 Notification clicked:", event);
   event.notification.close();
 
-  const urlToOpen = event.notification.data?.url || '/';
+  const urlToOpen = event.notification.data?.url || "/";
 
   event.waitUntil(
-    clients.matchAll({ type: 'window', includeUncontrolled: true })
+    clients.matchAll({ type: "window", includeUncontrolled: true })
       .then((clientList) => {
-        // Check if there's already a window open
+        // If window is already open → focus it
         for (const client of clientList) {
-          if (client.url === urlToOpen && 'focus' in client) {
+          if (client.url === urlToOpen && "focus" in client) {
             return client.focus();
           }
         }
-        // If not, open a new window
+        // Otherwise → open a new window
         if (clients.openWindow) {
           return clients.openWindow(urlToOpen);
         }
