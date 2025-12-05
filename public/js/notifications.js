@@ -1,6 +1,6 @@
 // ==================== Firebase Cloud Messaging Notifications Manager ====================
 
-// Firebase configuration (UPDATED WITH CORRECT VALUES)
+// Firebase configuration (FULLY UPDATED)
 const firebaseConfig = {
   apiKey: "AIzaSyDX99S2FDS3yd8NBEREBKK-P77G4OOWfoM",
   authDomain: "efootball-league-4f456.firebaseapp.com",
@@ -11,85 +11,89 @@ const firebaseConfig = {
   measurementId: "G-MW8F3RD48D"
 };
 
+// Your VAPID Key
+const VAPID_KEY = "BNK1tuKFy0ZdpHqYQYnFtbekYo1e2_bzEcnADrbOon4io6Zu2fyLCkwu-k3RImX2c-3Y-VJecC-nsYhmR8y2K-c";
+
+// Your Supabase Edge Function URL
+const SAVE_TOKEN_URL = "https://zliedzrqzvywlsyfggcq.supabase.co/functions/v1/save-fcm-token";
+
 let messaging = null;
 let fcmToken = null;
 
-// Initialize Firebase
+// ==================== Firebase Initialization ====================
 async function initializeFirebase() {
   try {
-    if (typeof firebase === 'undefined') {
-      console.error('❌ Firebase SDK not loaded. Include Firebase scripts.');
+    if (typeof firebase === "undefined") {
+      console.error("❌ Firebase SDK not loaded.");
       return false;
     }
 
     if (!firebase.apps.length) {
       firebase.initializeApp(firebaseConfig);
-      console.log('✅ Firebase initialized');
+      console.log("✅ Firebase initialized");
     }
 
     messaging = firebase.messaging();
-    console.log('✅ Firebase Messaging initialized');
+    console.log("✅ Firebase Messaging initialized");
 
     return true;
   } catch (error) {
-    console.error('❌ Firebase initialization failed:', error);
+    console.error("❌ Firebase initialization failed:", error);
     return false;
   }
 }
 
-// Request permission + generate token
+// ==================== Request Permission + Get Token ====================
 async function requestNotificationPermission() {
   try {
-    console.log('📱 Requesting notification permission...');
+    console.log("📱 Requesting notification permission...");
 
     const permission = await Notification.requestPermission();
-
-    if (permission !== 'granted') {
-      console.warn('⚠️ Notification permission denied');
+    if (permission !== "granted") {
+      console.warn("⚠️ Notification permission denied");
       return null;
     }
 
-    console.log('✅ Notification permission granted');
+    console.log("✅ Permission granted");
 
-    // Register service worker
-    const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
-    console.log('✅ Service Worker registered');
+    // Register Service Worker
+    const registration = await navigator.serviceWorker.register("/firebase-messaging-sw.js");
+    console.log("✅ Service Worker registered");
 
-    // Get FCM token using your real VAPID key
+    // Get Token
     fcmToken = await messaging.getToken({
-      vapidKey: "BNK1tuKFy0ZdpHqYQYnFtbekYo1e2_bzEcnADrbOon4io6Zu2fyLCkwu-k3RImX2c-3Y-VJecC-nsYhmR8y2K-c",
+      vapidKey: VAPID_KEY,
       serviceWorkerRegistration: registration
     });
 
     if (fcmToken) {
-      console.log('✅ FCM Token obtained:', fcmToken);
-
+      console.log("✅ FCM Token:", fcmToken);
       await saveTokenToBackend(fcmToken);
       return fcmToken;
     } else {
-      console.warn('⚠️ No FCM token available');
+      console.warn("⚠️ No FCM token available");
       return null;
     }
   } catch (error) {
-    console.error('❌ Error getting notification permission:', error);
+    console.error("❌ Error generating FCM token:", error);
     return null;
   }
 }
 
-// Save FCM token to backend
+// ==================== Save Token to Supabase ====================
 async function saveTokenToBackend(token) {
   try {
-    const session = localStorage.getItem('player_session') || sessionStorage.getItem('player_session');
+    const session = localStorage.getItem("player_session") || sessionStorage.getItem("player_session");
     let playerId = null;
 
     if (session) {
-      const sessionData = JSON.parse(session);
-      playerId = sessionData.account_id || sessionData.id;
+      const data = JSON.parse(session);
+      playerId = data.account_id || data.id;
     }
 
-    const response = await fetch('/api/save-fcm-token', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+    const response = await fetch(SAVE_TOKEN_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         token,
         player_id: playerId,
@@ -101,93 +105,89 @@ async function saveTokenToBackend(token) {
     });
 
     const data = await response.json();
-
     if (data.success) {
-      console.log('✅ FCM token saved to backend');
+      console.log("✅ Token saved to Supabase");
     } else {
-      console.warn('⚠️ Failed to save FCM token:', data.message);
+      console.warn("⚠️ Could not save token:", data.message);
     }
   } catch (error) {
-    console.error('❌ Error saving FCM token:', error);
+    console.error("❌ Error saving token:", error);
   }
 }
 
-// Foreground notifications
+// ==================== Foreground Notifications ====================
 function setupForegroundMessageHandler() {
   if (!messaging) return;
 
   messaging.onMessage((payload) => {
-    console.log('📩 Foreground message received:', payload);
+    console.log("📩 Foreground message:", payload);
 
-    const notificationTitle = payload.notification?.title || 'eFootball League 2025';
+    const notificationTitle = payload.notification?.title || "eFootball League";
     const notificationOptions = {
-      body: payload.notification?.body || 'You have a new update!',
-      icon: '/icons/icon-192x192.png',
-      badge: '/icons/icon-192x192.png',
+      body: payload.notification?.body || "You have a new update!",
+      icon: "/icons/icon-192x192.png",
+      badge: "/icons/icon-192x192.png",
       data: payload.data || {},
-      tag: 'efl-notification'
+      tag: "efl-notification"
     };
 
     new Notification(notificationTitle, notificationOptions);
   });
 }
 
-// Token refresh handler
-function setupTokenRefreshHandler() {
-  if (!messaging) return;
-
-  messaging.onTokenRefresh(async () => {
-    try {
-      const refreshedToken = await messaging.getToken();
-      console.log('🔄 Token refreshed:', refreshedToken);
-      await saveTokenToBackend(refreshedToken);
-    } catch (error) {
-      console.error('❌ Unable to refresh token:', error);
-    }
-  });
-}
-
-// Initialize everything
-async function initializeNotifications() {
+// ==================== Modern Token Refresh (Firebase v10+) ====================
+async function checkForTokenChange() {
   try {
-    if (!('Notification' in window)) {
-      console.warn('⚠️ Notifications not supported');
-      return;
+    const newToken = await messaging.getToken({ vapidKey: VAPID_KEY });
+
+    if (newToken && newToken !== fcmToken) {
+      console.log("🔄 Token changed:", newToken);
+      fcmToken = newToken;
+      await saveTokenToBackend(newToken);
     }
-
-    if (!('serviceWorker' in navigator)) {
-      console.warn('⚠️ Service Worker not supported');
-      return;
-    }
-
-    const firebaseInitialized = await initializeFirebase();
-
-    if (!firebaseInitialized) {
-      console.error('❌ Cannot initialize notifications without Firebase');
-      return;
-    }
-
-    await requestNotificationPermission();
-
-    setupForegroundMessageHandler();
-    setupTokenRefreshHandler();
-
-    console.log('✅ Notifications fully initialized');
   } catch (error) {
-    console.error('❌ Notification initialization failed:', error);
+    console.error("❌ Error checking token refresh:", error);
   }
 }
 
-// Public API
+// ==================== Initialization Flow ====================
+async function initializeNotifications() {
+  try {
+    if (!("Notification" in window)) {
+      console.warn("⚠️ Browser does not support notifications");
+      return;
+    }
+
+    if (!("serviceWorker" in navigator)) {
+      console.warn("⚠️ Service workers not supported");
+      return;
+    }
+
+    const loaded = await initializeFirebase();
+    if (!loaded) return;
+
+    await requestNotificationPermission();
+    setupForegroundMessageHandler();
+
+    // Auto-check for token refresh every 5 minutes
+    setInterval(checkForTokenChange, 5 * 60 * 1000);
+
+    console.log("✅ Notifications fully initialized");
+  } catch (error) {
+    console.error("❌ Notification initialization failed:", error);
+  }
+}
+
+// ==================== Public API ====================
 window.notificationManager = {
   initialize: initializeNotifications,
   requestPermission: requestNotificationPermission,
   getToken: () => fcmToken
 };
 
-// Auto-start
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', initializeNotifications);
+// Auto-run
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", initializeNotifications);
 } else {
   initializeNotifications();
 }
