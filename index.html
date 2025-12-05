@@ -1551,32 +1551,11 @@ function escapeHtml(str) {
       .replace(/'/g, '&#39;');
 }
 
-/* ===== FCM foreground handler integration ===== */
-try {
-    if (typeof firebase !== 'undefined' && firebase.messaging) {
-        // ensure firebase initialized elsewhere
-        const messaging = firebase.messaging();
-
-        messaging.onMessage((payload) => {
-            const title = payload.notification?.title || 'eFootball League';
-            const body = payload.notification?.body || 'You have a new update';
-
-            // show toast + sound + badge update
-            showToastNotification(title, body);
-            updateUnreadBadge();
-            // also refresh panel list if open
-            if (panelOpen) loadNotifications();
-        });
-    }
-} catch (e) {
-    console.warn('FCM handler init failed', e);
-}
+/* ===== FCM foreground handler integration removed — handled in /js/notifications.js ===== */
 
 // auto run badge update every 15s
 setInterval(updateUnreadBadge, 15000);
 document.addEventListener('DOMContentLoaded', ()=>{ updateUnreadBadge(); });
 </script>
-
 </body>
-
 </html>
