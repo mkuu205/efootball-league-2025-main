@@ -1,3 +1,4 @@
+const DEBUG = false; // Debug toggle
 // database.js - FINAL FIXED VERSION (Single Supabase Client)
 if (DEBUG) console.log('🚀 database.js STARTED loading...');
 
