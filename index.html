@@ -1,0 +1,1287 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>eFootball League 2025</title>
+
+    <!-- Theme initialization (prevent flash) -->
+    <script>
+        (function() {
+            const theme = localStorage.getItem('efl-theme') || 'dark';
+            document.documentElement.setAttribute('data-theme', theme);
+        })();
+    </script>
+
+    <!-- Favicon & PWA icons -->
+    <link rel="icon" href="/icons/icon-192x192.png" sizes="192x192" type="image/png">
+    <!-- Bootstrap CSS (CDN) -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css">
+    <!-- Font Awesome (CDN) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <!-- App CSS -->
+    <link rel="stylesheet" href="/css/style.css">
+
+    <style>
+        /* Clean Navbar Styles */
+        .navbar {
+            padding: 0.5rem 0;
+            background: rgba(15, 23, 42, 0.85) !important;
+            backdrop-filter: blur(20px) saturate(180%);
+        }
+
+        .navbar-brand {
+            font-weight: 700;
+            font-size: 1.1rem;
+            font-family: 'Orbitron', sans-serif;
+            letter-spacing: 0.5px;
+        }
+
+        .navbar .logo {
+            width: 40px;
+            height: 40px;
+            font-size: 0.9rem;
+            background: linear-gradient(135deg, #06B6D4 0%, #3B82F6 100%);
+            box-shadow: 0 0 15px rgba(6, 182, 212, 0.5);
+        }
+
+        .navbar-nav .nav-link {
+            padding: 0.5rem 0.6rem;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: rgba(203, 213, 225, 0.9);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .navbar-nav .nav-link:hover,
+        .navbar-nav .nav-link.active {
+            color: #fff;
+            background: linear-gradient(135deg, #06B6D4 0%, #3B82F6 100%);
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2), 0 0 20px rgba(6, 182, 212, 0.5);
+        }
+
+        .dropdown-menu-dark {
+            background: rgba(15, 23, 42, 0.95);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(6, 182, 212, 0.3);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+
+        .dropdown-item {
+            font-size: 0.9rem;
+            padding: 0.65rem 1.25rem;
+            transition: all 0.2s ease;
+        }
+
+        .dropdown-item:hover {
+            background: rgba(6, 182, 212, 0.2);
+            transform: translateX(5px);
+        }
+
+        @media (max-width: 991px) {
+            .navbar-collapse {
+                background: rgba(15, 23, 42, 0.98);
+                backdrop-filter: blur(30px);
+                padding: 1.25rem;
+                margin-top: 0.75rem;
+                border-radius: 15px;
+                border: 1px solid rgba(6, 182, 212, 0.3);
+                box-shadow: 0 12px 48px rgba(0, 0, 0, 0.4);
+            }
+
+            .navbar-nav .nav-link {
+                padding: 0.9rem 1.25rem;
+                border-radius: 10px;
+            }
+            
+            /* Adjust icon spacing for mobile */
+            .navbar-nav .nav-link i {
+                width: 20px;
+                text-align: center;
+            }
+        }
+
+        /* Custom styles for the sliders */
+        .carousel-content {
+            min-height: 450px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 3rem;
+            position: relative;
+            border-radius: 20px;
+            overflow: hidden;
+        }
+
+        @media (max-width: 768px) {
+            .carousel-content {
+                min-height: 350px;
+                padding: 2rem;
+            }
+        }
+
+        .carousel-control-prev,
+        .carousel-control-next {
+            width: 8%;
+            opacity: 0.7;
+            transition: opacity 0.3s ease;
+        }
+
+        .carousel-control-prev:hover,
+        .carousel-control-next:hover {
+            opacity: 1;
+        }
+
+        .carousel-indicators button {
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            margin: 0 6px;
+            background: rgba(6, 182, 212, 0.6);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            transition: all 0.3s ease;
+        }
+
+        .carousel-indicators button.active {
+            background: #06B6D4;
+            transform: scale(1.3);
+            box-shadow: 0 0 15px rgba(6, 182, 212, 0.8);
+        }
+
+        .match-slider {
+            background: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(6, 182, 212, 0.2);
+            border-radius: 20px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            transition: all 0.3s ease;
+        }
+
+        .match-slider:hover {
+            border-color: rgba(6, 182, 212, 0.4);
+            box-shadow: 0 12px 48px rgba(0, 0, 0, 0.4), 0 0 30px rgba(6, 182, 212, 0.3);
+        }
+
+        .match-slide {
+            padding: 1.5rem;
+            text-align: center;
+        }
+
+        .match-teams {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1.5rem;
+        }
+
+        .team-info {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 45%;
+        }
+
+        .team-logo {
+            width: 90px;
+            height: 90px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 4px solid rgba(6, 182, 212, 0.6);
+            margin-bottom: 0.75rem;
+            transition: all 0.3s ease;
+            box-shadow: 0 0 20px rgba(6, 182, 212, 0.4);
+        }
+
+        .team-logo:hover {
+            transform: scale(1.1);
+            border-color: #06B6D4;
+            box-shadow: 0 0 30px rgba(6, 182, 212, 0.8);
+        }
+
+        .vs-badge {
+            background: linear-gradient(135deg, #F97316 0%, #EF4444 100%);
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 25px;
+            font-weight: 800;
+            font-family: 'Orbitron', sans-serif;
+            letter-spacing: 1px;
+            box-shadow: 0 4px 16px rgba(249, 115, 22, 0.4);
+        }
+
+        .match-details {
+            background: rgba(6, 182, 212, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 1rem;
+            margin-top: 1.25rem;
+            border: 1px solid rgba(6, 182, 212, 0.2);
+        }
+
+        .contact-info {
+            margin-bottom: 1.5rem;
+        }
+
+        .contact-info h5 {
+            border-bottom: 2px solid #06B6D4;
+            padding-bottom: 0.75rem;
+            margin-bottom: 1rem;
+            font-family: 'Orbitron', sans-serif;
+        }
+
+        .contact-info .fa-envelope {
+            color: #06B6D4;
+        }
+
+        .contact-info .fa-phone {
+            color: #10B981;
+        }
+
+        .contact-info .fa-user {
+            color: #F97316;
+        }
+
+        .contact-info .fa-clock {
+            color: #8B5CF6;
+        }
+
+        /* Rotating background animation */
+        .rotating-bg {
+            transition: background-image 1s ease-in-out;
+        }
+
+        /* FIX: Keep Upcoming Matches perfectly aligned */
+.match-teams {
+    display: flex;
+    justify-content: center !important;
+    align-items: center;
+    gap: 25px !important;
+    width: 100%;
+}
+
+.team-info {
+    width: 120px !important;       /* equal team width */
+    text-align: center !important;
+}
+
+.team-logo-placeholder {
+    width: 90px !important;
+    height: 90px !important;
+    flex-shrink: 0 !important;     /* prevent overflow clipping */
+}
+
+.team-name {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;       /* prevents pushing layout */
+}
+
+.upcoming-match-card {
+    text-align: center;
+
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark sticky-top">
+        <div class="container">
+            <!-- Brand -->
+            <a class="navbar-brand d-flex align-items-center" href="#">
+                <div class="logo me-2">EFL</div>
+                <span class="d-none d-md-inline">eFootball League 2025</span>
+                <span class="d-md-none">EFL 2025</span>
+            </a>
+
+            <!-- Mobile Toggle -->
+            <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+
+            <!-- Nav Items -->
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <!-- Close button for mobile menu -->
+                <button class="btn-close-menu d-lg-none" onclick="closeNavMenu()" aria-label="Close menu">
+                    <i class="fas fa-times"></i>
+                </button>
+                <!-- Main Navigation - Left/Center -->
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link active" href="#" data-tab="home"><i class="fas fa-home me-1 d-lg-none"></i>Home</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" data-tab="fixtures"><i class="fas fa-calendar me-1 d-lg-none"></i>Fixtures</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" data-tab="results"><i class="fas fa-futbol me-1 d-lg-none"></i>Results</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" data-tab="table"><i class="fas fa-table me-1 d-lg-none"></i>Table</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" data-tab="players"><i class="fas fa-users me-1 d-lg-none"></i>Players</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" data-tab="advanced-stats"><i class="fas fa-chart-bar me-1 d-lg-none"></i>Stats</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" data-tab="contact"><i class="fas fa-envelope me-1 d-lg-none"></i>Contact</a>
+                    </li>
+                </ul>
+
+                <!-- Right Side - Auth & Actions -->
+                <ul class="navbar-nav align-items-lg-center">
+                    <!-- Sync Status - Desktop only -->
+                    <li class="nav-item d-none d-lg-block me-2">
+                        <span id="sync-status" class="badge bg-success">
+                            <i class="fas fa-cloud me-1"></i>Online
+                        </span>
+                    </li>
+
+                    <!-- Refresh Button -->
+                    <li class="nav-item d-none d-lg-block">
+                        <button class="btn btn-sm btn-outline-secondary" onclick="dataSync.manualSync()"
+                            title="Refresh Data">
+                            <i class="fas fa-sync-alt"></i>
+                        </button>
+                    </li>
+
+                    <!-- Divider -->
+                    <li class="nav-item d-none d-lg-block mx-2">
+                        <span class="text-muted">|</span>
+                    </li>
+
+                    <!-- Auth Section - Changes based on login state -->
+                    <li class="nav-item" id="auth-login-btn">
+                        <a class="nav-link" href="player-login.html">
+                            <i class="fas fa-sign-in-alt me-1 d-lg-none"></i>Login
+                        </a>
+                    </li>
+                    <li class="nav-item" id="auth-register-btn">
+                        <a class="btn btn-sm btn-primary ms-lg-2 mt-2 mt-lg-0" href="register.html"
+                            style="background: linear-gradient(135deg, #06B6D4 0%, #3B82F6 100%); border: none; box-shadow: 0 4px 16px rgba(6, 182, 212, 0.3);">
+                            <i class="fas fa-user-plus me-1"></i>Register
+                        </a>
+                    </li>
+                    
+                    <!-- Logged In User Section (hidden by default) -->
+                    <li class="nav-item dropdown" id="auth-user-section" style="display: none;">
+                        <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" role="button" data-bs-toggle="dropdown">
+                            <img id="user-avatar" src="" alt="Avatar" 
+                                style="width: 32px; height: 32px; border-radius: 50%; border: 2px solid #06B6D4; margin-right: 8px;">
+                            <span id="user-name" class="d-none d-lg-inline"></span>
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-dark dropdown-menu-end" style="min-width: 240px; padding: 0.5rem;">
+                            <!-- Player Stats Card -->
+                            <li>
+                                <div style="background: rgba(6, 182, 212, 0.15); border-radius: 10px; padding: 12px; margin-bottom: 8px;">
+                                    <div style="text-align: center; margin-bottom: 10px; color: #94A3B8; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; font-weight: 600;">
+                                        Your Stats
+                                    </div>
+                                    <div style="display: flex; justify-content: space-around; text-align: center;">
+                                        <div>
+                                            <div id="mini-position" style="font-size: 1.25rem; font-weight: 700; color: #06B6D4;">-</div>
+                                            <div style="font-size: 0.7rem; color: #CBD5E1; margin-top: 2px;">Position</div>
+                                        </div>
+                                        <div style="border-left: 1px solid rgba(255,255,255,0.15); padding-left: 15px;">
+                                            <div id="mini-points" style="font-size: 1.25rem; font-weight: 700; color: #F59E0B;">0</div>
+                                            <div style="font-size: 0.7rem; color: #CBD5E1; margin-top: 2px;">Points</div>
+                                        </div>
+                                        <div style="border-left: 1px solid rgba(255,255,255,0.15); padding-left: 15px;">
+                                            <div id="mini-wins" style="font-size: 1.25rem; font-weight: 700; color: #10B981;">0</div>
+                                            <div style="font-size: 0.7rem; color: #CBD5E1; margin-top: 2px;">Wins</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </li>
+                            <li><hr class="dropdown-divider" style="margin: 0.5rem 0; border-color: rgba(255,255,255,0.1);"></li>
+                            <li><a class="dropdown-item py-2" href="player-dashboard.html" style="border-radius: 6px;"><i class="fas fa-tachometer-alt me-2" style="color: #06B6D4;"></i>My Dashboard</a></li>
+                            <li><a class="dropdown-item py-2" href="#" onclick="logoutPlayer(); return false;" style="border-radius: 6px;"><i class="fas fa-sign-out-alt me-2" style="color: #EF4444;"></i>Logout</a></li>
+                        </ul>
+                    </li>
+
+                    <!-- Install App Button (hidden by default) -->
+                    <li class="nav-item">
+                        <button class="btn btn-sm btn-warning ms-lg-2 mt-2 mt-lg-0" id="install-button"
+                            style="display: none;">
+                            <i class="fas fa-download me-1"></i>Install
+                        </button>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container my-4">
+        <!-- Header Stats Row -->
+        <div class="row align-items-center mb-5">
+            <!-- Countdown Timer (Left) -->
+            <div class="col-6 mb-0">
+                <div class="d-flex align-items-center justify-content-start">
+                    <!-- Timer -->
+                    <div id="countdown-timer" class="responsive-timer"
+                        style="font-weight: 800; font-family: 'Orbitron', sans-serif; line-height: 1; background: linear-gradient(135deg, #06B6D4 0%, #3B82F6 100%); background-clip: text; -webkit-background-clip: text; -webkit-text-fill-color: transparent; filter: drop-shadow(0 0 20px rgba(6, 182, 212, 0.4)); margin-right: 1.5rem;">
+                        00:00:00</div>
+
+                    <!-- Label -->
+                    <div class="text-start">
+                        <div class="responsive-label"
+                            style="font-weight: 600; letter-spacing: 2px; color: #CBD5E1; text-transform: uppercase; margin-bottom: 0.25rem;">
+                            Next Match In</div>
+                        <div class="responsive-sublabel" style="color: #94A3B8; display: flex; align-items: center;">
+                            <i class="fas fa-clock me-2" style="color: #06B6D4;"></i> Live Countdown
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Prize Pool (Right) -->
+            <div class="col-6">
+                <div class="d-flex align-items-center justify-content-end">
+                    <i class="fas fa-trophy responsive-icon"
+                        style="margin-right: 1.5rem; color: #F97316; text-shadow: 0 0 25px rgba(249, 115, 22, 0.5);"></i>
+                    <div class="text-start">
+                        <div class="responsive-label"
+                            style="font-weight: 600; letter-spacing: 2px; color: #CBD5E1; text-transform: uppercase;">
+                            Prize Pool</div>
+                        <div class="responsive-prize"
+                            style="font-weight: 800; font-family: 'Orbitron', sans-serif; line-height: 1; background: linear-gradient(135deg, #F97316 0%, #EF4444 100%); background-clip: text; -webkit-background-clip: text; -webkit-text-fill-color: transparent; filter: drop-shadow(0 0 15px rgba(249, 115, 22, 0.3));">
+                            1000 KES</div>
+                        <div class="responsive-sublabel" style="font-weight: 500; color: #94A3B8; margin-top: 0.25rem;">
+                            For the
+                            Winner</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content Tabs -->
+        <div class="tab-content" id="myTabContent">
+            <!-- Home Tab -->
+            <div class="tab-pane fade show active" id="home" role="tabpanel">
+                <!-- Featured Carousel -->
+                <div id="featuredCarousel" class="carousel slide mb-4" data-bs-ride="carousel" data-bs-interval="7000">
+                    <div class="carousel-indicators">
+                        <button type="button" data-bs-target="#featuredCarousel" data-bs-slide-to="0"
+                            class="active"></button>
+                        <button type="button" data-bs-target="#featuredCarousel" data-bs-slide-to="1"></button>
+                        <button type="button" data-bs-target="#featuredCarousel" data-bs-slide-to="2"></button>
+                        <button type="button" data-bs-target="#featuredCarousel" data-bs-slide-to="3"></button>
+                    </div>
+                    <div class="carousel-inner rounded">
+                        <div class="carousel-item active">
+                            <div id="hero-slide" class="carousel-content position-relative overflow-hidden rotating-bg"
+                                data-images='["https://wallpaperaccess.com/full/493720.jpg","https://wallpaperaccess.com/full/493799.jpg","https://wallpaperaccess.com/full/493856.jpg","https://wallpaperaccess.com/full/1302641.jpg","https://wallpaperaccess.com/full/1302649.jpg"]'
+                                data-gradient="linear-gradient(135deg, rgba(0, 0, 0, 0.5) 0%, rgba(0, 0, 0, 0.4) 100%)"
+                                style="background: linear-gradient(135deg, rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.4)), url('https://wallpaperaccess.com/full/493720.jpg') center/cover no-repeat;">
+                                <div class="text-white text-center position-relative"
+                                    style="z-index: 2; text-shadow: 0 2px 10px rgba(0,0,0,0.8);">
+                                    <h2 class="display-4 fw-bold">eFootball League 2025</h2>
+                                    <p class="lead fs-3 fw-bold">Round Robin Format</p>
+                                    <p class="fs-5">Two Rounds - Home and Away</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="carousel-item">
+                            <div class="carousel-content rotating-bg"
+                                data-images='["https://wallpaperaccess.com/full/493799.jpg","https://wallpaperaccess.com/full/493856.jpg","https://wallpaperaccess.com/full/1302641.jpg","https://wallpaperaccess.com/full/1302649.jpg","https://wallpaperaccess.com/full/493720.jpg"]'
+                                data-gradient="linear-gradient(135deg, rgba(0, 0, 0, 0.5) 0%, rgba(0, 0, 0, 0.4) 100%)"
+                                style="background: linear-gradient(135deg, rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.4)), url('https://wallpaperaccess.com/full/493799.jpg') center/cover;">
+                                <div class="text-white">
+                                    <h2 class="display-4 fw-bold">500 KES Prize</h2>
+                                    <p class="lead">For the Tournament Winner!</p>
+                                    <p>Compete for glory and the cash prize</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="carousel-item">
+                            <div class="carousel-content rotating-bg"
+                                data-images='["https://wallpaperaccess.com/full/493856.jpg","https://wallpaperaccess.com/full/1302641.jpg","https://wallpaperaccess.com/full/1302649.jpg","https://wallpaperaccess.com/full/493720.jpg","https://wallpaperaccess.com/full/493799.jpg"]'
+                                data-gradient="linear-gradient(135deg, rgba(0, 0, 0, 0.5) 0%, rgba(0, 0, 0, 0.4) 100%)"
+                                style="background: linear-gradient(135deg, rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.4)), url('https://wallpaperaccess.com/full/493856.jpg') center/cover;">
+                                <div class="text-white">
+                                    <h2 class="display-4 fw-bold">Real-time Updates</h2>
+                                    <p class="lead">Powered by Supabase</p>
+                                    <p>Live scores, fixtures, and league table updates</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="carousel-item">
+                            <div class="carousel-content rotating-bg"
+                                data-images='["https://wallpaperaccess.com/full/1302641.jpg","https://wallpaperaccess.com/full/1302649.jpg","https://wallpaperaccess.com/full/493720.jpg","https://wallpaperaccess.com/full/493799.jpg","https://wallpaperaccess.com/full/493856.jpg"]'
+                                data-gradient="linear-gradient(135deg, rgba(0, 0, 0, 0.5) 0%, rgba(0, 0, 0, 0.4) 100%)"
+                                style="background: linear-gradient(135deg, rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.4)), url('https://wallpaperaccess.com/full/1302641.jpg') center/cover;">
+                                <div class="text-white">
+                                    <h2 class="display-4 fw-bold">Advanced Statistics</h2>
+                                    <p class="lead">Track Player Performance</p>
+                                    <p>Detailed stats, form analysis, and player comparisons</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <button class="carousel-control-prev" type="button" data-bs-target="#featuredCarousel"
+                        data-bs-slide="prev">
+                        <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                        <span class="visually-hidden">Previous</span>
+                    </button>
+                    <button class="carousel-control-next" type="button" data-bs-target="#featuredCarousel"
+                        data-bs-slide="next">
+                        <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                        <span class="visually-hidden">Next</span>
+                    </button>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-8">
+                        <div class="card">
+                            <div class="card-header">
+                                <i class="fas fa-trophy me-2"></i> Tournament Overview
+                            </div>
+                            <div class="card-body"
+                                style="background: linear-gradient(135deg, rgba(15, 23, 42, 0.92), rgba(15, 23, 42, 0.95)), url('/images/1637856.jpg') center/cover; background-attachment: fixed;">
+                                <p>Welcome to the eFootball League 2025! This is our class competition where each player
+                                    will face off against every other player in home and away matches.</p>
+                                <p>The tournament follows a round-robin format with balanced teams to ensure fairness
+                                    and competitive gameplay.</p>
+                                <h5>Key Information:</h5>
+                                <ul>
+                                    <li>Round-robin format (home and away matches)</li>
+                                    <li>All players must play each other</li>
+                                    <li>Team strength balanced for fairness</li>
+                                    <li>Points system: Win = 3, Draw = 1, Loss = 0</li>
+                                    <li>Prize: 500 KES for the winner</li>
+                                    <li><strong>Real-time updates with Supabase</strong></li>
+                                </ul>
+                            </div>
+                        </div>
+
+                        <!-- Upcoming Matches Slider -->
+                        <div class="card match-slider">
+                            <div class="card-header d-flex justify-content-between align-items-center">
+                                <span><i class="fas fa-calendar-alt me-2"></i> 🏆 EFL 2025 - Upcoming Matches</span>
+                                <div>
+                                    <button class="btn btn-sm btn-outline-light" onclick="showTab('fixtures')">
+                                        <i class="fas fa-list me-1"></i> View All
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="card-body"
+                                style="background: linear-gradient(135deg, rgba(15, 23, 42, 0.92), rgba(15, 23, 42, 0.95)), url('/images/1638044.jpg') center/cover; background-attachment: fixed;">
+                                <div id="upcomingMatchesCarousel" class="carousel slide" data-bs-ride="carousel"
+                                    data-bs-interval="8000">
+                                    <div class="carousel-indicators" id="upcoming-matches-indicators">
+                                        <!-- Indicators will be dynamically added -->
+                                    </div>
+                                    <div class="carousel-inner" id="upcoming-matches-slides">
+                                        <!-- Match slides will be dynamically added -->
+                                        <div class="carousel-item active text-center">
+                                            <div class="upcoming-match-card">
+                                                <div class="match-teams">
+                                                    <div class="team-info">
+                                                        <div class="team-logo-placeholder bg-primary rounded-circle d-flex align-items-center justify-content-center mx-auto" style="width: 90px; height: 90px;">
+                                                            <i class="fas fa-user text-white fs-3"></i>
+                                                        </div>
+                                                        <div class="team-name">Loading...</div>
+                                                    </div>
+                                                    <div class="vs-badge">VS</div>
+                                                    <div class="team-info">
+                                                        <div class="team-logo-placeholder bg-danger rounded-circle d-flex align-items-center justify-content-center mx-auto" style="width: 90px; height: 90px;">
+                                                            <i class="fas fa-user text-white fs-3"></i>
+                                                        </div>
+                                                        <div class="team-name">Loading...</div>
+                                                    </div>
+                                                </div>
+                                                <div class="match-details">
+                                                    <div class="match-time">
+                                                        <i class="fas fa-clock me-2"></i>
+                                                        <span>Loading date...</span>
+                                                    </div>
+                                                    <div class="mt-2">
+                                                        <small class="text-muted">Venue: Loading...</small>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <button class="carousel-control-prev" type="button"
+                                        data-bs-target="#upcomingMatchesCarousel" data-bs-slide="prev">
+                                        <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                                        <span class="visually-hidden">Previous</span>
+                                    </button>
+                                    <button class="carousel-control-next" type="button"
+                                        data-bs-target="#upcomingMatchesCarousel" data-bs-slide="next">
+                                        <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                                        <span class="visually-hidden">Next</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-4">
+                        <div class="card">
+                            <div class="card-header">
+                                <i class="fas fa-star me-2"></i> Top Scorers
+                            </div>
+                            <div class="card-body" id="top-scorers"
+                                style="background: linear-gradient(135deg, rgba(15, 23, 42, 0.92), rgba(15, 23, 42, 0.95)), url('/images/1637916.jpg') center/cover; background-attachment: fixed;">
+                                <!-- Dynamically loaded -->
+                            </div>
+                        </div>
+
+                        <div class="card">
+                            <div class="card-header">
+                                <i class="fas fa-chart-line me-2"></i> Recent Form
+                            </div>
+                            <div class="card-body" id="recent-form"
+                                style="background: linear-gradient(135deg, rgba(15, 23, 42, 0.92), rgba(15, 23, 42, 0.95)), url('/images/1153483.jpg') center/cover; background-attachment: fixed;">
+                                <!-- Dynamically loaded -->
+                            </div>
+                        </div>
+
+                        <!-- Quick Stats -->
+                        <div class="card">
+                            <div class="card-header">
+                                <i class="fas fa-chart-bar me-2"></i> Quick Stats
+                            </div>
+                            <div class="card-body" id="quick-stats"
+                                style="background: linear-gradient(135deg, rgba(15, 23, 42, 0.92), rgba(15, 23, 42, 0.95)), url('/images/690807.jpg') center/cover; background-attachment: fixed;">
+                                <!-- Dynamically loaded -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Other tabs remain the same -->
+            <!-- Fixtures Tab -->
+            <div class="tab-pane fade" id="fixtures" role="tabpanel">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <span><i class="fas fa-calendar me-2"></i> 🏆 EFL 2025 Tournament - Fixtures</span>
+                        <div>
+                            <button class="btn btn-sm btn-primary me-2" id="show-upcoming">Upcoming</button>
+                            <button class="btn btn-sm btn-outline-light" id="show-all">All Fixtures</button>
+                            <button class="btn btn-sm btn-outline-info ms-2"
+                                onclick="imageExporter.exportMatchDayFixtures()">
+                                <i class="fas fa-image me-1"></i> Export
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-dark table-hover" id="fixtures-table">
+                                <thead>
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Time</th>
+                                        <th>Home Team</th>
+                                        <th>Away Team</th>
+                                        <th>Venue</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <!-- Dynamically loaded -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Results Tab -->
+            <div class="tab-pane fade" id="results" role="tabpanel">
+                <div class="card">
+                    <div class="card-header">
+                        <i class="fas fa-list-alt me-2"></i> 🏆 EFL 2025 Tournament - Match Results
+                    </div>
+                    <div class="card-body" id="results-container">
+                        <!-- Dynamically loaded -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- League Table Tab -->
+            <div class="tab-pane fade" id="table" role="tabpanel">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <span><i class="fas fa-table me-2"></i> 🏆 EFL 2025 Tournament - League Table</span>
+                        <button class="btn btn-sm btn-outline-info" onclick="imageExporter.exportLeagueTable()">
+                            <i class="fas fa-image me-1"></i> Export Image
+                        </button>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-dark table-hover" id="league-table">
+                                <thead>
+                                    <tr>
+                                        <th>Pos</th>
+                                        <th>Player</th>
+                                        <th>P</th>
+                                        <th>W</th>
+                                        <th>D</th>
+                                        <th>L</th>
+                                        <th>GF</th>
+                                        <th>GA</th>
+                                        <th>GD</th>
+                                        <th>Pts</th>
+                                        <th>Form</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <!-- Dynamically loaded -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Players Tab -->
+            <div class="tab-pane fade" id="players" role="tabpanel">
+                <div class="row" id="players-container">
+                    <!-- Dynamically loaded -->
+                </div>
+            </div>
+
+            <!-- Advanced Stats Tab -->
+            <div class="tab-pane fade" id="advanced-stats" role="tabpanel">
+                <div id="advanced-stats-container">
+                    <!-- Advanced statistics will be loaded here -->
+                </div>
+            </div>
+
+            <!-- Contact Tab -->
+            <div class="tab-pane fade" id="contact" role="tabpanel">
+                <h3 class="mb-4 text-center">Contact & Information</h3>
+                <div class="row">
+                    <div class="col-md-8">
+                        <div class="card">
+                            <div class="card-header">
+                                <i class="fas fa-envelope me-2"></i> Get in Touch
+                            </div>
+                            <div class="card-body">
+                                <p>If you have any questions, concerns, or technical issues, please reach out to the
+                                    tournament organizer using the details below.</p>
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="contact-info">
+                                            <h5><i class="fas fa-envelope me-2"></i> Email Support</h5>
+                                            <p class="ms-4">
+                                                <a href="mailto:support@kishtechsite.online" class="text-info">
+                                                    support@kishtechsite.online
+                                                </a>
+                                            </p>
+                                        </div>
+                                        <div class="contact-info">
+                                            <h5><i class="fas fa-phone me-2"></i> Helpline</h5>
+                                            <p class="ms-4">
+                                                <a href="tel:0796307638" class="text-info">
+                                                    0796307638
+                                                </a>
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="contact-info">
+                                            <h5><i class="fas fa-user me-2"></i> Tournament Organizer</h5>
+                                            <p class="ms-4">Made with ❤️ by Kish</p>
+                                        </div>
+                                        <div class="contact-info">
+                                            <h5><i class="fas fa-clock me-2"></i> Response Time</h5>
+                                            <p class="ms-4">Within 24 hours</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="mt-4 p-3 rounded" style="background: rgba(255, 255, 255, 0.1);">
+                                    <h6 class="text-warning">Common Questions:</h6>
+                                    <ul class="mt-3">
+                                        <li>How do I register for the tournament? - Contact the admin</li>
+                                        <li>When are matches scheduled? - Check the fixtures tab</li>
+                                        <li>How are points calculated? - Win=3, Draw=1, Loss=0</li>
+                                        <li>Technical issues with the website? - Email support</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card">
+                            <div class="card-header">
+                                <i class="fas fa-info-circle me-2"></i> Tournament Information
+                            </div>
+                            <div class="card-body">
+                                <h6 class="text-warning">Quick Links</h6>
+                                <ul class="list-group list-group-flush bg-transparent">
+                                    <li
+                                        class="list-group-item bg-transparent text-light d-flex justify-content-between align-items-center">
+                                        Tournament Version
+                                        <span class="badge bg-primary" id="app-version-badge">v3.0</span>
+                                    </li>
+                                    <li
+                                        class="list-group-item bg-transparent text-light d-flex justify-content-between align-items-center">
+                                        Last Data Sync
+                                        <span class="badge bg-success" id="last-sync">Just now</span>
+                                    </li>
+                                </ul>
+
+                                <h6 class="text-warning mt-4">Follow Us</h6>
+                                <div class="d-flex justify-content-around">
+                                    <a href="#" class="btn btn-outline-info rounded-circle"><i
+                                            class="fab fa-twitter"></i></a>
+                                    <a href="#" class="btn btn-outline-info rounded-circle"><i
+                                            class="fab fa-facebook-f"></i></a>
+                                    <a href="#" class="btn btn-outline-info rounded-circle"><i
+                                            class="fab fa-instagram"></i></a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="text-center py-3 mt-4">
+        <div class="container">
+            <p class="mb-1">eFootball League 2025 &copy; All rights reserved</p>
+            <p class="text-muted mb-1">This website is for class competition purposes only</p>
+            <p class="mb-0">
+                Made with ❤️ by Kish |
+                Support: <a href="mailto:support@kishtechsite.online" class="text-info">support@kishtechsite.online</a>
+                |
+                Helpline: <a href="tel:0796307638" class="text-info">0796307638</a>
+            </p>
+        </div>
+    </footer>
+
+    <!-- ✅ CORRECT SCRIPT ORDER - FIXED -->
+    <!-- Supabase CDN FIRST -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- App Scripts (ALL type="module") -->
+    <script type="module" src="/js/database.js"></script>
+    <script type="module" src="/js/app.js"></script>
+    <script type="module" src="/js/auth.js"></script>
+    <script type="module" src="/js/admin.js"></script>
+    <script type="module" src="/js/advanced-stats.js"></script>
+    <script type="module" src="/js/export.js"></script>
+    <script type="module" src="/js/tournament-updates.js"></script>
+
+    <!-- Tab switching logic -->
+    <script>
+        let currentTab = 'home';
+        window.currentTab = currentTab;
+
+        function showTab(tabName) {
+            currentTab = tabName;
+            window.currentTab = tabName;
+            console.log(`🔄 Showing tab: ${tabName}`);
+
+            // Hide all tab panes
+            document.querySelectorAll('.tab-pane').forEach(tab => {
+                tab.classList.remove('show', 'active');
+            });
+
+            // Show the selected tab pane
+            const tab = document.getElementById(tabName);
+            if (tab) {
+                tab.classList.add('show', 'active');
+            }
+
+            // Update active nav link
+            document.querySelectorAll('.nav-link').forEach(navLink => {
+                navLink.classList.remove('active');
+                if (navLink.getAttribute('data-tab') === tabName) {
+                    navLink.classList.add('active');
+                }
+            });
+
+            // Render content specific to the tab
+            if (tabName === 'fixtures' && typeof renderFixtures === 'function') {
+                renderFixtures();
+            } else if (tabName === 'results' && typeof renderResults === 'function') {
+                renderResults();
+            } else if (tabName === 'table' && typeof renderLeagueTable === 'function') {
+                renderLeagueTable();
+            } else if (tabName === 'players' && typeof renderPlayers === 'function') {
+                renderPlayers();
+            } else if (tabName === 'home' && typeof renderHomePage === 'function') {
+                renderHomePage();
+            } else if (tabName === 'advanced-stats' && typeof advancedStats !== 'undefined' && typeof advancedStats.loadAdvancedStatsDashboard === 'function') {
+                advancedStats.loadAdvancedStatsDashboard();
+            }
+        }
+
+        // Close mobile nav menu
+        function closeNavMenu() {
+            const navCollapse = document.getElementById('navbarNav');
+            if (navCollapse && navCollapse.classList.contains('show')) {
+                const bsCollapse = bootstrap.Collapse.getInstance(navCollapse);
+                if (bsCollapse) {
+                    bsCollapse.hide();
+                } else {
+                    navCollapse.classList.remove('show');
+                }
+            }
+        }
+
+        // Close menu when clicking on overlay (outside menu)
+        document.addEventListener('click', function(e) {
+            const navCollapse = document.getElementById('navbarNav');
+            const toggler = document.querySelector('.navbar-toggler');
+            if (navCollapse && navCollapse.classList.contains('show')) {
+                // Check if click is outside the menu and not on the toggler
+                if (!navCollapse.contains(e.target) && !toggler.contains(e.target)) {
+                    closeNavMenu();
+                }
+            }
+        });
+
+        // Close menu when clicking a nav link (mobile) - but not dropdown toggles
+        document.querySelectorAll('#navbarNav .nav-link').forEach(link => {
+            link.addEventListener('click', function(e) {
+                // Don't close if it's a dropdown toggle
+                if (this.classList.contains('dropdown-toggle')) {
+                    return;
+                }
+                if (window.innerWidth < 992) {
+                    closeNavMenu();
+                }
+            });
+        });
+
+        // Close menu when clicking dropdown items (mobile)
+        document.querySelectorAll('#navbarNav .dropdown-item').forEach(item => {
+            item.addEventListener('click', function() {
+                if (window.innerWidth < 992) {
+                    closeNavMenu();
+                }
+            });
+        });
+
+        document.addEventListener('DOMContentLoaded', function () {
+            // Initial tab setup
+            document.querySelectorAll('[data-tab]').forEach(link => {
+                link.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    const tabName = this.getAttribute('data-tab');
+                    showTab(tabName);
+                });
+            });
+
+            // Load upcoming matches immediately
+            loadUpcomingMatches();
+        });
+
+        // Right-click disable script
+        document.addEventListener("contextmenu", function (event) {
+            event.preventDefault();
+            alert("Right-click is disabled on this website.");
+        });
+
+        document.addEventListener('keydown', function (e) {
+            if (e.key === 'F12' ||
+                (e.ctrlKey && e.shiftKey && e.key === 'I') ||
+                (e.ctrlKey && e.shiftKey && e.key === 'J') ||
+                (e.ctrlKey && e.key === 'u')) {
+                e.preventDefault();
+                alert("Developer tools are disabled on this website.");
+            }
+        });
+
+        // Rotating background images for all slides
+        (function () {
+            document.querySelectorAll('.rotating-bg').forEach((el, index) => {
+                const images = JSON.parse(el.dataset.images || '[]');
+                if (images.length > 0) {
+                    let currentIndex = 0;
+                    // Use data-gradient attribute for the gradient overlay
+                    const gradient = el.dataset.gradient || 'linear-gradient(135deg, rgba(0,0,0,0.35), rgba(0,0,0,0.35))';
+
+                    setInterval(() => {
+                        currentIndex = (currentIndex + 1) % images.length;
+                        el.style.background = `${gradient}, url('${images[currentIndex]}') center/cover no-repeat`;
+                    }, 3000 + (index * 500)); // Stagger the rotations
+                }
+            });
+        })();
+
+        // Player Session Management
+        // Create a single Supabase instance to avoid multiple instances warning
+        let supabaseInstance = null;
+        
+        function getSupabaseInstance() {
+            if (!supabaseInstance) {
+                supabaseInstance = window.supabase.createClient(
+                    'https://zliedzrqzvywlsyfggcq.supabase.co',
+                    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpsaWVkenJxenZ5d2xzeWZnZ2NxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjEwOTE4NjYsImV4cCI6MjA3NjY2Nzg2Nn0.NbzEZ4ievehtrlyOxCK_mheb7YU4SnNgC0uXuOKPNOI'
+                );
+            }
+            return supabaseInstance;
+        }
+        
+        function checkPlayerSession() {
+            const sessionData = localStorage.getItem('player_session') || sessionStorage.getItem('player_session');
+            console.log('Session data found:', sessionData);
+            
+            if (sessionData) {
+                try {
+                    const session = JSON.parse(sessionData);
+                    console.log('Parsed session:', session);
+                    
+                    if (session.logged_in) {
+                        showLoggedInState(session);
+                        loadPlayerMiniStats(session);
+                    } else {
+                        // If session exists but logged_in is false, clear it
+                        logoutPlayer();
+                    }
+                } catch (e) {
+                    console.error('Error parsing session:', e);
+                    // Clear invalid session
+                    logoutPlayer();
+                }
+            } else {
+                console.log('No session data found');
+            }
+        }
+
+        function showLoggedInState(session) {
+            console.log('Showing logged in state for:', session);
+            
+            // Hide login/register buttons
+            const loginBtn = document.getElementById('auth-login-btn');
+            const registerBtn = document.getElementById('auth-register-btn');
+            
+            if (loginBtn) loginBtn.style.display = 'none';
+            if (registerBtn) registerBtn.style.display = 'none';
+            
+            // Show user section
+            const userSection = document.getElementById('auth-user-section');
+            if (userSection) {
+                userSection.style.display = 'block';
+                
+                // Set user info
+                const userName = document.getElementById('user-name');
+                const userAvatar = document.getElementById('user-avatar');
+                
+                if (userName) userName.textContent = session.name || 'User';
+                if (userAvatar) {
+                    userAvatar.src = session.photo || 
+                        `https://ui-avatars.com/api/?name=${encodeURIComponent(session.name || 'User')}&background=334e68&color=fff&size=64`;
+                }
+            }
+        }
+
+        async function loadPlayerMiniStats(session) {
+            try {
+                const supabase = getSupabaseInstance();
+
+                // Get player_id from account
+                const playerId = session.player_id;
+                if (!playerId) {
+                    // Try to get from player_accounts
+                    const { data: account } = await supabase
+                        .from('player_accounts')
+                        .select('player_id')
+                        .eq('id', session.account_id || session.id)
+                        .single();
+                    if (account?.player_id) {
+                        session.player_id = account.player_id;
+                    } else {
+                        return;
+                    }
+                }
+
+                // Get all players and results for stats calculation
+                const [playersRes, resultsRes] = await Promise.all([
+                    supabase.from('players').select('id'),
+                    supabase.from('results').select('*')
+                ]);
+
+                const allPlayers = playersRes.data || [];
+                const allResults = resultsRes.data || [];
+
+                // Calculate player stats
+                const playerResults = allResults.filter(r => 
+                    r.home_player_id === session.player_id || r.away_player_id === session.player_id
+                );
+
+                let wins = 0, points = 0;
+                playerResults.forEach(r => {
+                    const isHome = r.home_player_id === session.player_id;
+                    const pScore = isHome ? r.home_score : r.away_score;
+                    const oScore = isHome ? r.away_score : r.home_score;
+                    
+                    if (pScore > oScore) { wins++; points += 3; }
+                    else if (pScore === oScore) { points += 1; }
+                });
+
+                // Calculate position
+                const leagueTable = allPlayers.map(p => {
+                    const pResults = allResults.filter(r => r.home_player_id === p.id || r.away_player_id === p.id);
+                    let pts = 0, gd = 0;
+                    pResults.forEach(r => {
+                        const isHome = r.home_player_id === p.id;
+                        const pScore = isHome ? r.home_score : r.away_score;
+                        const oScore = isHome ? r.away_score : r.home_score;
+                        gd += (pScore || 0) - (oScore || 0);
+                        if (pScore > oScore) pts += 3;
+                        else if (pScore === oScore) pts += 1;
+                    });
+                    return { id: p.id, pts, gd };
+                }).sort((a, b) => b.pts - a.pts || b.gd - a.gd);
+
+                const position = leagueTable.findIndex(p => p.id === session.player_id) + 1;
+
+                // Update mini stats
+                const getSuffix = (n) => {
+                    if (n === 1) return 'st';
+                    if (n === 2) return 'nd';
+                    if (n === 3) return 'rd';
+                    return 'th';
+                };
+
+                const miniPosition = document.getElementById('mini-position');
+                const miniPoints = document.getElementById('mini-points');
+                const miniWins = document.getElementById('mini-wins');
+
+                if (miniPosition) miniPosition.textContent = position > 0 ? `${position}${getSuffix(position)}` : '-';
+                if (miniPoints) miniPoints.textContent = points;
+                if (miniWins) miniWins.textContent = wins;
+
+            } catch (err) {
+                console.error('Error loading mini stats:', err);
+            }
+        }
+
+        function logoutPlayer() {
+            console.log('Logging out player...');
+            
+            // Clear all session storage
+            localStorage.removeItem('player_session');
+            sessionStorage.removeItem('player_session');
+            
+            // Show login/register buttons
+            const loginBtn = document.getElementById('auth-login-btn');
+            const registerBtn = document.getElementById('auth-register-btn');
+            
+            if (loginBtn) loginBtn.style.display = 'block';
+            if (registerBtn) registerBtn.style.display = 'block';
+            
+            // Hide user section
+            const userSection = document.getElementById('auth-user-section');
+            if (userSection) userSection.style.display = 'none';
+            
+            // Force reload to ensure clean state
+            window.location.href = window.location.href.split('?')[0];
+        }
+
+        // Upcoming Matches Functionality
+        async function loadUpcomingMatches() {
+            try {
+                const supabase = getSupabaseInstance();
+
+                // Get upcoming fixtures (not played yet)
+                const { data: fixtures, error } = await supabase
+                    .from('fixtures')
+                    .select(`
+                        *,
+                        home_player:home_player_id(name, photo_url),
+                        away_player:away_player_id(name, photo_url)
+                    `)
+                    .is('home_score', null)
+                    .is('away_score', null)
+                    .order('match_date', { ascending: true })
+                    .limit(5);
+
+                if (error) throw error;
+
+                const container = document.getElementById('upcoming-matches-container');
+                if (!container) return;
+
+                if (!fixtures || fixtures.length === 0) {
+                    container.innerHTML = `
+                        <div class="text-center py-4">
+                            <i class="fas fa-calendar-times fa-2x mb-2 text-muted"></i>
+                            <p class="text-muted mb-0">No upcoming matches</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                container.innerHTML = fixtures.map(fixture => {
+                    const matchDate = new Date(fixture.match_date);
+                    const dateStr = matchDate.toLocaleDateString('en-GB', { 
+                        day: 'numeric', 
+                        month: 'short' 
+                    });
+                    const timeStr = matchDate.toLocaleTimeString('en-GB', { 
+                        hour: '2-digit', 
+                        minute: '2-digit' 
+                    });
+
+                    return `
+                        <div class="match-card bg-dark rounded p-3 mb-3">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <small class="text-muted">${dateStr} at ${timeStr}</small>
+                                <span class="badge bg-info">Upcoming</span>
+                            </div>
+                            <div class="d-flex align-items-center justify-content-between">
+                                <div class="text-center" style="width: 40%;">
+                                    <img src="${fixture.home_player?.photo_url || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(fixture.home_player?.name || 'Home') + '&background=334e68&color=fff&size=32'}" 
+                                         alt="${fixture.home_player?.name || 'Home Player'}" 
+                                         class="rounded-circle mb-1" 
+                                         style="width: 32px; height: 32px; object-fit: cover;">
+                                    <div class="small text-truncate">${fixture.home_player?.name || 'TBD'}</div>
+                                </div>
+                                <div class="text-center" style="width: 20%;">
+                                    <div class="fw-bold">VS</div>
+                                    <div class="small text-muted">Match</div>
+                                </div>
+                                <div class="text-center" style="width: 40%;">
+                                    <img src="${fixture.away_player?.photo_url || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(fixture.away_player?.name || 'Away') + '&background=334e68&color=fff&size=32'}" 
+                                         alt="${fixture.away_player?.name || 'Away Player'}" 
+                                         class="rounded-circle mb-1" 
+                                         style="width: 32px; height: 32px; object-fit: cover;">
+                                    <div class="small text-truncate">${fixture.away_player?.name || 'TBD'}</div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            } catch (err) {
+                console.error('Error loading upcoming matches:', err);
+                const container = document.getElementById('upcoming-matches-container');
+                if (container) {
+                    container.innerHTML = `
+                        <div class="text-center py-4 text-danger">
+                            <i class="fas fa-exclamation-circle fa-2x mb-2"></i>
+                            <p class="mb-0">Failed to load matches</p>
+                        </div>
+                    `;
+                }
+            }
+        }
+    </script>
+
+    <!-- Firebase SDK for Push Notifications -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-messaging-compat.js"></script>
+    
+    <!-- Notifications Script -->
+    <script src="/js/notifications.js"></script>
+</body>
+
+</html>

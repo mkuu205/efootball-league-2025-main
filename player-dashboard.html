@@ -1,0 +1,2421 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Dashboard - eFootball League 2025</title>
+    <link rel="icon" href="/icons/icon-192x192.png" sizes="192x192" type="image/png">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Orbitron:wght@600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="/css/theme.css">
+    <script>
+        // Initialize theme immediately to prevent flash
+        (function() {
+            const theme = localStorage.getItem('efl-theme') || 'dark';
+            document.documentElement.setAttribute('data-theme', theme);
+        })();
+    </script>
+    <style>
+        /* Dashboard Header with Player Info */
+        .dashboard-header {
+            background: linear-gradient(135deg, rgba(6, 182, 212, 0.15) 0%, rgba(59, 130, 246, 0.15) 100%);
+            border: 1px solid rgba(6, 182, 212, 0.3);
+            border-radius: var(--radius-lg);
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+            flex-wrap: wrap;
+        }
+        .dashboard-header .player-avatar {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            border: 3px solid var(--primary-500);
+            box-shadow: 0 0 20px rgba(6, 182, 212, 0.4);
+        }
+        .dashboard-header .player-info h2 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.5rem;
+            margin-bottom: 0.25rem;
+            color: var(--text-primary);
+        }
+        .dashboard-header .player-team {
+            color: var(--primary-400);
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .dashboard-header .quick-stats {
+            margin-left: auto;
+            display: flex;
+            gap: 1.5rem;
+            text-align: center;
+        }
+        .dashboard-header .quick-stat {
+            padding: 0.5rem 1rem;
+            background: rgba(0,0,0,0.2);
+            border-radius: var(--radius-md);
+        }
+        .dashboard-header .quick-stat-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            font-family: 'Orbitron', sans-serif;
+        }
+        .dashboard-header .quick-stat-label {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        /* Stats Grid */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+        
+        /* Enhanced Stat Card */
+        .stat-card-enhanced {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            padding: 1.25rem;
+            text-align: center;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        .stat-card-enhanced::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: var(--gradient-primary);
+        }
+        .stat-card-enhanced:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+            border-color: var(--primary-500);
+        }
+        .stat-card-enhanced .stat-icon {
+            font-size: 1.5rem;
+            margin-bottom: 0.5rem;
+            opacity: 0.8;
+        }
+        .stat-card-enhanced .stat-value {
+            font-size: 2rem;
+            font-weight: 800;
+            font-family: 'Orbitron', sans-serif;
+            background: var(--gradient-primary);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .stat-card-enhanced .stat-label {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-top: 0.25rem;
+        }
+        
+        /* Content Grid */
+        .content-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+        }
+        
+        /* Card Enhancements */
+        .card {
+            border-radius: var(--radius-lg) !important;
+            overflow: hidden;
+        }
+        .card-header {
+            background: rgba(6, 182, 212, 0.1) !important;
+            border-bottom: 1px solid var(--border-color) !important;
+            font-weight: 600;
+        }
+        
+        /* Form badges */
+        .form-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            font-weight: 700;
+            font-size: 0.85rem;
+        }
+        .form-W { background: var(--success); color: white; }
+        .form-D { background: var(--warning); color: #1a1a2e; }
+        .form-L { background: var(--error); color: white; }
+        
+        /* Desktop nav styles */
+        .desktop-nav {
+            display: flex !important;
+        }
+        
+        /* Responsive */
+        @media (max-width: 1024px) {
+            .dashboard-grid { grid-template-columns: repeat(2, 1fr); }
+            .content-grid { grid-template-columns: 1fr; }
+            .dashboard-header { flex-direction: column; text-align: center; }
+            .dashboard-header .quick-stats { margin-left: 0; margin-top: 1rem; }
+            .dashboard-header .player-info { text-align: center; }
+        }
+        @media (max-width: 768px) {
+            .desktop-nav {
+                display: none !important;
+            }
+            .hide-mobile {
+                display: none !important;
+            }
+        }
+        @media (max-width: 640px) {
+            .dashboard-grid { grid-template-columns: repeat(2, 1fr); gap: 0.75rem; }
+            .dashboard-header .quick-stats { gap: 0.75rem; flex-wrap: wrap; justify-content: center; }
+            .stat-card-enhanced .stat-value { font-size: 1.5rem; }
+        }
+    </style>
+</head>
+<body>
+    <div id="root">
+        <div style="min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1.5rem;">
+            <div class="football-loader">
+                <div class="football">⚽</div>
+                <div class="football-shadow"></div>
+            </div>
+            <div style="color: var(--text-muted); font-size: 0.9rem; font-family: 'Orbitron', sans-serif; letter-spacing: 1px;">Loading...</div>
+        </div>
+    </div>
+    
+    <style>
+        .football-loader {
+            position: relative;
+            width: 60px;
+            height: 80px;
+        }
+        .football {
+            font-size: 3rem;
+            animation: bounce 0.6s ease-in-out infinite;
+            filter: drop-shadow(0 0 10px rgba(6, 182, 212, 0.5));
+        }
+        .football-shadow {
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 40px;
+            height: 10px;
+            background: radial-gradient(ellipse, rgba(0,0,0,0.3) 0%, transparent 70%);
+            border-radius: 50%;
+            animation: shadow 0.6s ease-in-out infinite;
+        }
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-30px); }
+        }
+        @keyframes shadow {
+            0%, 100% { transform: translateX(-50%) scale(1); opacity: 0.4; }
+            50% { transform: translateX(-50%) scale(0.6); opacity: 0.2; }
+        }
+    </style>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        // Supabase client initialization
+        let supabaseInstance = null;
+        
+        function getSupabaseInstance() {
+            if (!supabaseInstance) {
+                supabaseInstance = window.supabase.createClient(
+                    'https://zliedzrqzvywlsyfggcq.supabase.co',
+                    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpsaWVkenJxenZ5d2xzeWZnZ2NxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjEwOTE4NjYsImV4cCI6MjA3NjY2Nzg2Nn0.NbzEZ4ievehtrlyOxCK_mheb7YU4SnNgC0uXuOKPNOI'
+                );
+            }
+            return supabaseInstance;
+        }
+        
+        // Initialize Supabase
+        const supabase = getSupabaseInstance();
+        
+        // DOM Elements
+        const Spinner = ({ size = 24 }) => (
+            <div className="spinner" style={{ width: size, height: size }}></div>
+        );
+
+        // Navbar Component
+        const Navbar = ({ player, session, onLogout }) => {
+            return (
+                <nav className="navbar">
+                    <div style={{ 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        justifyContent: 'space-between',
+                        width: '100%',
+                        maxWidth: '1400px',
+                        margin: '0 auto',
+                        padding: '0 1.5rem'
+                    }}>
+                        <a href="/" className="navbar-brand" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', textDecoration: 'none' }}>
+                            <div className="navbar-logo" style={{
+                                width: '45px',
+                                height: '45px',
+                                background: 'var(--gradient-primary)',
+                                borderRadius: '50%',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                fontWeight: 800,
+                                fontSize: '1rem',
+                                color: 'white',
+                                fontFamily: "'Orbitron', sans-serif"
+                            }}>EFL</div>
+                            <span className="navbar-title hide-mobile" style={{ fontFamily: "'Orbitron', sans-serif", fontWeight: 700, color: 'var(--text-primary)' }}>eFootball League</span>
+                        </a>
+
+                        {/* Desktop Navigation - horizontal layout */}
+                        <div className="desktop-nav hide-mobile" style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
+                            <img 
+                                src={player?.photo || `https://ui-avatars.com/api/?name=${session?.name}&background=334e68&color=fff`}
+                                alt="Avatar"
+                                style={{ width: 36, height: 36, borderRadius: '50%', border: '2px solid var(--primary-500)' }}
+                            />
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                <span style={{ fontWeight: 500, fontSize: '0.9rem' }}>{session?.name}</span>
+                                <span style={{ color: 'var(--text-muted)' }}>•</span>
+                                <span style={{ fontSize: '0.85rem', color: 'var(--primary-400)' }}>{player?.team || '-'}</span>
+                            </div>
+                        </div>
+
+                        {/* Logout - at top right */}
+                        <span 
+                            onClick={onLogout}
+                            style={{ 
+                                color: 'var(--text-muted)', 
+                                cursor: 'pointer', 
+                                fontSize: '0.9rem',
+                                transition: 'color 0.2s'
+                            }}
+                            onMouseOver={(e) => e.target.style.color = 'var(--error)'}
+                            onMouseOut={(e) => e.target.style.color = 'var(--text-muted)'}
+                        >
+                            Logout
+                        </span>
+                    </div>
+                </nav>
+            );
+        };
+
+        // Enhanced Stat Card with icon
+        const StatCard = ({ value, label, suffix = '', icon, color }) => (
+            <div className="stat-card-enhanced animate-fade-in">
+                {icon && <div className="stat-icon">{icon}</div>}
+                <div className="stat-value" style={color ? { background: color, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' } : {}}>
+                    {value}{suffix}
+                </div>
+                <div className="stat-label">{label}</div>
+            </div>
+        );
+
+        // Form Badge
+        const FormBadge = ({ result }) => (
+            <span className={`form-badge form-${result}`}>{result}</span>
+        );
+
+        // Card Component
+        const Card = ({ title, children, action }) => (
+            <div className="card" style={{ marginBottom: '1.5rem' }}>
+                <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span>{title}</span>
+                    {action}
+                </div>
+                <div className="card-body">{children}</div>
+            </div>
+        );
+
+        // Dashboard Component
+        const Dashboard = () => {
+            const [session, setSession] = useState(null);
+            const [player, setPlayer] = useState(null);
+            const [stats, setStats] = useState({ played: 0, wins: 0, draws: 0, losses: 0, points: 0, gf: 0, ga: 0 });
+            const [position, setPosition] = useState('-');
+            const [showPasswordModal, setShowPasswordModal] = useState(false);
+            const [newPassword, setNewPassword] = useState('');
+            const [confirmNewPassword, setConfirmNewPassword] = useState('');
+            const [savingPassword, setSavingPassword] = useState(false);
+            const [passwordError, setPasswordError] = useState('');
+            const [form, setForm] = useState([]);
+            const [fixtures, setFixtures] = useState([]);
+            const [results, setResults] = useState([]);
+            const [loading, setLoading] = useState(true);
+            const [showPhotoModal, setShowPhotoModal] = useState(false);
+            const [photoUrl, setPhotoUrl] = useState('');
+            const [savingPhoto, setSavingPhoto] = useState(false);
+            const [uploading, setUploading] = useState(false);
+            const [showProfileModal, setShowProfileModal] = useState(false);
+            const [profileData, setProfileData] = useState({
+                name: '', username: '', email: '', phone: '', preferred_team: '', experience_level: '', bio: ''
+            });
+            const [savingProfile, setSavingProfile] = useState(false);
+            const [profileError, setProfileError] = useState('');
+            const [profileSuccess, setProfileSuccess] = useState('');
+            const [paidTournaments, setPaidTournaments] = useState([]);
+            
+            // Team options
+            const teamOptions = [
+                'Kenya', 'Chelsea', 'Liverpool', 'Everton', 'Manchester United', 'West Ham',
+                'Arsenal', 'Manchester City', 'Tottenham', 'Newcastle', 'Real Madrid',
+                'Barcelona', 'Bayern Munich', 'PSG', 'Juventus', 'Inter Milan', 'AC Milan', 'Borussia Dortmund'
+            ];
+            
+            const experienceLevels = ['Beginner', 'Intermediate', 'Advanced', 'Pro'];
+            const [paymentReceipts, setPaymentReceipts] = useState([]);
+            const [availableTournaments, setAvailableTournaments] = useState([]);
+            const [joiningTournament, setJoiningTournament] = useState(null);
+            const [showPaymentModal, setShowPaymentModal] = useState(false);
+            const [paymentTournament, setPaymentTournament] = useState(null);
+            const [paymentPhone, setPaymentPhone] = useState('');
+            const [paymentStatus, setPaymentStatus] = useState(''); // '', 'sending', 'waiting', 'success', 'error'
+            const [paymentMessage, setPaymentMessage] = useState('');
+
+            useEffect(() => {
+                const sess = localStorage.getItem('player_session') || sessionStorage.getItem('player_session');
+                if (!sess) {
+                    window.location.href = '/player-login.html';
+                    return;
+                }
+                const data = JSON.parse(sess);
+                setSession(data);
+                loadDashboardData(data);
+                
+                // Check if password change is required (from URL or session)
+                const urlParams = new URLSearchParams(window.location.search);
+                if (urlParams.get('change_password') === '1' || data.must_change_password) {
+                    setShowPasswordModal(true);
+                }
+                
+                // Auto-open profile modal for players with incomplete profiles
+                const hasIncompleteProfile = !data.email || !data.phone || 
+                    data.email?.includes('@placeholder') || 
+                    data.must_complete_profile;
+                if (hasIncompleteProfile && !data.must_change_password) {
+                    // Set initial profile data
+                    setProfileData({
+                        name: data.name || '',
+                        username: data.username || '',
+                        email: data.email?.includes('@placeholder') ? '' : (data.email || ''),
+                        phone: data.phone || '',
+                        preferred_team: data.preferred_team || data.team || '',
+                        experience_level: data.experience_level || '',
+                        bio: data.bio || ''
+                    });
+                    setShowProfileModal(true);
+                }
+            }, []);
+
+            const loadDashboardData = async (sess) => {
+                try {
+                    const { data: account } = await supabase
+                        .from('player_accounts')
+                        .select('*')
+                        .eq('id', sess.account_id || sess.id)
+                        .single();
+
+                    // Always load tournaments, even if player doesn't have player_id yet
+                    try {
+                        const tournamentsRes = await fetch('/api/tournaments');
+                        const tournamentsData = await tournamentsRes.json();
+                        if (tournamentsData.success) {
+                            const allTournaments = (tournamentsData.tournaments || [])
+                                .map(t => ({
+                                    ...t,
+                                    alreadyJoined: false,
+                                    canJoin: t.status === 'registration_open'
+                                }));
+                            setAvailableTournaments(allTournaments);
+                        }
+                    } catch (e) {
+                        console.error('Error loading tournaments:', e);
+                    }
+
+                    if (!account?.player_id) {
+                        // Still set player data from account (for photo, team, etc.)
+                        setPlayer({ 
+                            ...account,
+                            photo: account.photo_url || null,
+                            team: account.preferred_team || null
+                        });
+                        setLoading(false);
+                        return;
+                    }
+
+                    const { data: playerData } = await supabase
+                        .from('players')
+                        .select('*')
+                        .eq('id', account.player_id)
+                        .single();
+
+                    // Merge player data with account, prioritize account data
+                    setPlayer({ 
+                        ...playerData, 
+                        ...account,
+                        photo: account.photo_url || playerData?.photo || null,
+                        team: account.preferred_team || playerData?.team || null
+                    });
+
+                    const [playersRes, resultsRes, fixturesRes] = await Promise.all([
+                        supabase.from('players').select('*'),
+                        supabase.from('results').select('*'),
+                        supabase.from('fixtures').select('*')
+                    ]);
+
+                    const allPlayers = playersRes.data || [];
+                    const allResults = resultsRes.data || [];
+                    const allFixtures = fixturesRes.data || [];
+
+                    const playerResults = allResults.filter(r => 
+                        r.home_player_id === account.player_id || r.away_player_id === account.player_id
+                    );
+
+                    let calcStats = { played: 0, wins: 0, draws: 0, losses: 0, points: 0, gf: 0, ga: 0 };
+                    
+                    playerResults.forEach(r => {
+                        const isHome = r.home_player_id === account.player_id;
+                        const pScore = isHome ? r.home_score : r.away_score;
+                        const oScore = isHome ? r.away_score : r.home_score;
+                        
+                        calcStats.played++;
+                        calcStats.gf += pScore || 0;
+                        calcStats.ga += oScore || 0;
+                        
+                        if (pScore > oScore) { calcStats.wins++; calcStats.points += 3; }
+                        else if (pScore === oScore) { calcStats.draws++; calcStats.points += 1; }
+                        else { calcStats.losses++; }
+                    });
+
+                    setStats(calcStats);
+
+                    const leagueTable = allPlayers.map(p => {
+                        const pResults = allResults.filter(r => r.home_player_id === p.id || r.away_player_id === p.id);
+                        let pts = 0, gd = 0;
+                        pResults.forEach(r => {
+                            const isHome = r.home_player_id === p.id;
+                            const pScore = isHome ? r.home_score : r.away_score;
+                            const oScore = isHome ? r.away_score : r.home_score;
+                            gd += (pScore || 0) - (oScore || 0);
+                            if (pScore > oScore) pts += 3;
+                            else if (pScore === oScore) pts += 1;
+                        });
+                        return { id: p.id, pts, gd };
+                    }).sort((a, b) => b.pts - a.pts || b.gd - a.gd);
+
+                    const pos = leagueTable.findIndex(p => p.id === account.player_id) + 1;
+                    setPosition(pos > 0 ? pos : '-');
+
+                    const recentForm = playerResults
+                        .sort((a, b) => new Date(b.date) - new Date(a.date))
+                        .slice(0, 5)
+                        .map(r => {
+                            const isHome = r.home_player_id === account.player_id;
+                            const pScore = isHome ? r.home_score : r.away_score;
+                            const oScore = isHome ? r.away_score : r.home_score;
+                            if (pScore > oScore) return 'W';
+                            if (pScore === oScore) return 'D';
+                            return 'L';
+                        }).reverse();
+                    setForm(recentForm);
+
+                    const upcomingFixtures = allFixtures
+                        .filter(f => !f.played && (f.home_player_id === account.player_id || f.away_player_id === account.player_id))
+                        .sort((a, b) => new Date(a.date) - new Date(b.date))
+                        .slice(0, 3)
+                        .map(f => {
+                            const isHome = f.home_player_id === account.player_id;
+                            const opponent = allPlayers.find(p => p.id === (isHome ? f.away_player_id : f.home_player_id));
+                            return { ...f, opponent, isHome };
+                        });
+                    setFixtures(upcomingFixtures);
+
+                    const recentResults = playerResults
+                        .sort((a, b) => new Date(b.date) - new Date(a.date))
+                        .slice(0, 3)
+                        .map(r => {
+                            const isHome = r.home_player_id === account.player_id;
+                            const opponent = allPlayers.find(p => p.id === (isHome ? r.away_player_id : r.home_player_id));
+                            const pScore = isHome ? r.home_score : r.away_score;
+                            const oScore = isHome ? r.away_score : r.home_score;
+                            let result = 'D';
+                            if (pScore > oScore) result = 'W';
+                            else if (pScore < oScore) result = 'L';
+                            return { ...r, opponent, pScore, oScore, result };
+                        });
+                    setResults(recentResults);
+
+                    // Fetch payment receipts for this player
+                    const { data: paymentsData } = await supabase
+                        .from('payments')
+                        .select('*')
+                        .eq('player_account_id', account.id)
+                        .eq('status', 'completed')
+                        .order('created_at', { ascending: false });
+                    
+                    setPaymentReceipts(paymentsData || []);
+                    
+                    // Extract paid tournaments from completed payments
+                    const tournaments = (paymentsData || [])
+                        .filter(p => p.payment_type)
+                        .map(p => ({
+                            id: p.id,
+                            name: p.payment_type === 'registration' ? 'eFootball League 2025' : p.reference || 'Tournament',
+                            type: p.payment_type,
+                            amount: p.amount,
+                            paidAt: p.completed_at || p.created_at,
+                            transactionCode: p.transaction_code
+                        }));
+                    setPaidTournaments(tournaments);
+
+                    // Update tournaments with joined status - check both payments AND tournament_participants
+                    try {
+                        const tournamentsRes = await fetch('/api/tournaments');
+                        const tournamentsData = await tournamentsRes.json();
+                        
+                        // Also check tournament_participants table for this player
+                        const { data: participantData } = await supabase
+                            .from('tournament_participants')
+                            .select('tournament_id, tournaments(id, name)')
+                            .or(`player_id.eq.${account.player_id},player_account_id.eq.${account.id}`);
+                        
+                        if (tournamentsData.success) {
+                            // Get IDs from payments
+                            const paidTournamentIds = (paymentsData || [])
+                                .filter(p => p.tournament_id)
+                                .map(p => p.tournament_id);
+                            
+                            // Get IDs from participants table
+                            const participantTournamentIds = (participantData || [])
+                                .map(p => p.tournament_id);
+                            
+                            // Combine both
+                            const joinedIds = [...new Set([...paidTournamentIds, ...participantTournamentIds])];
+                            
+                            // Update "My Tournaments" to include participant-based joins
+                            const myTournaments = (participantData || [])
+                                .filter(p => p.tournaments)
+                                .map(p => ({
+                                    id: p.tournament_id,
+                                    name: p.tournaments?.name || 'Tournament',
+                                    type: 'participant',
+                                    amount: 0,
+                                    paidAt: null
+                                }));
+                            if (myTournaments.length > 0) {
+                                setPaidTournaments(prev => {
+                                    const existingIds = prev.map(t => t.id);
+                                    const newOnes = myTournaments.filter(t => !existingIds.includes(t.id));
+                                    return [...prev, ...newOnes];
+                                });
+                            }
+                            
+                            // Show ALL tournaments, mark which ones player has joined
+                            const allTournaments = (tournamentsData.tournaments || [])
+                                .map(t => ({
+                                    ...t,
+                                    alreadyJoined: joinedIds.includes(t.id),
+                                    canJoin: t.status === 'registration_open' && !joinedIds.includes(t.id)
+                                }));
+                            setAvailableTournaments(allTournaments);
+                        }
+                    } catch (e) {
+                        console.error('Error loading tournaments:', e);
+                    }
+
+                } catch (err) {
+                    console.error('Error loading dashboard:', err);
+                } finally {
+                    setLoading(false);
+                }
+            };
+
+            const logout = () => {
+                localStorage.removeItem('player_session');
+                sessionStorage.removeItem('player_session');
+                window.location.href = '/player-login.html';
+            };
+
+            // Helper function to format phone number to 254XXXXXXXXX
+            const formatPhoneNumber = (phone) => {
+                if (!phone) return null;
+                // Remove spaces, dashes, and other characters
+                let cleaned = phone.replace(/[\s\-\(\)]/g, '');
+                
+                // Handle different formats
+                if (cleaned.startsWith('+254')) {
+                    cleaned = cleaned.substring(1); // Remove +
+                } else if (cleaned.startsWith('0')) {
+                    cleaned = '254' + cleaned.substring(1); // 07XX -> 2547XX
+                } else if (cleaned.startsWith('7') || cleaned.startsWith('1')) {
+                    cleaned = '254' + cleaned; // 7XX -> 2547XX or 1XX -> 2541XX
+                }
+                
+                // Validate final format
+                if (/^254\d{9}$/.test(cleaned)) {
+                    return cleaned;
+                }
+                return null;
+            };
+
+            // Open payment modal for tournament
+            const openPaymentModal = (tournament) => {
+                const savedPhone = formatPhoneNumber(session?.phone);
+                setPaymentTournament(tournament);
+                setPaymentPhone(savedPhone ? '0' + savedPhone.substring(3) : '');
+                setPaymentStatus('');
+                setPaymentMessage('');
+                setShowPaymentModal(true);
+            };
+
+            // Process the payment
+            const processPayment = async () => {
+                const tournament = paymentTournament;
+                const phoneNumber = formatPhoneNumber(paymentPhone);
+                
+                if (!phoneNumber) {
+                    setPaymentMessage('Please enter a valid phone number');
+                    return;
+                }
+                
+                setPaymentStatus('sending');
+                setPaymentMessage('Sending M-Pesa request...');
+                try {
+                    const payRes = await fetch('/api/payflow/stk-push', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            phone: phoneNumber,
+                            amount: tournament.entry_fee,
+                            reference: `TOURN${tournament.id}_${session?.account_id || session?.id}`,
+                            description: `Tournament: ${tournament.name}`,
+                            account_id: session?.account_id || session?.id,
+                            tournament_id: tournament.id
+                        })
+                    });
+                    
+                    const payData = await payRes.json();
+                    
+                    if (payData.success) {
+                        setPaymentStatus('waiting');
+                        setPaymentMessage('Check your phone for M-Pesa prompt and enter your PIN');
+                        
+                        let attempts = 0;
+                        const checkPayment = setInterval(async () => {
+                            attempts++;
+                            setPaymentMessage(`Waiting for payment... (${attempts}/24)`);
+                            
+                            try {
+                                const statusRes = await fetch('/api/payflow/status', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({ checkout_request_id: payData.checkout_request_id })
+                                });
+                                const statusData = await statusRes.json();
+                                
+                                if (statusData.status === 'completed') {
+                                    clearInterval(checkPayment);
+                                    setPaymentStatus('success');
+                                    setPaymentMessage('Payment received! Adding you to tournament...');
+                                    
+                                    const joinRes = await fetch('/api/tournaments/join', {
+                                        method: 'POST',
+                                        headers: { 'Content-Type': 'application/json' },
+                                        body: JSON.stringify({
+                                            tournament_id: tournament.id,
+                                            player_account_id: session?.account_id || session?.id,
+                                            payment_id: statusData.payment_id
+                                        })
+                                    });
+                                    
+                                    const joinData = await joinRes.json();
+                                    if (joinData.success) {
+                                        setPaymentMessage(`Success! You're now in ${tournament.name}!`);
+                                        setTimeout(() => {
+                                            setShowPaymentModal(false);
+                                            loadDashboardData(session);
+                                        }, 2000);
+                                    } else {
+                                        setPaymentStatus('error');
+                                        setPaymentMessage(joinData.message || 'Failed to join tournament');
+                                    }
+                                    setJoiningTournament(null);
+                                } else if (statusData.status === 'failed') {
+                                    clearInterval(checkPayment);
+                                    setPaymentStatus('error');
+                                    setPaymentMessage('Payment failed or cancelled');
+                                    setJoiningTournament(null);
+                                } else if (attempts >= 24) {
+                                    clearInterval(checkPayment);
+                                    setPaymentStatus('error');
+                                    setPaymentMessage('Payment verification timed out. Contact support if you paid.');
+                                    setJoiningTournament(null);
+                                }
+                            } catch (e) {
+                                console.error('Status check error:', e);
+                            }
+                        }, 5000);
+                    } else {
+                        setPaymentStatus('error');
+                        setPaymentMessage(payData.message || 'Failed to send payment request');
+                        setJoiningTournament(null);
+                    }
+                } catch (err) {
+                    setPaymentStatus('error');
+                    setPaymentMessage('Connection error. Please try again.');
+                    setJoiningTournament(null);
+                }
+            };
+
+            const openPhotoModal = () => {
+                setPhotoUrl(player?.photo || '');
+                setShowPhotoModal(true);
+            };
+
+            const handleFileUpload = async (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+
+                // Validate file type
+                if (!file.type.startsWith('image/')) {
+                    alert('Please select an image file');
+                    return;
+                }
+
+                // Validate file size (max 500KB for base64)
+                if (file.size > 500 * 1024) {
+                    alert('Image must be less than 500KB. Try a smaller image or compress it.');
+                    return;
+                }
+
+                setUploading(true);
+                try {
+                    // Convert to base64 data URL (works without storage setup)
+                    const reader = new FileReader();
+                    reader.onload = (event) => {
+                        setPhotoUrl(event.target.result);
+                        setUploading(false);
+                    };
+                    reader.onerror = () => {
+                        alert('Failed to read image. Please try a different image or paste a URL.');
+                        setUploading(false);
+                    };
+                    reader.readAsDataURL(file);
+                } catch (err) {
+                    console.error('Upload error:', err);
+                    alert('Failed to process image. Please try pasting a URL instead.');
+                    setUploading(false);
+                }
+            };
+
+            const savePhoto = async () => {
+                if (!photoUrl.trim()) return;
+                
+                setSavingPhoto(true);
+                try {
+                    const photoValue = photoUrl.trim();
+                    
+                    // Update players table (if player exists)
+                    if (player?.id) {
+                        const { error: playerError } = await supabase
+                            .from('players')
+                            .update({ photo: photoValue })
+                            .eq('id', player.id);
+                        if (playerError) console.error('Player photo update error:', playerError);
+                    }
+                    
+                    // Update player_accounts table
+                    const accountId = session?.account_id || session?.id;
+                    if (accountId) {
+                        const { error: accountError } = await supabase
+                            .from('player_accounts')
+                            .update({ photo_url: photoValue })
+                            .eq('id', accountId);
+                        if (accountError) console.error('Account photo update error:', accountError);
+                    }
+                    
+                    // Update local state
+                    setPlayer(prev => ({ ...prev, photo: photoValue }));
+                    
+                    // Update session storage so photo persists
+                    const updatedSession = { ...session, photo_url: photoValue };
+                    localStorage.setItem('player_session', JSON.stringify(updatedSession));
+                    sessionStorage.setItem('player_session', JSON.stringify(updatedSession));
+                    setSession(updatedSession);
+                    
+                    setShowPhotoModal(false);
+                } catch (err) {
+                    console.error('Error saving photo:', err);
+                    alert('Failed to save photo. Please try again.');
+                } finally {
+                    setSavingPhoto(false);
+                }
+            };
+
+            const changePassword = async () => {
+                setPasswordError('');
+                
+                if (!newPassword || !confirmNewPassword) {
+                    setPasswordError('Please fill in both password fields');
+                    return;
+                }
+                
+                if (newPassword.length < 6) {
+                    setPasswordError('Password must be at least 6 characters');
+                    return;
+                }
+                
+                if (newPassword !== confirmNewPassword) {
+                    setPasswordError('Passwords do not match');
+                    return;
+                }
+                
+                setSavingPassword(true);
+                try {
+                    const res = await fetch('/api/player/change-password', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            account_id: session?.account_id || session?.id,
+                            new_password: newPassword
+                        })
+                    });
+                    
+                    const data = await res.json();
+                    
+                    if (data.success) {
+                        // Update session to remove must_change_password flag
+                        const updatedSession = { ...session, must_change_password: false };
+                        localStorage.setItem('player_session', JSON.stringify(updatedSession));
+                        sessionStorage.setItem('player_session', JSON.stringify(updatedSession));
+                        setSession(updatedSession);
+                        
+                        setShowPasswordModal(false);
+                        setNewPassword('');
+                        setConfirmNewPassword('');
+                        
+                        // Remove URL param
+                        window.history.replaceState({}, '', '/player-dashboard.html');
+                        
+                        // Check if profile needs completion (legacy players)
+                        if (session?.must_complete_profile || session?.email?.includes('@placeholder.efl')) {
+                            setShowProfileModal(true);
+                        } else {
+                            alert('Password changed successfully!');
+                        }
+                    } else {
+                        setPasswordError(data.message || 'Failed to change password');
+                    }
+                } catch (err) {
+                    setPasswordError('Connection error. Please try again.');
+                } finally {
+                    setSavingPassword(false);
+                }
+            };
+
+            const openProfileModal = () => {
+                setProfileData({
+                    name: session?.name || '',
+                    username: session?.username || '',
+                    email: session?.email || '',
+                    phone: session?.phone || '',
+                    preferred_team: session?.preferred_team || session?.team || '',
+                    experience_level: session?.experience_level || '',
+                    bio: session?.bio || ''
+                });
+                setProfileError('');
+                setProfileSuccess('');
+                setShowProfileModal(true);
+            };
+            
+            const formatPhoneForSave = (phone) => {
+                if (!phone) return '';
+                let cleaned = phone.replace(/\D/g, '');
+                if (cleaned.startsWith('0')) cleaned = '254' + cleaned.slice(1);
+                if (cleaned.startsWith('7') || cleaned.startsWith('1')) cleaned = '254' + cleaned;
+                if (cleaned.startsWith('+')) cleaned = cleaned.slice(1);
+                return cleaned;
+            };
+            
+            const saveProfile = async () => {
+                setProfileError('');
+                setProfileSuccess('');
+                
+                // Validate required fields
+                if (!profileData.name?.trim()) {
+                    setProfileError('Name is required');
+                    return;
+                }
+                
+                // Validate email if provided
+                if (profileData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(profileData.email)) {
+                    setProfileError('Please enter a valid email address');
+                    return;
+                }
+                
+                // Validate phone if provided
+                const formattedPhone = formatPhoneForSave(profileData.phone);
+                if (profileData.phone && !/^254\d{9}$/.test(formattedPhone)) {
+                    setProfileError('Phone must be a valid Kenyan number (e.g., 0712345678 or 254712345678)');
+                    return;
+                }
+                
+                // Validate username if provided
+                if (profileData.username && !/^[a-zA-Z0-9_]{3,}$/.test(profileData.username)) {
+                    setProfileError('Username must be at least 3 characters (letters, numbers, underscore only)');
+                    return;
+                }
+                
+                setSavingProfile(true);
+                try {
+                    const res = await fetch('/api/player/update-profile', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            account_id: session?.account_id || session?.id,
+                            name: profileData.name,
+                            username: profileData.username || null,
+                            email: profileData.email || null,
+                            phone: formattedPhone || null,
+                            preferred_team: profileData.preferred_team || null,
+                            experience_level: profileData.experience_level || null,
+                            bio: profileData.bio || null
+                        })
+                    });
+                    
+                    const data = await res.json();
+                    
+                    if (data.success) {
+                        // Update session with new data
+                        const updatedSession = { 
+                            ...session, 
+                            name: profileData.name,
+                            username: profileData.username,
+                            email: profileData.email,
+                            phone: formattedPhone,
+                            preferred_team: profileData.preferred_team,
+                            team: profileData.preferred_team,
+                            experience_level: profileData.experience_level,
+                            bio: profileData.bio,
+                            must_complete_profile: false 
+                        };
+                        localStorage.setItem('player_session', JSON.stringify(updatedSession));
+                        sessionStorage.setItem('player_session', JSON.stringify(updatedSession));
+                        setSession(updatedSession);
+                        
+                        // Also update player state so UI reflects changes immediately
+                        setPlayer(prev => ({
+                            ...prev,
+                            name: profileData.name,
+                            team: profileData.preferred_team,
+                            preferred_team: profileData.preferred_team
+                        }));
+                        
+                        setProfileSuccess('Profile updated successfully!');
+                        setTimeout(() => {
+                            setShowProfileModal(false);
+                            setProfileSuccess('');
+                        }, 1500);
+                    } else {
+                        setProfileError(data.message || 'Failed to update profile');
+                    }
+                } catch (err) {
+                    setProfileError('Connection error. Please try again.');
+                } finally {
+                    setSavingProfile(false);
+                }
+            };
+
+            const getSuffix = (n) => {
+                if (n === 1) return 'st';
+                if (n === 2) return 'nd';
+                if (n === 3) return 'rd';
+                return 'th';
+            };
+
+            if (loading) {
+                return (
+                    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '1.5rem' }}>
+                        <div className="football-loader">
+                            <div className="football">⚽</div>
+                            <div className="football-shadow"></div>
+                        </div>
+                        <div style={{ color: 'var(--text-muted)', fontSize: '0.9rem', fontFamily: "'Orbitron', sans-serif", letterSpacing: '1px' }}>Loading Dashboard...</div>
+                    </div>
+                );
+            }
+
+            return (
+                <div>
+                    <Navbar player={player} session={session} onLogout={logout} />
+
+                    <div className="container" style={{ padding: '1.5rem' }}>
+                        {/* Dashboard Header with Player Info */}
+                        <div className="dashboard-header">
+                            <div style={{ position: 'relative' }}>
+                                <img 
+                                    src={player?.photo || `https://ui-avatars.com/api/?name=${session?.name}&background=334e68&color=fff&size=100`}
+                                    alt="Avatar"
+                                    className="player-avatar"
+                                    onClick={openPhotoModal}
+                                    style={{ cursor: 'pointer' }}
+                                />
+                                <button
+                                    onClick={openPhotoModal}
+                                    style={{
+                                        position: 'absolute',
+                                        bottom: 0,
+                                        right: 0,
+                                        width: '28px',
+                                        height: '28px',
+                                        borderRadius: '50%',
+                                        background: 'var(--primary-500)',
+                                        border: '2px solid var(--bg-card)',
+                                        color: 'white',
+                                        cursor: 'pointer',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        fontSize: '0.75rem'
+                                    }}
+                                >
+                                    <i className="fas fa-camera"></i>
+                                </button>
+                            </div>
+                            <div className="player-info">
+                                <h2>{session?.name}</h2>
+                                <div className="player-team">
+                                    <span>⚽</span>
+                                    <span>{player?.team || player?.preferred_team || session?.preferred_team || session?.team || 'No team assigned'}</span>
+                                </div>
+                            </div>
+                            <div className="quick-stats">
+                                <div className="quick-stat">
+                                    <div className="quick-stat-value" style={{ color: 'var(--primary-400)' }}>
+                                        {typeof position === 'number' ? `${position}${getSuffix(position)}` : '-'}
+                                    </div>
+                                    <div className="quick-stat-label">Position</div>
+                                </div>
+                                <div className="quick-stat">
+                                    <div className="quick-stat-value" style={{ color: 'var(--warning)' }}>{stats.points}</div>
+                                    <div className="quick-stat-label">Points</div>
+                                </div>
+                                <div className="quick-stat">
+                                    <div className="quick-stat-value" style={{ color: 'var(--success)' }}>{stats.wins}</div>
+                                    <div className="quick-stat-label">Wins</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Stats Grid */}
+                        <div className="dashboard-grid">
+                            <StatCard 
+                                icon="🎮"
+                                value={stats.played} 
+                                label="Matches Played" 
+                            />
+                            <StatCard 
+                                icon="✅"
+                                value={stats.wins} 
+                                label="Wins" 
+                                color="linear-gradient(135deg, #10B981, #059669)"
+                            />
+                            <StatCard 
+                                icon="🤝"
+                                value={stats.draws} 
+                                label="Draws" 
+                                color="linear-gradient(135deg, #F59E0B, #D97706)"
+                            />
+                            <StatCard 
+                                icon="❌"
+                                value={stats.losses} 
+                                label="Losses" 
+                                color="linear-gradient(135deg, #EF4444, #DC2626)"
+                            />
+                        </div>
+
+                        {/* Content Grid */}
+                        <div className="content-grid">
+                            {/* Left Column */}
+                            <div>
+                                <Card title="📈 Recent Form">
+                                    {form.length > 0 ? (
+                                        <div style={{ display: 'flex', justifyContent: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                                            {form.map((f, i) => <FormBadge key={i} result={f} />)}
+                                        </div>
+                                    ) : (
+                                        <p className="text-center text-muted">No matches played yet</p>
+                                    )}
+                                </Card>
+
+                                <Card title="📅 EFL 2025 Tournament - Upcoming Matches">
+                                    {fixtures.length > 0 ? (
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                                            <div style={{ 
+                                                background: 'linear-gradient(135deg, rgba(6, 182, 212, 0.15) 0%, rgba(59, 130, 246, 0.15) 100%)',
+                                                padding: '0.5rem 0.75rem',
+                                                borderRadius: 'var(--radius-sm)',
+                                                marginBottom: '0.25rem',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                gap: '0.5rem'
+                                            }}>
+                                                <span style={{ fontSize: '1rem' }}>🏆</span>
+                                                <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--primary-400)' }}>eFootball League 2025</span>
+                                            </div>
+                                            {fixtures.map((f, i) => (
+                                                <div key={i} style={{
+                                                    background: 'var(--bg-tertiary)',
+                                                    borderRadius: 'var(--radius-md)',
+                                                    padding: '1rem'
+                                                }}>
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+                                                        <span style={{ color: 'var(--primary-400)', fontSize: '0.85rem' }}>
+                                                            {new Date(f.date).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })}
+                                                        </span>
+                                                        <span className={`badge badge-${f.isHome ? 'info' : 'neutral'}`}>
+                                                            {f.isHome ? 'HOME' : 'AWAY'}
+                                                        </span>
+                                                    </div>
+                                                    <div style={{ textAlign: 'center' }}>
+                                                        <span style={{ fontSize: '0.9rem' }}>{session?.name}</span>
+                                                        <span style={{ margin: '0 0.75rem', padding: '0.2rem 0.5rem', background: 'var(--bg-card)', borderRadius: '4px', fontSize: '0.75rem' }}>VS</span>
+                                                        <span style={{ fontSize: '0.9rem' }}>{f.opponent?.name || 'TBD'}</span>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    ) : (
+                                        <p className="text-center text-muted">No upcoming fixtures</p>
+                                    )}
+                                </Card>
+
+                                <Card title="📋 EFL 2025 - Recent Results">
+                                    {results.length > 0 ? (
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                                            {results.map((r, i) => (
+                                                <div key={i} style={{
+                                                    background: 'var(--bg-tertiary)',
+                                                    borderRadius: 'var(--radius-md)',
+                                                    padding: '0.75rem 1rem',
+                                                    borderLeft: `3px solid var(--${r.result === 'W' ? 'success' : r.result === 'D' ? 'warning' : 'error'})`,
+                                                    display: 'flex',
+                                                    justifyContent: 'space-between',
+                                                    alignItems: 'center',
+                                                    flexWrap: 'wrap',
+                                                    gap: '0.5rem'
+                                                }}>
+                                                    <div style={{ fontSize: '0.9rem' }}>
+                                                        <span>{session?.name}</span>
+                                                        <span style={{ color: 'var(--text-muted)', margin: '0 0.5rem' }}>vs</span>
+                                                        <span>{r.opponent?.name || 'Unknown'}</span>
+                                                    </div>
+                                                    <span style={{
+                                                        background: 'var(--bg-card)',
+                                                        padding: '0.25rem 0.75rem',
+                                                        borderRadius: 'var(--radius-sm)',
+                                                        fontWeight: 600,
+                                                        fontSize: '0.9rem'
+                                                    }}>{r.pScore} - {r.oScore}</span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    ) : (
+                                        <p className="text-center text-muted">No results yet</p>
+                                    )}
+                                </Card>
+                            </div>
+
+                            {/* Right Column */}
+                            <div>
+                                <Card title="⚽ Goals">
+                                    <div style={{ display: 'flex', justifyContent: 'space-around', alignItems: 'center', padding: '1rem 0' }}>
+                                        <div style={{ textAlign: 'center' }}>
+                                            <div style={{ 
+                                                fontSize: '2.5rem', 
+                                                fontWeight: 800, 
+                                                fontFamily: "'Orbitron', sans-serif",
+                                                color: 'var(--success)',
+                                                lineHeight: 1
+                                            }}>{stats.gf}</div>
+                                            <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>Scored</div>
+                                        </div>
+                                        <div style={{ 
+                                            width: '2px', 
+                                            height: '50px', 
+                                            background: 'var(--border-color)' 
+                                        }}></div>
+                                        <div style={{ textAlign: 'center' }}>
+                                            <div style={{ 
+                                                fontSize: '2.5rem', 
+                                                fontWeight: 800, 
+                                                fontFamily: "'Orbitron', sans-serif",
+                                                color: 'var(--error)',
+                                                lineHeight: 1
+                                            }}>{stats.ga}</div>
+                                            <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>Conceded</div>
+                                        </div>
+                                    </div>
+                                    <div style={{ 
+                                        background: 'var(--bg-tertiary)', 
+                                        borderRadius: 'var(--radius-md)', 
+                                        padding: '0.75rem',
+                                        textAlign: 'center',
+                                        marginTop: '0.5rem'
+                                    }}>
+                                        <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>Goal Difference: </span>
+                                        <span style={{ 
+                                            fontWeight: 700, 
+                                            color: (stats.gf - stats.ga) >= 0 ? 'var(--success)' : 'var(--error)'
+                                        }}>
+                                            {(stats.gf - stats.ga) >= 0 ? '+' : ''}{stats.gf - stats.ga}
+                                        </span>
+                                    </div>
+                                </Card>
+
+                                <Card title="📊 Win Rate">
+                                    <div style={{ textAlign: 'center', padding: '1rem 0' }}>
+                                        <div style={{ 
+                                            fontSize: '3rem', 
+                                            fontWeight: 800, 
+                                            fontFamily: "'Orbitron', sans-serif",
+                                            background: 'var(--gradient-primary)',
+                                            WebkitBackgroundClip: 'text',
+                                            WebkitTextFillColor: 'transparent',
+                                            lineHeight: 1
+                                        }}>
+                                            {stats.played > 0 ? Math.round((stats.wins / stats.played) * 100) : 0}%
+                                        </div>
+                                        <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '0.5rem' }}>
+                                            {stats.wins} wins from {stats.played} matches
+                                        </div>
+                                    </div>
+                                    {/* Win rate bar */}
+                                    <div style={{ 
+                                        background: 'var(--bg-tertiary)', 
+                                        borderRadius: '10px', 
+                                        height: '10px',
+                                        overflow: 'hidden',
+                                        marginTop: '0.5rem'
+                                    }}>
+                                        <div style={{ 
+                                            width: `${stats.played > 0 ? (stats.wins / stats.played) * 100 : 0}%`,
+                                            height: '100%',
+                                            background: 'var(--gradient-primary)',
+                                            borderRadius: '10px',
+                                            transition: 'width 0.5s ease'
+                                        }}></div>
+                                    </div>
+                                </Card>
+
+                                <Card title="🏆 EFL 2025 - League Position">
+                                    <div style={{ textAlign: 'center', padding: '1rem 0' }}>
+                                        <div style={{ 
+                                            fontSize: '3.5rem', 
+                                            fontWeight: 800, 
+                                            fontFamily: "'Orbitron', sans-serif",
+                                            background: typeof position === 'number' && position <= 3 
+                                                ? 'linear-gradient(135deg, #FFD700, #FFA500)' 
+                                                : 'var(--gradient-primary)',
+                                            WebkitBackgroundClip: 'text',
+                                            WebkitTextFillColor: 'transparent',
+                                            lineHeight: 1
+                                        }}>
+                                            {typeof position === 'number' ? `#${position}` : '-'}
+                                        </div>
+                                        <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '0.5rem' }}>
+                                            {typeof position === 'number' && position === 1 ? '🥇 Leader!' : 
+                                             typeof position === 'number' && position === 2 ? '🥈 2nd Place' :
+                                             typeof position === 'number' && position === 3 ? '🥉 3rd Place' :
+                                             'Current Standing'}
+                                        </div>
+                                        <div style={{ 
+                                            display: 'flex', 
+                                            justifyContent: 'center', 
+                                            gap: '1.5rem', 
+                                            marginTop: '1rem',
+                                            padding: '0.75rem',
+                                            background: 'var(--bg-tertiary)',
+                                            borderRadius: 'var(--radius-md)'
+                                        }}>
+                                            <div style={{ textAlign: 'center' }}>
+                                                <div style={{ fontWeight: 700, color: 'var(--success)' }}>{stats.points}</div>
+                                                <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>PTS</div>
+                                            </div>
+                                            <div style={{ textAlign: 'center' }}>
+                                                <div style={{ fontWeight: 700 }}>{stats.played}</div>
+                                                <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>P</div>
+                                            </div>
+                                            <div style={{ textAlign: 'center' }}>
+                                                <div style={{ fontWeight: 700, color: 'var(--success)' }}>{stats.wins}</div>
+                                                <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>W</div>
+                                            </div>
+                                            <div style={{ textAlign: 'center' }}>
+                                                <div style={{ fontWeight: 700, color: 'var(--warning)' }}>{stats.draws}</div>
+                                                <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>D</div>
+                                            </div>
+                                            <div style={{ textAlign: 'center' }}>
+                                                <div style={{ fontWeight: 700, color: 'var(--error)' }}>{stats.losses}</div>
+                                                <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>L</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </Card>
+
+                                <Card title="📋 Profile Settings">
+                                    <div style={{ fontSize: '0.9rem' }}>
+                                        {/* Show warning if profile incomplete */}
+                                        {(!session?.email || !session?.phone || session?.email === 'Not set') && (
+                                            <div style={{
+                                                background: 'rgba(249, 115, 22, 0.15)',
+                                                border: '1px solid rgba(249, 115, 22, 0.3)',
+                                                borderRadius: 'var(--radius-md)',
+                                                padding: '0.75rem',
+                                                marginBottom: '0.75rem',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                gap: '0.5rem'
+                                            }}>
+                                                <span>⚠️</span>
+                                                <span style={{ color: 'var(--warning)', fontSize: '0.8rem' }}>
+                                                    Complete your profile to access all features
+                                                </span>
+                                            </div>
+                                        )}
+                                        
+                                        <div style={{ 
+                                            display: 'flex', 
+                                            alignItems: 'center', 
+                                            gap: '0.75rem',
+                                            padding: '0.6rem 0.75rem',
+                                            background: 'var(--bg-tertiary)',
+                                            borderRadius: 'var(--radius-md)',
+                                            marginBottom: '0.4rem'
+                                        }}>
+                                            <span style={{ fontSize: '1rem' }}>👤</span>
+                                            <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem', minWidth: '50px' }}>Name</span>
+                                            <span style={{ color: session?.name ? 'var(--text-secondary)' : 'var(--error)', flex: 1 }}>
+                                                {session?.name || 'Not set'}
+                                            </span>
+                                        </div>
+                                        <div style={{ 
+                                            display: 'flex', 
+                                            alignItems: 'center', 
+                                            gap: '0.75rem',
+                                            padding: '0.6rem 0.75rem',
+                                            background: 'var(--bg-tertiary)',
+                                            borderRadius: 'var(--radius-md)',
+                                            marginBottom: '0.4rem'
+                                        }}>
+                                            <span style={{ fontSize: '1rem' }}>✉️</span>
+                                            <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem', minWidth: '50px' }}>Email</span>
+                                            <span style={{ color: session?.email ? 'var(--text-secondary)' : 'var(--error)', wordBreak: 'break-all', flex: 1 }}>
+                                                {session?.email || 'Not set'}
+                                            </span>
+                                        </div>
+                                        <div style={{ 
+                                            display: 'flex', 
+                                            alignItems: 'center', 
+                                            gap: '0.75rem',
+                                            padding: '0.6rem 0.75rem',
+                                            background: 'var(--bg-tertiary)',
+                                            borderRadius: 'var(--radius-md)',
+                                            marginBottom: '0.4rem'
+                                        }}>
+                                            <span style={{ fontSize: '1rem' }}>📱</span>
+                                            <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem', minWidth: '50px' }}>Phone</span>
+                                            <span style={{ color: session?.phone ? 'var(--text-secondary)' : 'var(--error)', flex: 1 }}>
+                                                {session?.phone || 'Not set'}
+                                            </span>
+                                        </div>
+                                        <div style={{ 
+                                            display: 'flex', 
+                                            alignItems: 'center', 
+                                            gap: '0.75rem',
+                                            padding: '0.6rem 0.75rem',
+                                            background: 'var(--bg-tertiary)',
+                                            borderRadius: 'var(--radius-md)',
+                                            marginBottom: '0.4rem'
+                                        }}>
+                                            <span style={{ fontSize: '1rem' }}>⚽</span>
+                                            <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem', minWidth: '50px' }}>Team</span>
+                                            <span style={{ color: (session?.preferred_team || session?.team) ? 'var(--text-secondary)' : 'var(--text-muted)', flex: 1 }}>
+                                                {session?.preferred_team || session?.team || 'Not set'}
+                                            </span>
+                                        </div>
+                                        <div style={{ 
+                                            display: 'flex', 
+                                            alignItems: 'center', 
+                                            gap: '0.75rem',
+                                            padding: '0.6rem 0.75rem',
+                                            background: 'var(--bg-tertiary)',
+                                            borderRadius: 'var(--radius-md)',
+                                            marginBottom: '0.75rem'
+                                        }}>
+                                            <span style={{ fontSize: '1rem' }}>💪</span>
+                                            <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem', minWidth: '50px' }}>Team Strength</span>
+                                            <span style={{ color: session?.experience_level ? 'var(--text-secondary)' : 'var(--text-muted)', flex: 1 }}>
+                                                {session?.experience_level || 'Not set'}
+                                            </span>
+                                        </div>
+                                        
+                                        <button
+                                            onClick={openProfileModal}
+                                            className="btn btn-primary"
+                                            style={{ width: '100%', padding: '0.75rem' }}
+                                        >
+                                            <i className="fas fa-user-edit" style={{ marginRight: '0.5rem' }}></i>
+                                            Edit Profile
+                                        </button>
+                                    </div>
+                                </Card>
+
+                                {/* All Tournaments */}
+                                <Card title="🏆 All Tournaments">
+                                    {availableTournaments.length > 0 ? (
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                                            {availableTournaments.map((t, i) => {
+                                                const statusColors = {
+                                                    'registration_open': { bg: 'var(--success)', text: 'Open' },
+                                                    'in_progress': { bg: 'var(--info)', text: 'In Progress' },
+                                                    'completed': { bg: 'var(--text-muted)', text: 'Completed' },
+                                                    'upcoming': { bg: 'var(--warning)', text: 'Coming Soon' },
+                                                    'cancelled': { bg: 'var(--error)', text: 'Cancelled' }
+                                                };
+                                                const statusInfo = statusColors[t.status] || { bg: 'var(--text-muted)', text: t.status };
+                                                
+                                                return (
+                                                    <div key={i} style={{
+                                                        background: t.alreadyJoined 
+                                                            ? 'linear-gradient(135deg, rgba(6, 182, 212, 0.15) 0%, rgba(59, 130, 246, 0.15) 100%)'
+                                                            : t.canJoin 
+                                                                ? 'linear-gradient(135deg, rgba(249, 115, 22, 0.1) 0%, rgba(239, 68, 68, 0.1) 100%)'
+                                                                : 'var(--bg-tertiary)',
+                                                        border: t.alreadyJoined 
+                                                            ? '1px solid rgba(6, 182, 212, 0.3)'
+                                                            : t.canJoin 
+                                                                ? '1px solid rgba(249, 115, 22, 0.3)'
+                                                                : '1px solid var(--border-color)',
+                                                        borderRadius: 'var(--radius-md)',
+                                                        padding: '1rem',
+                                                        opacity: t.status === 'cancelled' ? 0.6 : 1
+                                                    }}>
+                                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.5rem' }}>
+                                                            <div>
+                                                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
+                                                                    <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{t.name}</span>
+                                                                    {t.alreadyJoined && (
+                                                                        <span style={{
+                                                                            background: 'var(--primary-500)',
+                                                                            color: 'white',
+                                                                            padding: '0.15rem 0.4rem',
+                                                                            borderRadius: '10px',
+                                                                            fontSize: '0.65rem',
+                                                                            fontWeight: 600
+                                                                        }}>JOINED</span>
+                                                                    )}
+                                                                </div>
+                                                                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                                                                    {t.format === 'league' ? '🏟️ League' : '⚔️ Knockout'} • Max {t.max_players} players
+                                                                </div>
+                                                            </div>
+                                                            <div style={{ textAlign: 'right' }}>
+                                                                <span style={{
+                                                                    background: statusInfo.bg,
+                                                                    color: 'white',
+                                                                    padding: '0.2rem 0.5rem',
+                                                                    borderRadius: 'var(--radius-sm)',
+                                                                    fontSize: '0.7rem',
+                                                                    fontWeight: 600,
+                                                                    display: 'block',
+                                                                    marginBottom: '0.25rem'
+                                                                }}>{statusInfo.text}</span>
+                                                                {t.entry_fee > 0 && (
+                                                                    <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--warning)' }}>
+                                                                        KES {t.entry_fee}
+                                                                    </span>
+                                                                )}
+                                                                {t.entry_fee === 0 && (
+                                                                    <span style={{ fontSize: '0.75rem', color: 'var(--success)' }}>FREE</span>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                        {t.description && (
+                                                            <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', margin: '0.5rem 0' }}>{t.description}</p>
+                                                        )}
+                                                        {t.prize_pool > 0 && (
+                                                            <div style={{ fontSize: '0.75rem', color: 'var(--success)', marginBottom: '0.5rem' }}>
+                                                                🏆 Prize Pool: KES {t.prize_pool}
+                                                            </div>
+                                                        )}
+                                                        {t.start_date && (
+                                                            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>
+                                                                📅 {new Date(t.start_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                                                            </div>
+                                                        )}
+                                                        
+                                                        {/* Action Button */}
+                                                        {t.canJoin ? (
+                                                            <button
+                                                                onClick={() => openPaymentModal(t)}
+                                                                disabled={joiningTournament === t.id}
+                                                                style={{
+                                                                    width: '100%',
+                                                                    padding: '0.5rem',
+                                                                    background: joiningTournament === t.id ? 'var(--bg-tertiary)' : 'var(--gradient-secondary)',
+                                                                    border: 'none',
+                                                                    borderRadius: 'var(--radius-sm)',
+                                                                    color: 'white',
+                                                                    fontWeight: 600,
+                                                                    cursor: joiningTournament === t.id ? 'not-allowed' : 'pointer',
+                                                                    fontSize: '0.85rem'
+                                                                }}
+                                                            >
+                                                                {joiningTournament === t.id ? 'Processing...' : t.entry_fee > 0 ? `Pay KES ${t.entry_fee} & Join` : 'Join Free'}
+                                                            </button>
+                                                        ) : t.alreadyJoined ? (
+                                                            <div style={{
+                                                                width: '100%',
+                                                                padding: '0.5rem',
+                                                                background: 'rgba(6, 182, 212, 0.2)',
+                                                                border: '1px solid var(--primary-500)',
+                                                                borderRadius: 'var(--radius-sm)',
+                                                                color: 'var(--primary-400)',
+                                                                fontWeight: 600,
+                                                                textAlign: 'center',
+                                                                fontSize: '0.85rem'
+                                                            }}>
+                                                                ✓ You're In!
+                                                            </div>
+                                                        ) : (
+                                                            <div style={{
+                                                                width: '100%',
+                                                                padding: '0.5rem',
+                                                                background: 'var(--bg-card)',
+                                                                borderRadius: 'var(--radius-sm)',
+                                                                color: 'var(--text-muted)',
+                                                                textAlign: 'center',
+                                                                fontSize: '0.8rem'
+                                                            }}>
+                                                                {t.status === 'in_progress' ? 'Tournament in progress' : 
+                                                                 t.status === 'completed' ? 'Tournament ended' :
+                                                                 t.status === 'upcoming' ? 'Registration opens soon' :
+                                                                 'Registration closed'}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    ) : (
+                                        <div style={{ textAlign: 'center', padding: '1rem', color: 'var(--text-muted)' }}>
+                                            <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>🏆</div>
+                                            <p style={{ marginBottom: '0.5rem' }}>No tournaments available right now</p>
+                                            <p style={{ fontSize: '0.8rem' }}>Check back later for new tournaments!</p>
+                                        </div>
+                                    )}
+                                </Card>
+
+                                {/* Paid Tournaments */}
+                                <Card title="🏆 My Tournaments">
+                                    {paidTournaments.length > 0 ? (
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                                            {paidTournaments.map((t, i) => (
+                                                <div key={i} style={{
+                                                    background: 'linear-gradient(135deg, rgba(6, 182, 212, 0.1) 0%, rgba(59, 130, 246, 0.1) 100%)',
+                                                    border: '1px solid rgba(6, 182, 212, 0.3)',
+                                                    borderRadius: 'var(--radius-md)',
+                                                    padding: '1rem',
+                                                    position: 'relative'
+                                                }}>
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                                                        <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{t.name}</span>
+                                                        <span style={{
+                                                            background: '#3B82F6',
+                                                            color: 'white',
+                                                            borderRadius: '50%',
+                                                            width: '18px',
+                                                            height: '18px',
+                                                            display: 'inline-flex',
+                                                            alignItems: 'center',
+                                                            justifyContent: 'center',
+                                                            fontSize: '0.7rem'
+                                                        }}>✓</span>
+                                                    </div>
+                                                    <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                                                        <span style={{ textTransform: 'capitalize' }}>{t.type === 'participant' ? 'Member' : t.type}</span>
+                                                        {t.amount > 0 && (
+                                                            <>
+                                                                <span style={{ margin: '0 0.5rem' }}>•</span>
+                                                                <span>KES {t.amount}</span>
+                                                            </>
+                                                        )}
+                                                    </div>
+                                                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
+                                                        {t.paidAt ? `Joined: ${new Date(t.paidAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}` : 'Active Participant'}
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    ) : (
+                                        <p className="text-center text-muted">No paid tournaments yet</p>
+                                    )}
+                                </Card>
+
+                                {/* Payment Receipts */}
+                                <Card title="🧾 Payment Receipts">
+                                    {paymentReceipts.length > 0 ? (
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                                            {paymentReceipts.map((r, i) => (
+                                                <div key={i} style={{
+                                                    background: 'var(--bg-tertiary)',
+                                                    borderRadius: 'var(--radius-md)',
+                                                    padding: '1rem',
+                                                    border: '1px solid var(--border-color)'
+                                                }}>
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.5rem' }}>
+                                                        <div>
+                                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                                                <span style={{ fontWeight: 600, color: 'var(--success)' }}>KES {r.amount}</span>
+                                                                <span style={{
+                                                                    background: '#3B82F6',
+                                                                    color: 'white',
+                                                                    borderRadius: '50%',
+                                                                    width: '20px',
+                                                                    height: '20px',
+                                                                    display: 'inline-flex',
+                                                                    alignItems: 'center',
+                                                                    justifyContent: 'center',
+                                                                    fontSize: '0.75rem',
+                                                                    fontWeight: 'bold'
+                                                                }} title="Verified Payment">✓</span>
+                                                            </div>
+                                                            <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
+                                                                M-Pesa Payment
+                                                            </div>
+                                                        </div>
+                                                        <span style={{
+                                                            background: 'rgba(16, 185, 129, 0.2)',
+                                                            color: 'var(--success)',
+                                                            padding: '0.25rem 0.5rem',
+                                                            borderRadius: 'var(--radius-sm)',
+                                                            fontSize: '0.7rem',
+                                                            fontWeight: 600,
+                                                            textTransform: 'uppercase'
+                                                        }}>Paid</span>
+                                                    </div>
+                                                    <div style={{ 
+                                                        background: 'var(--bg-card)', 
+                                                        borderRadius: 'var(--radius-sm)', 
+                                                        padding: '0.5rem 0.75rem',
+                                                        marginTop: '0.5rem'
+                                                    }}>
+                                                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Transaction Code</div>
+                                                        <div style={{ fontFamily: 'monospace', fontWeight: 600, color: 'var(--primary-400)' }}>
+                                                            {r.transaction_code || 'N/A'}
+                                                        </div>
+                                                    </div>
+                                                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.5rem', display: 'flex', justifyContent: 'space-between' }}>
+                                                        <span>{r.phone}</span>
+                                                        <span>{new Date(r.completed_at || r.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    ) : (
+                                        <p className="text-center text-muted">No payment receipts</p>
+                                    )}
+                                </Card>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Photo Edit Modal */}
+                    {showPhotoModal && (
+                        <div style={{
+                            position: 'fixed',
+                            top: 0,
+                            left: 0,
+                            right: 0,
+                            bottom: 0,
+                            background: 'rgba(0,0,0,0.7)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            zIndex: 1000,
+                            padding: '1rem'
+                        }} onClick={() => setShowPhotoModal(false)}>
+                            <div style={{
+                                background: 'var(--bg-card)',
+                                borderRadius: 'var(--radius-lg)',
+                                padding: '1.5rem',
+                                width: '100%',
+                                maxWidth: '400px',
+                                boxShadow: '0 10px 40px rgba(0,0,0,0.3)'
+                            }} onClick={e => e.stopPropagation()}>
+                                <h3 style={{ marginBottom: '1rem', fontSize: '1.1rem' }}>
+                                    <i className="fas fa-camera" style={{ marginRight: '0.5rem', color: 'var(--primary-400)' }}></i>
+                                    Update Profile Photo
+                                </h3>
+                                
+                                {/* Preview */}
+                                <div style={{ textAlign: 'center', marginBottom: '1rem' }}>
+                                    <img 
+                                        src={photoUrl || `https://ui-avatars.com/api/?name=${session?.name}&background=334e68&color=fff&size=100`}
+                                        alt="Preview"
+                                        style={{ 
+                                            width: 80, 
+                                            height: 80, 
+                                            borderRadius: '50%', 
+                                            border: '3px solid var(--primary-500)',
+                                            objectFit: 'cover'
+                                        }}
+                                        onError={(e) => {
+                                            e.target.src = `https://ui-avatars.com/api/?name=${session?.name}&background=334e68&color=fff&size=100`;
+                                        }}
+                                    />
+                                </div>
+
+                                {/* Upload from Gallery */}
+                                <div style={{ marginBottom: '1rem' }}>
+                                    <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                                        Upload from Gallery
+                                    </label>
+                                    <label style={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        gap: '0.5rem',
+                                        padding: '0.75rem',
+                                        borderRadius: 'var(--radius-md)',
+                                        border: '2px dashed var(--border-color)',
+                                        background: 'var(--bg-tertiary)',
+                                        cursor: 'pointer',
+                                        transition: 'all 0.2s'
+                                    }}>
+                                        <input
+                                            type="file"
+                                            accept="image/*"
+                                            onChange={handleFileUpload}
+                                            style={{ display: 'none' }}
+                                            disabled={uploading}
+                                        />
+                                        {uploading ? (
+                                            <><Spinner size={16} /> Processing...</>
+                                        ) : (
+                                            <>
+                                                <i className="fas fa-image" style={{ color: 'var(--primary-400)' }}></i>
+                                                <span>Choose Photo</span>
+                                            </>
+                                        )}
+                                    </label>
+                                    <small style={{ display: 'block', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.7rem', marginTop: '0.25rem' }}>
+                                        Max 500KB • JPG, PNG, GIF
+                                    </small>
+                                </div>
+
+                                <div style={{ textAlign: 'center', margin: '0.75rem 0', color: 'var(--text-muted)', fontSize: '0.8rem' }}>
+                                    — or paste URL —
+                                </div>
+
+                                {/* URL Input */}
+                                <div style={{ marginBottom: '1rem' }}>
+                                    <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                                        Photo URL
+                                    </label>
+                                    <input
+                                        type="url"
+                                        value={photoUrl}
+                                        onChange={(e) => setPhotoUrl(e.target.value)}
+                                        placeholder="https://example.com/photo.jpg"
+                                        style={{
+                                            width: '100%',
+                                            padding: '0.75rem',
+                                            borderRadius: 'var(--radius-md)',
+                                            border: '1px solid var(--border-color)',
+                                            background: 'var(--bg-tertiary)',
+                                            color: 'var(--text-primary)',
+                                            fontSize: '0.9rem'
+                                        }}
+                                    />
+                                </div>
+
+                                {/* Buttons */}
+                                <div style={{ display: 'flex', gap: '0.75rem' }}>
+                                    <button
+                                        onClick={() => setShowPhotoModal(false)}
+                                        className="btn btn-secondary"
+                                        style={{ flex: 1 }}
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        onClick={savePhoto}
+                                        className="btn btn-primary"
+                                        style={{ flex: 1 }}
+                                        disabled={savingPhoto}
+                                    >
+                                        {savingPhoto ? (
+                                            <><Spinner size={16} /> Saving...</>
+                                        ) : (
+                                            'Save Photo'
+                                        )}
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Password Change Modal */}
+                    {showPasswordModal && (
+                        <div style={{
+                            position: 'fixed',
+                            top: 0,
+                            left: 0,
+                            right: 0,
+                            bottom: 0,
+                            background: 'rgba(0,0,0,0.8)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            zIndex: 1001,
+                            padding: '1rem'
+                        }}>
+                            <div style={{
+                                background: 'var(--bg-card)',
+                                borderRadius: 'var(--radius-lg)',
+                                padding: '1.5rem',
+                                width: '100%',
+                                maxWidth: '400px',
+                                boxShadow: '0 10px 40px rgba(0,0,0,0.3)'
+                            }}>
+                                <h3 style={{ marginBottom: '0.5rem', fontSize: '1.1rem' }}>
+                                    <i className="fas fa-lock" style={{ marginRight: '0.5rem', color: 'var(--warning)' }}></i>
+                                    Change Password
+                                </h3>
+                                <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginBottom: '1rem' }}>
+                                    {session?.must_change_password 
+                                        ? 'Please set a new password to continue.' 
+                                        : 'Enter your new password below.'}
+                                </p>
+
+                                {passwordError && (
+                                    <div style={{
+                                        background: 'var(--error-light)',
+                                        color: 'var(--error)',
+                                        padding: '0.75rem',
+                                        borderRadius: 'var(--radius-sm)',
+                                        marginBottom: '1rem',
+                                        fontSize: '0.85rem'
+                                    }}>{passwordError}</div>
+                                )}
+
+                                <div style={{ marginBottom: '1rem' }}>
+                                    <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                                        New Password
+                                    </label>
+                                    <input
+                                        type="password"
+                                        value={newPassword}
+                                        onChange={(e) => setNewPassword(e.target.value)}
+                                        placeholder="Enter new password"
+                                        style={{
+                                            width: '100%',
+                                            padding: '0.75rem',
+                                            borderRadius: 'var(--radius-md)',
+                                            border: '1px solid var(--border-color)',
+                                            background: 'var(--bg-tertiary)',
+                                            color: 'var(--text-primary)',
+                                            fontSize: '0.9rem'
+                                        }}
+                                    />
+                                </div>
+
+                                <div style={{ marginBottom: '1rem' }}>
+                                    <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                                        Confirm Password
+                                    </label>
+                                    <input
+                                        type="password"
+                                        value={confirmNewPassword}
+                                        onChange={(e) => setConfirmNewPassword(e.target.value)}
+                                        placeholder="Confirm new password"
+                                        style={{
+                                            width: '100%',
+                                            padding: '0.75rem',
+                                            borderRadius: 'var(--radius-md)',
+                                            border: '1px solid var(--border-color)',
+                                            background: 'var(--bg-tertiary)',
+                                            color: 'var(--text-primary)',
+                                            fontSize: '0.9rem'
+                                        }}
+                                    />
+                                </div>
+
+                                <div style={{ display: 'flex', gap: '0.75rem' }}>
+                                    {!session?.must_change_password && (
+                                        <button
+                                            onClick={() => {
+                                                setShowPasswordModal(false);
+                                                setNewPassword('');
+                                                setConfirmNewPassword('');
+                                                setPasswordError('');
+                                            }}
+                                            className="btn btn-secondary"
+                                            style={{ flex: 1 }}
+                                        >
+                                            Cancel
+                                        </button>
+                                    )}
+                                    <button
+                                        onClick={changePassword}
+                                        className="btn btn-primary"
+                                        style={{ flex: 1 }}
+                                        disabled={savingPassword}
+                                    >
+                                        {savingPassword ? (
+                                            <><Spinner size={16} /> Saving...</>
+                                        ) : (
+                                            'Change Password'
+                                        )}
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Payment Modal */}
+                    {showPaymentModal && paymentTournament && (
+                        <div style={{
+                            position: 'fixed',
+                            top: 0,
+                            left: 0,
+                            right: 0,
+                            bottom: 0,
+                            background: 'rgba(0,0,0,0.85)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            zIndex: 1003,
+                            padding: '1rem'
+                        }}>
+                            <div style={{
+                                background: 'var(--bg-card)',
+                                borderRadius: 'var(--radius-lg)',
+                                padding: '1.5rem',
+                                width: '100%',
+                                maxWidth: '380px',
+                                boxShadow: '0 10px 40px rgba(0,0,0,0.5)'
+                            }}>
+                                {/* Header with M-Pesa Logo */}
+                                <div style={{ textAlign: 'center', marginBottom: '1.25rem' }}>
+                                    <img 
+                                        src="https://upload.wikimedia.org/wikipedia/commons/thumb/1/15/M-PESA_LOGO-01.svg/200px-M-PESA_LOGO-01.svg.png" 
+                                        alt="M-Pesa" 
+                                        style={{ height: 40, marginBottom: '0.75rem' }}
+                                    />
+                                    <h3 style={{ fontSize: '1.1rem', marginBottom: '0.25rem' }}>Pay to Join Tournament</h3>
+                                    <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>{paymentTournament.name}</p>
+                                </div>
+
+                                {/* Amount */}
+                                <div style={{
+                                    background: 'linear-gradient(135deg, rgba(67, 160, 71, 0.2), rgba(102, 187, 106, 0.1))',
+                                    border: '1px solid rgba(67, 160, 71, 0.3)',
+                                    borderRadius: 'var(--radius-md)',
+                                    padding: '1rem',
+                                    textAlign: 'center',
+                                    marginBottom: '1rem'
+                                }}>
+                                    <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Entry Fee</div>
+                                    <div style={{ fontSize: '2rem', fontWeight: 700, color: '#43A047' }}>
+                                        KES {paymentTournament.entry_fee}
+                                    </div>
+                                </div>
+
+                                {/* Phone Input */}
+                                {paymentStatus === '' && (
+                                    <>
+                                        <div style={{ marginBottom: '1rem' }}>
+                                            <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                                                M-Pesa Phone Number
+                                            </label>
+                                            <input
+                                                type="tel"
+                                                value={paymentPhone}
+                                                onChange={(e) => setPaymentPhone(e.target.value)}
+                                                placeholder="0712345678"
+                                                style={{
+                                                    width: '100%',
+                                                    padding: '0.85rem',
+                                                    borderRadius: 'var(--radius-md)',
+                                                    border: '1px solid var(--border-color)',
+                                                    background: 'var(--bg-tertiary)',
+                                                    color: 'var(--text-primary)',
+                                                    fontSize: '1.1rem',
+                                                    textAlign: 'center',
+                                                    letterSpacing: '1px'
+                                                }}
+                                            />
+                                            <small style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>
+                                                Formats: 0712..., 254712..., +254712...
+                                            </small>
+                                        </div>
+
+                                        {paymentMessage && (
+                                            <div style={{
+                                                background: 'var(--error-light)',
+                                                color: 'var(--error)',
+                                                padding: '0.75rem',
+                                                borderRadius: 'var(--radius-sm)',
+                                                marginBottom: '1rem',
+                                                fontSize: '0.85rem',
+                                                textAlign: 'center'
+                                            }}>{paymentMessage}</div>
+                                        )}
+
+                                        <div style={{ display: 'flex', gap: '0.75rem' }}>
+                                            <button
+                                                onClick={() => setShowPaymentModal(false)}
+                                                className="btn btn-secondary"
+                                                style={{ flex: 1 }}
+                                            >Cancel</button>
+                                            <button
+                                                onClick={processPayment}
+                                                className="btn btn-success"
+                                                style={{ flex: 1 }}
+                                            >Pay Now</button>
+                                        </div>
+                                    </>
+                                )}
+
+                                {/* Processing States */}
+                                {paymentStatus === 'sending' && (
+                                    <div style={{ textAlign: 'center', padding: '1rem' }}>
+                                        <Spinner size={40} />
+                                        <p style={{ marginTop: '1rem', color: 'var(--text-secondary)' }}>{paymentMessage}</p>
+                                    </div>
+                                )}
+
+                                {paymentStatus === 'waiting' && (
+                                    <div style={{ textAlign: 'center', padding: '1rem' }}>
+                                        <div style={{ fontSize: '3rem', marginBottom: '0.5rem' }}>📱</div>
+                                        <p style={{ color: 'var(--warning)', fontWeight: 500, marginBottom: '0.5rem' }}>
+                                            Check your phone!
+                                        </p>
+                                        <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>{paymentMessage}</p>
+                                        <Spinner size={24} />
+                                    </div>
+                                )}
+
+                                {paymentStatus === 'success' && (
+                                    <div style={{ textAlign: 'center', padding: '1rem' }}>
+                                        <div style={{ fontSize: '3rem', marginBottom: '0.5rem' }}>✅</div>
+                                        <p style={{ color: 'var(--success)', fontWeight: 600 }}>{paymentMessage}</p>
+                                    </div>
+                                )}
+
+                                {paymentStatus === 'error' && (
+                                    <div style={{ textAlign: 'center', padding: '1rem' }}>
+                                        <div style={{ fontSize: '3rem', marginBottom: '0.5rem' }}>❌</div>
+                                        <p style={{ color: 'var(--error)', marginBottom: '1rem' }}>{paymentMessage}</p>
+                                        <button
+                                            onClick={() => { setPaymentStatus(''); setPaymentMessage(''); }}
+                                            className="btn btn-primary"
+                                        >Try Again</button>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Profile Settings Modal */}
+                    {showProfileModal && (
+                        <div style={{
+                            position: 'fixed',
+                            top: 0,
+                            left: 0,
+                            right: 0,
+                            bottom: 0,
+                            background: 'rgba(0,0,0,0.85)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            zIndex: 1002,
+                            padding: '1rem',
+                            overflowY: 'auto'
+                        }}>
+                            <div style={{
+                                background: 'var(--bg-card)',
+                                borderRadius: 'var(--radius-lg)',
+                                padding: '1.5rem',
+                                width: '100%',
+                                maxWidth: '450px',
+                                maxHeight: '90vh',
+                                overflowY: 'auto',
+                                boxShadow: '0 10px 40px rgba(0,0,0,0.3)'
+                            }}>
+                                <div style={{ textAlign: 'center', marginBottom: '1.25rem' }}>
+                                    <div style={{
+                                        width: 50, height: 50, borderRadius: '50%',
+                                        background: 'var(--gradient-primary)',
+                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                        margin: '0 auto 0.75rem', fontSize: '1.5rem'
+                                    }}>
+                                        <i className="fas fa-user-cog" style={{ color: 'white' }}></i>
+                                    </div>
+                                    <h3 style={{ fontSize: '1.1rem', marginBottom: '0.25rem' }}>Profile Settings</h3>
+                                    <p style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>
+                                        Complete your profile information
+                                    </p>
+                                </div>
+
+                                {profileError && (
+                                    <div style={{
+                                        background: 'var(--error-light)',
+                                        color: 'var(--error)',
+                                        padding: '0.75rem',
+                                        borderRadius: 'var(--radius-sm)',
+                                        marginBottom: '1rem',
+                                        fontSize: '0.85rem',
+                                        textAlign: 'center'
+                                    }}>{profileError}</div>
+                                )}
+                                
+                                {profileSuccess && (
+                                    <div style={{
+                                        background: 'var(--success-light)',
+                                        color: 'var(--success)',
+                                        padding: '0.75rem',
+                                        borderRadius: 'var(--radius-sm)',
+                                        marginBottom: '1rem',
+                                        fontSize: '0.85rem',
+                                        textAlign: 'center'
+                                    }}>{profileSuccess}</div>
+                                )}
+
+                                {/* Full Name */}
+                                <div style={{ marginBottom: '0.9rem' }}>
+                                    <label style={{ display: 'block', marginBottom: '0.4rem', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                                        👤 Full Name <span style={{ color: 'var(--error)' }}>*</span>
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={profileData.name}
+                                        onChange={(e) => setProfileData({...profileData, name: e.target.value})}
+                                        placeholder="Your full name"
+                                        style={{
+                                            width: '100%',
+                                            padding: '0.7rem',
+                                            borderRadius: 'var(--radius-md)',
+                                            border: '1px solid var(--border-color)',
+                                            background: 'var(--bg-tertiary)',
+                                            color: 'var(--text-primary)',
+                                            fontSize: '0.9rem'
+                                        }}
+                                    />
+                                </div>
+
+                                {/* Username */}
+                                <div style={{ marginBottom: '0.9rem' }}>
+                                    <label style={{ display: 'block', marginBottom: '0.4rem', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                                        🎮 Username
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={profileData.username}
+                                        onChange={(e) => setProfileData({...profileData, username: e.target.value.replace(/\s/g, '')})}
+                                        placeholder="e.g. ProGamer_254"
+                                        style={{
+                                            width: '100%',
+                                            padding: '0.7rem',
+                                            borderRadius: 'var(--radius-md)',
+                                            border: '1px solid var(--border-color)',
+                                            background: 'var(--bg-tertiary)',
+                                            color: 'var(--text-primary)',
+                                            fontSize: '0.9rem'
+                                        }}
+                                    />
+                                    <small style={{ color: 'var(--text-muted)', fontSize: '0.7rem' }}>Letters, numbers & underscore only</small>
+                                </div>
+
+                                {/* Email & Phone Row */}
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '0.9rem' }}>
+                                    <div>
+                                        <label style={{ display: 'block', marginBottom: '0.4rem', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                                            ✉️ Email
+                                        </label>
+                                        <input
+                                            type="email"
+                                            value={profileData.email}
+                                            onChange={(e) => setProfileData({...profileData, email: e.target.value})}
+                                            placeholder="your@email.com"
+                                            style={{
+                                                width: '100%',
+                                                padding: '0.7rem',
+                                                borderRadius: 'var(--radius-md)',
+                                                border: '1px solid var(--border-color)',
+                                                background: 'var(--bg-tertiary)',
+                                                color: 'var(--text-primary)',
+                                                fontSize: '0.9rem'
+                                            }}
+                                        />
+                                    </div>
+                                    <div>
+                                        <label style={{ display: 'block', marginBottom: '0.4rem', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                                            📱 Phone (M-Pesa)
+                                        </label>
+                                        <input
+                                            type="tel"
+                                            value={profileData.phone}
+                                            onChange={(e) => setProfileData({...profileData, phone: e.target.value})}
+                                            placeholder="0712345678"
+                                            style={{
+                                                width: '100%',
+                                                padding: '0.7rem',
+                                                borderRadius: 'var(--radius-md)',
+                                                border: '1px solid var(--border-color)',
+                                                background: 'var(--bg-tertiary)',
+                                                color: 'var(--text-primary)',
+                                                fontSize: '0.9rem'
+                                            }}
+                                        />
+                                    </div>
+                                </div>
+
+                                {/* Team & Team Strength Row */}
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '0.9rem' }}>
+                                    <div>
+                                        <label style={{ display: 'block', marginBottom: '0.4rem', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                                            ⚽ Preferred Team
+                                        </label>
+                                        <input
+                                            type="text"
+                                            value={profileData.preferred_team}
+                                            onChange={(e) => setProfileData({...profileData, preferred_team: e.target.value})}
+                                            placeholder="Enter your team name..."
+                                            style={{
+                                                width: '100%',
+                                                padding: '0.7rem',
+                                                borderRadius: 'var(--radius-md)',
+                                                border: '1px solid var(--border-color)',
+                                                background: 'var(--bg-tertiary)',
+                                                color: 'var(--text-primary)',
+                                                fontSize: '0.9rem'
+                                            }}
+                                        />
+                                    </div>
+                                    <div>
+                                        <label style={{ display: 'block', marginBottom: '0.4rem', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                                            💪 Team Strength
+                                        </label>
+                                        <select
+                                            value={profileData.experience_level}
+                                            onChange={(e) => setProfileData({...profileData, experience_level: e.target.value})}
+                                            style={{
+                                                width: '100%',
+                                                padding: '0.7rem',
+                                                borderRadius: 'var(--radius-md)',
+                                                border: '1px solid var(--border-color)',
+                                                background: 'var(--bg-tertiary)',
+                                                color: 'var(--text-primary)',
+                                                fontSize: '0.9rem'
+                                            }}
+                                        >
+                                            <option value="">Select level...</option>
+                                            {experienceLevels.map(level => (
+                                                <option key={level} value={level}>{level}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                </div>
+
+                                {/* Bio */}
+                                <div style={{ marginBottom: '1.25rem' }}>
+                                    <label style={{ display: 'block', marginBottom: '0.4rem', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                                        📝 Bio (Optional)
+                                    </label>
+                                    <textarea
+                                        value={profileData.bio}
+                                        onChange={(e) => setProfileData({...profileData, bio: e.target.value})}
+                                        placeholder="Tell us about yourself..."
+                                        rows={3}
+                                        style={{
+                                            width: '100%',
+                                            padding: '0.7rem',
+                                            borderRadius: 'var(--radius-md)',
+                                            border: '1px solid var(--border-color)',
+                                            background: 'var(--bg-tertiary)',
+                                            color: 'var(--text-primary)',
+                                            fontSize: '0.9rem',
+                                            resize: 'vertical'
+                                        }}
+                                    />
+                                </div>
+
+                                <div style={{ display: 'flex', gap: '0.75rem' }}>
+                                    <button
+                                        onClick={() => {
+                                            setShowProfileModal(false);
+                                            setProfileError('');
+                                            setProfileSuccess('');
+                                        }}
+                                        className="btn btn-secondary"
+                                        style={{ flex: 1 }}
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        onClick={saveProfile}
+                                        className="btn btn-primary"
+                                        style={{ flex: 1 }}
+                                        disabled={savingProfile}
+                                    >
+                                        {savingProfile ? (
+                                            <><Spinner size={16} /> Saving...</>
+                                        ) : (
+                                            'Save Profile'
+                                        )}
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<Dashboard />);
+    </script>
+
+    <!-- Firebase SDK for Push Notifications -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-messaging-compat.js"></script>
+    
+    <!-- Notifications Script -->
+    <script src="/js/notifications.js"></script>
+</body>
+</html>

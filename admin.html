@@ -1,0 +1,1681 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin - eFootball League 2025</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="css/style.css">
+    <script>
+        // Initialize theme immediately to prevent flash
+        (function() {
+            const theme = localStorage.getItem('efl-theme') || 'dark';
+            document.documentElement.setAttribute('data-theme', theme);
+        })();
+    </script>
+    <style>
+        .danger-zone {
+            border-left: 4px solid #dc3545;
+            background: rgba(220, 53, 69, 0.1);
+        }
+        .export-zone {
+            border-left: 4px solid #0dcaf0;
+            background: rgba(13, 202, 240, 0.1);
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark sticky-top">
+        <div class="container">
+            <div class="logo-container">
+                <div class="logo">EFL</div>
+                <span class="navbar-brand mb-0 h1">eFootball League 2025 - Admin</span>
+            </div>
+            
+            <!-- Sync Status -->
+            <div class="navbar-text ms-3">
+                <span id="sync-status" class="badge bg-success">
+                    <i class="fas fa-cloud me-1"></i>Supabase Online
+                </span>
+            </div>
+
+            <div class="navbar-nav ms-auto align-items-center">
+                <button class="btn btn-outline-info btn-sm me-2" onclick="dataSync.manualSync()">
+                    <i class="fas fa-sync-alt me-1"></i> Refresh Data
+                </button>
+                <button class="theme-toggle me-2" onclick="toggleTheme()" title="Toggle Theme">
+                    <i class="fas fa-moon"></i>
+                    <i class="fas fa-sun"></i>
+                </button>
+                <a class="nav-link" href="index.html">
+                    <i class="fas fa-arrow-left me-1"></i> Back to Site
+                </a>
+                <button class="btn btn-outline-light btn-sm ms-2" id="logout-btn">
+                    <i class="fas fa-sign-out-alt me-1"></i> Logout
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container my-4">
+        <!-- Login Section -->
+        <div id="login-section" class="row justify-content-center">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header text-center">
+                        <img src="https://i.ibb.co/NgGdC1gX/efootball-profile.jpg" alt="eFootball Admin" class="ef-profile-image mb-3">
+                        <h4 class="mb-0">Admin Access</h4>
+                    </div>
+                    <div class="card-body">
+                        <form id="login-form">
+                            <div class="mb-3">
+                                <label for="admin-email" class="form-label">Admin Email</label>
+                                <input type="email" class="form-control" id="admin-email" 
+                                       value="support@kishtechsite.online" readonly>
+                            </div>
+                            <div class="mb-3">
+                                <label for="admin-password" class="form-label">Admin Password</label>
+                                <input type="password" class="form-control" id="admin-password" 
+                                       placeholder="Enter admin password" required>
+                                <div class="form-text">
+                                    Enter the administrator password to access the dashboard
+                                </div>
+                            </div>
+                            <button type="submit" class="btn btn-primary w-100">
+                                <i class="fas fa-lock me-2"></i> Access Dashboard
+                            </button>
+                        </form>
+                        <div class="text-center mt-3">
+                            <a href="#" id="forgot-password-link" class="text-info">
+                                <i class="fas fa-key me-1"></i> Forgot Password?
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Tournament Info Card -->
+                <div class="card mt-4">
+                    <div class="card-header text-center">
+                        <i class="fas fa-trophy me-2"></i> Tournament Control Center
+                    </div>
+                    <div class="card-body text-center">
+                        <p class="mb-3">Manage players, fixtures, and match results for the eFootball League 2025.</p>
+                        <div class="row text-center">
+                            <div class="col-4">
+                                <div class="fw-bold fs-4 text-warning" id="players-count">0</div>
+                                <small>Players</small>
+                            </div>
+                            <div class="col-4">
+                                <div class="fw-bold fs-4 text-warning" id="fixtures-count">0</div>
+                                <small>Fixtures</small>
+                            </div>
+                            <div class="col-4">
+                                <div class="fw-bold fs-4 text-warning" id="results-count">0</div>
+                                <small>Results</small>
+                            </div>
+                        </div>
+                        <div class="mt-3">
+                            <small class="text-muted">Powered by Supabase - Real-time Database</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Forgot Password Section -->
+        <div id="forgot-password-section" class="row justify-content-center d-none">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header text-center">
+                        <h4 class="mb-0"><i class="fas fa-key me-2"></i>Reset Password</h4>
+                    </div>
+                    <div class="card-body">
+                        <form id="forgot-password-form">
+                            <div class="mb-3">
+                                <label for="forgot-email" class="form-label">Admin Email</label>
+                                <input type="email" class="form-control" id="forgot-email" 
+                                       value="support@kishtechsite.online" readonly>
+                            </div>
+                            <button type="submit" class="btn btn-primary w-100">
+                                <i class="fas fa-paper-plane me-2"></i> Send Reset Instructions
+                            </button>
+                        </form>
+                        <div class="text-center mt-3">
+                            <a href="#" class="back-to-login text-info">
+                                <i class="fas fa-arrow-left me-1"></i> Back to Login
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Admin Dashboard (shown after login) -->
+        <div id="admin-dashboard" class="d-none">
+            <!-- Quick Stats -->
+            <div class="row mb-4">
+                <div class="col-md-3">
+                    <div class="card text-center bg-primary text-white">
+                        <div class="card-body">
+                            <i class="fas fa-users fa-2x mb-2"></i>
+                            <h3 id="live-players">0</h3>
+                            <p class="mb-0">Total Players</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card text-center bg-warning text-dark">
+                        <div class="card-body">
+                            <i class="fas fa-calendar fa-2x mb-2"></i>
+                            <h3 id="fixtures-badge">0</h3>
+                            <p class="mb-0">Total Fixtures</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card text-center bg-success text-white">
+                        <div class="card-body">
+                            <i class="fas fa-futbol fa-2x mb-2"></i>
+                            <h3 id="results-badge">0</h3>
+                            <p class="mb-0">Match Results</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card text-center bg-info text-white">
+                        <div class="card-body">
+                            <i class="fas fa-database fa-2x mb-2"></i>
+                            <h3 id="database-status">Online</h3>
+                            <p class="mb-0">Database</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Management Tabs -->
+            <ul class="nav nav-tabs mb-4" id="adminTabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="players-tab" data-bs-toggle="tab" data-bs-target="#players-panel" type="button" role="tab">
+                        <i class="fas fa-users me-2"></i>Players
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="registrations-tab" data-bs-toggle="tab" data-bs-target="#registrations-panel" type="button" role="tab">
+                        <i class="fas fa-user-check me-2"></i>Registrations
+                        <span class="badge bg-success ms-1" id="pending-registrations-badge">0</span>
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="fixtures-tab" data-bs-toggle="tab" data-bs-target="#fixtures-panel" type="button" role="tab">
+                        <i class="fas fa-calendar me-2"></i>Fixtures
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="results-tab" data-bs-toggle="tab" data-bs-target="#results-panel" type="button" role="tab">
+                        <i class="fas fa-futbol me-2"></i>Results
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="tournaments-tab" data-bs-toggle="tab" data-bs-target="#tournaments-panel" type="button" role="tab">
+                        <i class="fas fa-trophy me-2"></i>Tournaments
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="tools-tab" data-bs-toggle="tab" data-bs-target="#tools-panel" type="button" role="tab">
+                        <i class="fas fa-tools me-2"></i>Tools
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="notifications-tab" data-bs-toggle="tab" data-bs-target="#notifications-panel" type="button" role="tab">
+                        <i class="fas fa-bell me-2"></i>Notifications
+                    </button>
+                </li>
+            </ul>
+
+            <div class="tab-content" id="adminTabContent">
+                <!-- Players Panel -->
+                <div class="tab-pane fade show active" id="players-panel" role="tabpanel">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="card">
+                                <div class="card-header">
+                                    <i class="fas fa-user-plus me-2"></i>Add New Player
+                                </div>
+                                <div class="card-body">
+                                    <form id="add-player-form">
+                                        <div class="mb-3">
+                                            <label for="playerName" class="form-label">Player Name *</label>
+                                            <input type="text" class="form-control bg-dark text-light" id="playerName" 
+                                                   placeholder="Enter player name" required>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="playerEmail" class="form-label">Email (Optional)</label>
+                                            <input type="email" class="form-control bg-dark text-light" id="playerEmail" 
+                                                   placeholder="player@email.com">
+                                            <div class="form-text">
+                                                Player's email for login. If empty, player can register later.
+                                            </div>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="playerPhone" class="form-label">Phone (Optional)</label>
+                                            <input type="tel" class="form-control bg-dark text-light" id="playerPhone" 
+                                                   placeholder="254712345678">
+                                            <div class="form-text">
+                                                Format: 254XXXXXXXXX (for M-Pesa & login)
+                                            </div>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="playerTeam" class="form-label">Team *</label>
+                                            <select class="form-select bg-dark text-light" id="playerTeam" required>
+                                                <option value="">Select team...</option>
+                                                <option value="Kenya">Kenya</option>
+                                                <option value="Chelsea">Chelsea</option>
+                                                <option value="Liverpool">Liverpool</option>
+                                                <option value="Everton">Everton</option>
+                                                <option value="Manchester United">Manchester United</option>
+                                                <option value="West Ham">West Ham</option>
+                                                <option value="Arsenal">Arsenal</option>
+                                                <option value="Manchester City">Manchester City</option>
+                                                <option value="Tottenham">Tottenham</option>
+                                                <option value="Newcastle">Newcastle</option>
+                                                <option value="Real Madrid">Real Madrid</option>
+                                                <option value="Barcelona">Barcelona</option>
+                                                <option value="Bayern Munich">Bayern Munich</option>
+                                                <option value="PSG">PSG</option>
+                                                <option value="Juventus">Juventus</option>
+                                                <option value="Inter Milan">Inter Milan</option>
+                                                <option value="AC Milan">AC Milan</option>
+                                                <option value="Borussia Dortmund">Borussia Dortmund</option>
+                                            </select>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="playerPhoto" class="form-label">Player Photo URL (Optional)</label>
+                                            <input type="url" class="form-control bg-dark text-light" id="playerPhoto" 
+                                                   placeholder="https://example.com/photo.jpg">
+                                            <div class="form-text">
+                                                Enter a direct image URL for the player's photo. If left empty, a colored avatar will be generated.
+                                            </div>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="playerStrength" class="form-label">Player Strength</label>
+                                            <input type="number" class="form-control bg-dark text-light" id="playerStrength" 
+                                                   value="2500" min="1000" max="5000">
+                                            <div class="form-text">
+                                                Player strength rating (1000-5000)
+                                            </div>
+                                        </div>
+                                        <button type="submit" class="btn btn-primary w-100">
+                                            <i class="fas fa-plus me-2"></i>Add Player
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-8">
+                            <div class="card">
+                                <div class="card-header d-flex justify-content-between align-items-center">
+                                    <span><i class="fas fa-list me-2"></i>All Players</span>
+                                    <span class="badge bg-primary" id="players-badge">0</span>
+                                </div>
+                                <div class="card-body">
+                                    <div class="table-responsive">
+                                        <table class="table table-dark table-hover" id="players-table">
+                                            <thead>
+                                                <tr>
+                                                    <th>Player</th>
+                                                    <th>Team</th>
+                                                    <th>Strength</th>
+                                                    <th>Matches</th>
+                                                    <th>Points</th>
+                                                    <th>Actions</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <!-- Players will be loaded here -->
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Registrations Panel -->
+                <div class="tab-pane fade" id="registrations-panel" role="tabpanel">
+                    <div class="card">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <span><i class="fas fa-user-check me-2"></i>Player Registrations</span>
+                            <button class="btn btn-sm btn-outline-info" onclick="loadRegistrations()">
+                                <i class="fas fa-sync-alt me-1"></i>Refresh
+                            </button>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-dark table-hover" id="registrations-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Name</th>
+                                            <th>Email</th>
+                                            <th>Phone</th>
+                                            <th>Team</th>
+                                            <th>Payment</th>
+                                            <th>Status</th>
+                                            <th>Registered</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="registrations-tbody">
+                                        <tr>
+                                            <td colspan="8" class="text-center text-muted">Loading registrations...</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Fixtures Panel -->
+                <div class="tab-pane fade" id="fixtures-panel" role="tabpanel">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="card">
+                                <div class="card-header">
+                                    <i class="fas fa-calendar-plus me-2"></i>Schedule New Fixture
+                                </div>
+                                <div class="card-body">
+                                    <form id="add-fixture-form">
+                                        <div class="mb-3">
+                                            <label for="homePlayerSelect" class="form-label">Home Player *</label>
+                                            <select class="form-select bg-dark text-light" id="homePlayerSelect" required>
+                                                <option value="" selected disabled>Select player...</option>
+                                            </select>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="awayPlayerSelect" class="form-label">Away Player *</label>
+                                            <select class="form-select bg-dark text-light" id="awayPlayerSelect" required>
+                                                <option value="" selected disabled>Select player...</option>
+                                            </select>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="fixtureDate" class="form-label">Match Date *</label>
+                                            <input type="date" class="form-control bg-dark text-light" id="fixtureDate" required>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="fixtureTime" class="form-label">Match Time</label>
+                                            <input type="time" class="form-control bg-dark text-light" id="fixtureTime" value="15:00">
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="fixtureVenue" class="form-label">Venue</label>
+                                            <input type="text" class="form-control bg-dark text-light" id="fixtureVenue" 
+                                                   value="Virtual Stadium" placeholder="Enter venue name">
+                                        </div>
+                                        <button type="submit" class="btn btn-primary w-100">
+                                            <i class="fas fa-plus me-2"></i>Schedule Fixture
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+
+                            <!-- Fixture Tools -->
+                            <div class="card mt-4">
+                                <div class="card-header">
+                                    <i class="fas fa-tools me-2"></i>Fixture Tools
+                                </div>
+                                <div class="card-body">
+                                    <div class="d-grid gap-2">
+                                        <button class="btn btn-warning" onclick="generateOptimizedFixtures()">
+                                            <i class="fas fa-magic me-2"></i>Generate Fixtures
+                                        </button>
+                                        <button class="btn btn-info" onclick="showFixtureReport()">
+                                            <i class="fas fa-chart-bar me-2"></i>Fixture Report
+                                        </button>
+                                        <button class="btn btn-secondary" onclick="checkFixtureConflicts()">
+                                            <i class="fas fa-exclamation-triangle me-2"></i>Check Conflicts
+                                        </button>
+                                        <button class="btn btn-primary" onclick="showRescheduleTool()">
+                                            <i class="fas fa-calendar-alt me-2"></i>Reschedule Tool
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-8">
+                            <div class="card">
+                                <div class="card-header d-flex justify-content-between align-items-center">
+                                    <span><i class="fas fa-list me-2"></i>All Fixtures</span>
+                                    <span class="badge bg-warning text-dark" id="fixtures-badge">0</span>
+                                </div>
+                                <div class="card-body">
+                                    <div class="table-responsive">
+                                        <table class="table table-dark table-hover" id="admin-fixtures-table">
+                                            <thead>
+                                                <tr>
+                                                    <th>Date</th>
+                                                    <th>Time</th>
+                                                    <th>Home Player</th>
+                                                    <th>Away Player</th>
+                                                    <th>Venue</th>
+                                                    <th>Status</th>
+                                                    <th>Actions</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <!-- Fixtures will be loaded here -->
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Results Panel -->
+                <div class="tab-pane fade" id="results-panel" role="tabpanel">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="card">
+                                <div class="card-header">
+                                    <i class="fas fa-futbol me-2"></i>Add Match Result
+                                </div>
+                                <div class="card-body">
+                                    <form id="add-result-form">
+                                        <div class="mb-3">
+                                            <label for="homePlayerResult" class="form-label">Home Player *</label>
+                                            <select class="form-select bg-dark text-light" id="homePlayerResult" required>
+                                                <option value="" selected disabled>Select player...</option>
+                                            </select>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="awayPlayerResult" class="form-label">Away Player *</label>
+                                            <select class="form-select bg-dark text-light" id="awayPlayerResult" required>
+                                                <option value="" selected disabled>Select player...</option>
+                                            </select>
+                                        </div>
+                                        <div class="row mb-3">
+                                            <div class="col-6">
+                                                <label for="homeScore" class="form-label">Home Score</label>
+                                                <input type="number" class="form-control bg-dark text-light" id="homeScore" 
+                                                       value="0" min="0" max="20">
+                                            </div>
+                                            <div class="col-6">
+                                                <label for="awayScore" class="form-label">Away Score</label>
+                                                <input type="number" class="form-control bg-dark text-light" id="awayScore" 
+                                                       value="0" min="0" max="20">
+                                            </div>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="matchDateResult" class="form-label">Match Date *</label>
+                                            <input type="date" class="form-control bg-dark text-light" id="matchDateResult" required>
+                                        </div>
+                                        <button type="submit" class="btn btn-primary w-100">
+                                            <i class="fas fa-save me-2"></i>Save Result
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-8">
+                            <div class="card">
+                                <div class="card-header d-flex justify-content-between align-items-center">
+                                    <span><i class="fas fa-list me-2"></i>Match Results</span>
+                                    <span class="badge bg-success" id="results-badge">0</span>
+                                </div>
+                                <div class="card-body">
+                                    <div class="table-responsive">
+                                        <table class="table table-dark table-hover" id="admin-results-table">
+                                            <thead>
+                                                <tr>
+                                                    <th>Date</th>
+                                                    <th>Home Player</th>
+                                                    <th>Score</th>
+                                                    <th>Away Player</th>
+                                                    <th>Actions</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <!-- Results will be loaded here -->
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tournaments Panel -->
+                <div class="tab-pane fade" id="tournaments-panel" role="tabpanel">
+                    <div class="row">
+                        <!-- Create Tournament -->
+                        <div class="col-md-5">
+                            <div class="card">
+                                <div class="card-header bg-warning text-dark">
+                                    <i class="fas fa-trophy me-2"></i>Create Tournament
+                                </div>
+                                <div class="card-body">
+                                    <form id="create-tournament-form">
+                                        <div class="mb-3">
+                                            <label class="form-label">Tournament Name *</label>
+                                            <input type="text" class="form-control bg-dark text-light" id="tournamentName" required placeholder="e.g. Weekend Cup">
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label">Description</label>
+                                            <textarea class="form-control bg-dark text-light" id="tournamentDesc" rows="2" placeholder="Tournament description..."></textarea>
+                                        </div>
+                                        <div class="row">
+                                            <div class="col-6 mb-3">
+                                                <label class="form-label">Entry Fee (KES) *</label>
+                                                <input type="number" class="form-control bg-dark text-light" id="tournamentFee" value="100" min="0" required>
+                                            </div>
+                                            <div class="col-6 mb-3">
+                                                <label class="form-label">Prize Pool (KES)</label>
+                                                <input type="number" class="form-control bg-dark text-light" id="tournamentPrize" value="0" min="0">
+                                            </div>
+                                        </div>
+                                        <div class="row">
+                                            <div class="col-6 mb-3">
+                                                <label class="form-label">Min Players</label>
+                                                <input type="number" class="form-control bg-dark text-light" id="tournamentMinPlayers" value="4" min="2">
+                                            </div>
+                                            <div class="col-6 mb-3">
+                                                <label class="form-label">Max Players</label>
+                                                <input type="number" class="form-control bg-dark text-light" id="tournamentMaxPlayers" value="16" min="2">
+                                            </div>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label">Format</label>
+                                            <select class="form-control bg-dark text-light" id="tournamentFormat">
+                                                <option value="league">League (Round Robin)</option>
+                                                <option value="knockout">Knockout</option>
+                                            </select>
+                                        </div>
+                                        <div class="row">
+                                            <div class="col-6 mb-3">
+                                                <label class="form-label">Start Date</label>
+                                                <input type="date" class="form-control bg-dark text-light" id="tournamentStartDate">
+                                            </div>
+                                            <div class="col-6 mb-3">
+                                                <label class="form-label">End Date</label>
+                                                <input type="date" class="form-control bg-dark text-light" id="tournamentEndDate">
+                                            </div>
+                                        </div>
+                                        <button type="submit" class="btn btn-warning w-100">
+                                            <i class="fas fa-plus me-2"></i>Create Tournament
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Tournament List -->
+                        <div class="col-md-7">
+                            <div class="card">
+                                <div class="card-header d-flex justify-content-between align-items-center">
+                                    <span><i class="fas fa-list me-2"></i>All Tournaments</span>
+                                    <div>
+                                        <button class="btn btn-sm btn-success me-1" onclick="initializeEFL2025()" title="Initialize EFL 2025 with existing players">
+                                            <i class="fas fa-magic"></i> Init EFL 2025
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-light" onclick="loadTournaments()">
+                                            <i class="fas fa-sync-alt"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="card-body" style="max-height: 500px; overflow-y: auto;">
+                                    <div id="tournaments-list">
+                                        <div class="text-center text-muted py-4">
+                                            <i class="fas fa-trophy fa-2x mb-2"></i>
+                                            <p>Loading tournaments...</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tournament Details Modal -->
+                    <div class="modal fade" id="tournamentModal" tabindex="-1">
+                        <div class="modal-dialog modal-lg">
+                            <div class="modal-content bg-dark">
+                                <div class="modal-header">
+                                    <h5 class="modal-title"><i class="fas fa-trophy me-2"></i><span id="modal-tournament-name">Tournament</span></h5>
+                                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                                </div>
+                                <div class="modal-body">
+                                    <ul class="nav nav-pills mb-3" id="tournament-detail-tabs">
+                                        <li class="nav-item">
+                                            <button class="nav-link active" data-bs-toggle="pill" data-bs-target="#t-participants">Participants</button>
+                                        </li>
+                                        <li class="nav-item">
+                                            <button class="nav-link" data-bs-toggle="pill" data-bs-target="#t-fixtures">Fixtures</button>
+                                        </li>
+                                        <li class="nav-item">
+                                            <button class="nav-link" data-bs-toggle="pill" data-bs-target="#t-standings">Standings</button>
+                                        </li>
+                                        <li class="nav-item">
+                                            <button class="nav-link" data-bs-toggle="pill" data-bs-target="#t-settings">⚙️ Settings</button>
+                                        </li>
+                                    </ul>
+                                    <div class="tab-content">
+                                        <div class="tab-pane fade show active" id="t-participants">
+                                            <!-- Add Player Form -->
+                                            <div class="mb-3 p-2 bg-secondary rounded" id="add-player-to-tournament">
+                                                <div class="row g-2 align-items-end">
+                                                    <div class="col">
+                                                        <label class="form-label small mb-1">Add Player to Tournament</label>
+                                                        <select class="form-control form-control-sm bg-dark text-light" id="tournament-player-select">
+                                                            <option value="">Select a player...</option>
+                                                        </select>
+                                                    </div>
+                                                    <div class="col-auto">
+                                                        <button class="btn btn-sm btn-primary" onclick="addPlayerToTournament()">
+                                                            <i class="fas fa-plus"></i> Add
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div id="tournament-participants-list"></div>
+                                        </div>
+                                        <div class="tab-pane fade" id="t-fixtures">
+                                            <div id="tournament-fixtures-list"></div>
+                                        </div>
+                                        <div class="tab-pane fade" id="t-standings">
+                                            <div id="tournament-standings-list"></div>
+                                        </div>
+                                        <div class="tab-pane fade" id="t-settings">
+                                            <div class="row g-3">
+                                                <div class="col-md-6">
+                                                    <label class="form-label">Entry Fee (KES)</label>
+                                                    <input type="number" class="form-control bg-dark text-light" id="edit-entry-fee" min="0" step="10">
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <label class="form-label">Prize Pool (KES)</label>
+                                                    <input type="number" class="form-control bg-dark text-light" id="edit-prize-pool" min="0" step="100">
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <label class="form-label">Max Players</label>
+                                                    <input type="number" class="form-control bg-dark text-light" id="edit-max-players" min="2" max="100">
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <label class="form-label">Status</label>
+                                                    <select class="form-control bg-dark text-light" id="edit-status">
+                                                        <option value="upcoming">Upcoming</option>
+                                                        <option value="registration_open">Registration Open</option>
+                                                        <option value="in_progress">In Progress</option>
+                                                        <option value="completed">Completed</option>
+                                                        <option value="cancelled">Cancelled</option>
+                                                    </select>
+                                                </div>
+                                                <div class="col-12">
+                                                    <label class="form-label">Description</label>
+                                                    <textarea class="form-control bg-dark text-light" id="edit-description" rows="2"></textarea>
+                                                </div>
+                                                <div class="col-12">
+                                                    <button class="btn btn-primary w-100" onclick="saveTournamentSettings()">
+                                                        <i class="fas fa-save me-2"></i>Save Settings
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="modal-footer">
+                                    <button class="btn btn-success" id="btn-generate-fixtures" onclick="generateTournamentFixtures()">
+                                        <i class="fas fa-magic me-2"></i>Generate Fixtures
+                                    </button>
+                                    <button class="btn btn-danger" id="btn-delete-tournament" onclick="deleteTournament()">
+                                        <i class="fas fa-trash me-2"></i>Delete
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tools Panel -->
+                <div class="tab-pane fade" id="tools-panel" role="tabpanel">
+                    <div class="row">
+                        <!-- Data Export Section -->
+                        <div class="col-md-6">
+                            <div class="card export-zone">
+                                <div class="card-header bg-info text-white">
+                                    <i class="fas fa-download me-2"></i>Data Export
+                                </div>
+                                <div class="card-body">
+                                    <p class="card-text">Export tournament data for backup or analysis.</p>
+                                    <div class="d-grid gap-2">
+                                        <button class="btn btn-info" onclick="exportTournamentData()">
+                                            <i class="fas fa-file-export me-2"></i>Export Tournament Data
+                                        </button>
+                                        <button class="btn btn-outline-info" onclick="imageExporter.exportLeagueTable()">
+                                            <i class="fas fa-image me-2"></i>Export League Table as Image
+                                        </button>
+                                        <button class="btn btn-outline-info" onclick="imageExporter.exportMatchDayFixtures()">
+                                            <i class="fas fa-calendar me-2"></i>Export Fixtures as Image
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Data Management Section -->
+                        <div class="col-md-6">
+                            <div class="card danger-zone">
+                                <div class="card-header bg-danger text-white">
+                                    <i class="fas fa-exclamation-triangle me-2"></i>Danger Zone
+                                </div>
+                                <div class="card-body">
+                                    <p class="card-text text-muted">These actions cannot be undone. Use with extreme caution.</p>
+                                    
+                                    <div class="d-grid gap-2">
+                                        <button class="btn btn-warning" onclick="resetAllResults()">
+                                            <i class="fas fa-eraser me-2"></i>Clear All Results
+                                        </button>
+                                        <button class="btn btn-danger" onclick="resetTournament()">
+                                            <i class="fas fa-bomb me-2"></i>Reset Entire Tournament
+                                        </button>
+                                    </div>
+                                    
+                                    <div class="mt-3">
+                                        <small class="text-muted">
+                                            <strong>Clear All Results:</strong> Removes all match results but keeps players and fixtures.<br>
+                                            <strong>Reset Entire Tournament:</strong> Deletes ALL data including players, fixtures, and results.
+                                        </small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- System Information -->
+                    <div class="row mt-4">
+                        <div class="col-12">
+                            <div class="card">
+                                <div class="card-header">
+                                    <i class="fas fa-info-circle me-2"></i>System Information
+                                </div>
+                                <div class="card-body">
+                                    <div class="row">
+                                        <div class="col-md-4">
+                                            <strong>Database:</strong> Supabase<br>
+                                            <strong>Status:</strong> <span class="badge bg-success" id="db-status">Online</span>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <strong>Last Sync:</strong> <span id="last-sync">Never</span><br>
+                                            <strong>Players:</strong> <span id="info-players">0</span>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <strong>Fixtures:</strong> <span id="info-fixtures">0</span><br>
+                                            <strong>Results:</strong> <span id="info-results">0</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Notifications Panel -->
+                <div class="tab-pane fade" id="notifications-panel" role="tabpanel">
+                    <div class="row">
+                        <!-- Send Notification Card -->
+                        <div class="col-md-8 mx-auto">
+                            <div class="card">
+                                <div class="card-header bg-primary text-white">
+                                    <i class="fas fa-bell me-2"></i>Send Push Notification to All Users
+                                </div>
+                                <div class="card-body">
+                                    <form id="send-notification-form">
+                                        <div class="mb-3">
+                                            <label for="notification-title" class="form-label">Notification Title *</label>
+                                            <input type="text" class="form-control bg-dark text-light" id="notification-title" 
+                                                   placeholder="e.g., Tournament Update" required maxlength="50">
+                                            <div class="form-text">Keep it short and attention-grabbing (max 50 characters)</div>
+                                        </div>
+                                        
+                                        <div class="mb-3">
+                                            <label for="notification-body" class="form-label">Message *</label>
+                                            <textarea class="form-control bg-dark text-light" id="notification-body" 
+                                                      rows="3" placeholder="e.g., New fixtures are now available!" 
+                                                      required maxlength="200"></textarea>
+                                            <div class="form-text">Clear and concise message (max 200 characters)</div>
+                                        </div>
+
+                                        <div class="mb-3">
+                                            <label for="notification-url" class="form-label">Link URL (Optional)</label>
+                                            <input type="text" class="form-control bg-dark text-light" id="notification-url" 
+                                                   placeholder="e.g., /fixtures or https://yoursite.com/page">
+                                            <div class="form-text">Where users will go when they click the notification</div>
+                                        </div>
+
+                                        <div class="alert alert-info">
+                                            <i class="fas fa-info-circle me-2"></i>
+                                            <strong>Note:</strong> This will send a push notification to all users who have enabled notifications.
+                                        </div>
+
+                                        <button type="submit" class="btn btn-primary w-100" id="send-notification-btn">
+                                            <i class="fas fa-paper-plane me-2"></i>Send Notification to All Users
+                                        </button>
+                                    </form>
+
+                                    <!-- Notification Status -->
+                                    <div id="notification-status" class="mt-3" style="display: none;">
+                                        <div class="alert" id="notification-alert"></div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Quick Templates -->
+                            <div class="card mt-4">
+                                <div class="card-header">
+                                    <i class="fas fa-magic me-2"></i>Quick Templates
+                                </div>
+                                <div class="card-body">
+                                    <p class="text-muted">Click a template to auto-fill the form:</p>
+                                    <div class="d-grid gap-2">
+                                        <button class="btn btn-outline-secondary" onclick="useNotificationTemplate('fixtures')">
+                                            📅 New Fixtures Available
+                                        </button>
+                                        <button class="btn btn-outline-secondary" onclick="useNotificationTemplate('results')">
+                                            ⚽ Match Results Updated
+                                        </button>
+                                        <button class="btn btn-outline-secondary" onclick="useNotificationTemplate('tournament')">
+                                            🏆 Tournament Announcement
+                                        </button>
+                                        <button class="btn btn-outline-secondary" onclick="useNotificationTemplate('reminder')">
+                                            ⏰ Match Reminder
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Notification Stats -->
+                            <div class="card mt-4">
+                                <div class="card-header">
+                                    <i class="fas fa-chart-bar me-2"></i>Notification Statistics
+                                </div>
+                                <div class="card-body">
+                                    <div class="row text-center">
+                                        <div class="col-4">
+                                            <div class="h3 text-primary" id="total-subscribers">-</div>
+                                            <small class="text-muted">Total Subscribers</small>
+                                        </div>
+                                        <div class="col-4">
+                                            <div class="h3 text-success" id="last-sent-count">-</div>
+                                            <small class="text-muted">Last Sent</small>
+                                        </div>
+                                        <div class="col-4">
+                                            <div class="h3 text-warning" id="last-failed-count">-</div>
+                                            <small class="text-muted">Failed</small>
+                                        </div>
+                                    </div>
+                                    <button class="btn btn-sm btn-outline-info w-100 mt-3" onclick="loadNotificationStats()">
+                                        <i class="fas fa-sync-alt me-1"></i>Refresh Stats
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ✅ CORRECT SCRIPT ORDER - FIXED -->
+    <!-- Supabase CDN FIRST -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <!-- Firebase SDK for Admin Panel -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-messaging-compat.js"></script>
+    
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- App Scripts (ALL type="module") -->
+    <script type="module" src="/js/database.js"></script>
+    <script type="module" src="/js/auth.js"></script>
+    <script type="module" src="/js/admin.js"></script>
+    <script type="module" src="/js/export.js"></script>
+    <script type="module" src="/js/fixture-manager.js"></script>
+
+    <script>
+        // Toast notification function
+        function showToast(message, type = 'info') {
+            // Remove any existing toasts
+            const existingToast = document.getElementById('toast-notification');
+            if (existingToast) {
+                existingToast.remove();
+            }
+            
+            // Create toast element
+            const toast = document.createElement('div');
+            toast.id = 'toast-notification';
+            toast.innerHTML = `
+                <div class="toast align-items-center text-white bg-${type === 'error' ? 'danger' : type === 'success' ? 'success' : type === 'warning' ? 'warning' : 'info'} border-0" role="alert" aria-live="assertive" aria-atomic="true">
+                    <div class="d-flex">
+                        <div class="toast-body">
+                            ${message}
+                        </div>
+                        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+                    </div>
+                </div>
+            `;
+            
+            // Style the toast
+            toast.style.position = 'fixed';
+            toast.style.bottom = '20px';
+            toast.style.right = '20px';
+            toast.style.zIndex = '9999';
+            
+            // Add to document
+            document.body.appendChild(toast);
+            
+            // Initialize and show toast
+            const bsToast = new bootstrap.Toast(toast.querySelector('.toast'), {
+                delay: type === 'error' ? 5000 : 3000
+            });
+            bsToast.show();
+            
+            // Remove toast after it's hidden
+            toast.querySelector('.toast').addEventListener('hidden.bs.toast', function () {
+                toast.remove();
+            });
+        }
+        
+        // Update system information
+        function updateSystemInfo() {
+            const lastSync = localStorage.getItem('efl_last_sync');
+            document.getElementById('last-sync').textContent = lastSync ? new Date(lastSync).toLocaleString() : 'Never';
+        }
+
+        // Load player registrations
+        async function loadRegistrations() {
+            const tbody = document.getElementById('registrations-tbody');
+            tbody.innerHTML = '<tr><td colspan="8" class="text-center"><i class="fas fa-spinner fa-spin"></i> Loading...</td></tr>';
+            
+            try {
+                const response = await fetch('/api/players/registered');
+                const data = await response.json();
+                
+                if (!data.success || !data.players || data.players.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted">No registrations yet</td></tr>';
+                    document.getElementById('pending-registrations-badge').textContent = '0';
+                    return;
+                }
+                
+                const pendingCount = data.players.filter(p => p.payment_status === 'pending' || p.status !== 'active').length;
+                document.getElementById('pending-registrations-badge').textContent = pendingCount;
+                
+                tbody.innerHTML = data.players.map(function(player) {
+                    // Check if player has any completed payment records
+                    const hasCompletedPayment = player.payment_status === 'completed' || player.payment_date;
+                    
+                    const paymentBadge = hasCompletedPayment
+                        ? '<span class="badge bg-success">Paid</span>'
+                        : '<span class="badge bg-warning">Pending</span>';
+                    
+                    const statusBadge = player.status === 'active'
+                        ? '<span class="badge bg-success">Active</span>'
+                        : player.status === 'pending_profile'
+                        ? '<span class="badge bg-info">Profile Pending</span>'
+                        : '<span class="badge bg-secondary">Inactive</span>';
+                    
+                    const regDate = new Date(player.registration_date).toLocaleDateString('en-GB');
+                    
+                    let actionCell = '';
+                    if (player.player_id) {
+                        actionCell = '<span class="badge bg-primary">In League</span>';
+                    } else if (hasCompletedPayment) {
+                        actionCell = '<button class="btn btn-sm btn-success" onclick="approvePlayer(' + player.id + ')"><i class="fas fa-check"></i> Approve</button>';
+                    } else {
+                        actionCell = '<span class="badge bg-warning text-dark">Awaiting Payment</span>';
+                    }
+                    
+                    return '<tr>' +
+                        '<td>' + player.name + '</td>' +
+                        '<td>' + player.email + '</td>' +
+                        '<td>' + player.phone + '</td>' +
+                        '<td>' + (player.preferred_team || '-') + '</td>' +
+                        '<td>' + paymentBadge + '</td>' +
+                        '<td>' + statusBadge + '</td>' +
+                        '<td>' + regDate + '</td>' +
+                        '<td>' + actionCell + '</td>' +
+                        '</tr>';
+                }).join('');
+                
+            } catch (error) {
+                console.error('Error loading registrations:', error);
+                tbody.innerHTML = '<tr><td colspan="8" class="text-center text-danger">Error loading registrations</td></tr>';
+            }
+        }
+        
+        // Approve player (add to league)
+        async function approvePlayer(accountId) {
+            if (!confirm('Add this player to the league?')) return;
+            
+            try {
+                const response = await fetch('/api/player/' + accountId);
+                const data = await response.json();
+                
+                if (data.success && data.account) {
+                    alert('Player will be added to the league once they complete their profile.');
+                    loadRegistrations();
+                }
+            } catch (error) {
+                console.error('Error approving player:', error);
+                alert('Error approving player');
+            }
+        }
+
+        // Theme Toggle Function
+        function toggleTheme() {
+            const html = document.documentElement;
+            const currentTheme = html.getAttribute('data-theme') || 'dark';
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            html.setAttribute('data-theme', newTheme);
+            localStorage.setItem('efl-theme', newTheme);
+        }
+
+        // Call this when admin dashboard loads
+        document.addEventListener('DOMContentLoaded', function() {
+            setTimeout(updateSystemInfo, 1000);
+            
+            // Load registrations when tab is clicked
+            var regTab = document.getElementById('registrations-tab');
+            if (regTab) {
+                regTab.addEventListener('shown.bs.tab', loadRegistrations);
+            }
+            
+            // Load tournaments when tab is clicked
+            var tournamentTab = document.getElementById('tournaments-tab');
+            if (tournamentTab) {
+                tournamentTab.addEventListener('shown.bs.tab', loadTournaments);
+            }
+            
+            // Tournament form submission
+            var tournamentForm = document.getElementById('create-tournament-form');
+            if (tournamentForm) {
+                tournamentForm.addEventListener('submit', createTournament);
+            }
+        });
+
+        // ============================================
+        // TOURNAMENT MANAGEMENT FUNCTIONS
+        // ============================================
+        
+        let currentTournamentId = null;
+        
+        async function loadTournaments() {
+            const container = document.getElementById('tournaments-list');
+            container.innerHTML = '<div class="text-center py-3"><div class="spinner-border text-primary"></div></div>';
+            
+            try {
+                const res = await fetch('/api/tournaments');
+                const data = await res.json();
+                
+                if (!data.success) {
+                    container.innerHTML = '<div class="alert alert-danger">Failed to load tournaments: ' + (data.message || 'Unknown error') + '</div>';
+                    return;
+                }
+                
+                if (data.table_missing) {
+                    container.innerHTML = `
+                        <div class="alert alert-warning">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            <strong>Tournaments table not found!</strong>
+                            <p class="mb-2 mt-2">Please run the SQL setup to create tournament tables.</p>
+                            <a href="/setup.html" class="btn btn-sm btn-warning">Go to Setup</a>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                if (!data.tournaments?.length) {
+                    container.innerHTML = `
+                        <div class="text-center text-muted py-4">
+                            <i class="fas fa-trophy fa-2x mb-2"></i>
+                            <p>No tournaments yet</p>
+                            <p class="small">Click "Init EFL 2025" to create the main tournament with existing players.</p>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                container.innerHTML = data.tournaments.map(t => `
+                    <div class="card mb-2 bg-secondary">
+                        <div class="card-body py-2 px-3">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="mb-0">${t.name}</h6>
+                                    <small class="text-muted">
+                                        <span class="badge bg-${getStatusColor(t.status)} me-1">${formatStatus(t.status)}</span>
+                                        KES ${t.entry_fee} • ${t.format} • Max ${t.max_players} players
+                                    </small>
+                                </div>
+                                <div class="d-flex gap-1">
+                                    ${t.status === 'registration_open' ? 
+                                        `<button class="btn btn-sm btn-outline-danger" onclick="toggleTournamentStatus(${t.id}, 'upcoming')" title="Deactivate">
+                                            <i class="fas fa-pause"></i>
+                                        </button>` : 
+                                        t.status === 'upcoming' ?
+                                        `<button class="btn btn-sm btn-outline-success" onclick="toggleTournamentStatus(${t.id}, 'registration_open')" title="Activate">
+                                            <i class="fas fa-play"></i>
+                                        </button>` : ''
+                                    }
+                                    <button class="btn btn-sm btn-info" onclick="viewTournament(${t.id})">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+            } catch (err) {
+                container.innerHTML = '<div class="alert alert-danger">Failed to load tournaments</div>';
+            }
+        }
+        
+        function getStatusColor(status) {
+            const colors = {
+                'upcoming': 'secondary',
+                'registration_open': 'success',
+                'in_progress': 'warning',
+                'completed': 'info',
+                'cancelled': 'danger'
+            };
+            return colors[status] || 'secondary';
+        }
+        
+        function formatStatus(status) {
+            const labels = {
+                'upcoming': '⏸️ Inactive',
+                'registration_open': '✅ Active',
+                'in_progress': '🎮 In Progress',
+                'completed': '🏆 Completed',
+                'cancelled': '❌ Cancelled'
+            };
+            return labels[status] || status;
+        }
+        
+        async function toggleTournamentStatus(id, newStatus) {
+            const action = newStatus === 'registration_open' ? 'activate' : 'deactivate';
+            if (!confirm(`Are you sure you want to ${action} this tournament?`)) return;
+            
+            try {
+                const res = await fetch(`/api/tournaments/${id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ status: newStatus })
+                });
+                
+                const data = await res.json();
+                
+                if (data.success) {
+                    showToast(`Tournament ${action}d successfully!`, 'success');
+                    loadTournaments();
+                } else {
+                    showToast(data.message || `Failed to ${action} tournament`, 'error');
+                }
+            } catch (err) {
+                showToast(`Error ${action}ing tournament`, 'error');
+            }
+        }
+        
+        async function initializeEFL2025() {
+            if (!confirm('Initialize EFL 2025 Tournament with all existing players and fixtures? This will create the main tournament.')) return;
+            
+            try {
+                showToast('Initializing EFL 2025 Tournament...', 'info');
+                
+                const res = await fetch('/api/tournaments/initialize-main', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                
+                const data = await res.json();
+                
+                if (data.success) {
+                    if (data.already_exists) {
+                        showToast('EFL 2025 Tournament already exists!', 'warning');
+                    } else {
+                        showToast(`EFL 2025 Tournament created! ${data.players_added} players, ${data.fixtures_added} fixtures added.`, 'success');
+                    }
+                    loadTournaments();
+                } else {
+                    showToast(data.message || 'Failed to initialize tournament', 'error');
+                }
+            } catch (err) {
+                showToast('Error initializing tournament', 'error');
+            }
+        }
+        
+        async function createTournament(e) {
+            e.preventDefault();
+            
+            const btn = e.target.querySelector('button[type="submit"]');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Creating...';
+            
+            try {
+                const res = await fetch('/api/tournaments', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        name: document.getElementById('tournamentName').value,
+                        description: document.getElementById('tournamentDesc').value,
+                        entry_fee: parseFloat(document.getElementById('tournamentFee').value) || 0,
+                        prize_pool: parseFloat(document.getElementById('tournamentPrize').value) || 0,
+                        min_players: parseInt(document.getElementById('tournamentMinPlayers').value) || 4,
+                        max_players: parseInt(document.getElementById('tournamentMaxPlayers').value) || 16,
+                        format: document.getElementById('tournamentFormat').value,
+                        start_date: document.getElementById('tournamentStartDate').value || null,
+                        end_date: document.getElementById('tournamentEndDate').value || null
+                    })
+                });
+                
+                const data = await res.json();
+                
+                if (data.success) {
+                    showToast('Tournament created successfully!', 'success');
+                    e.target.reset();
+                    loadTournaments();
+                } else {
+                    showToast(data.message || 'Failed to create tournament', 'error');
+                }
+            } catch (err) {
+                showToast('Error creating tournament', 'error');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-plus me-2"></i>Create Tournament';
+            }
+        }
+        
+        async function viewTournament(id) {
+            currentTournamentId = id;
+            
+            try {
+                const res = await fetch(`/api/tournaments/${id}`);
+                const data = await res.json();
+                
+                if (!data.success) {
+                    showToast('Failed to load tournament', 'error');
+                    return;
+                }
+                
+                const t = data.tournament;
+                document.getElementById('modal-tournament-name').textContent = t.name;
+                
+                // Participants
+                const participantsHtml = data.participants.length ? 
+                    `<table class="table table-dark table-sm">
+                        <thead><tr><th>#</th><th>Player</th><th>Team</th><th>Status</th></tr></thead>
+                        <tbody>
+                            ${data.participants.map((p, i) => `
+                                <tr>
+                                    <td>${i + 1}</td>
+                                    <td>${p.player?.name || p.player_accounts?.name || p.players?.name || 'Unknown'}</td>
+                                    <td>${p.player?.team || p.players?.team || '-'}</td>
+                                    <td><span class="badge bg-success">${p.status}</span></td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>` :
+                    '<p class="text-muted text-center">No participants yet</p>';
+                document.getElementById('tournament-participants-list').innerHTML = participantsHtml;
+                
+                // Fixtures
+                const fixturesHtml = data.fixtures.length ?
+                    `<table class="table table-dark table-sm">
+                        <thead><tr><th>Match</th><th>Home</th><th>Score</th><th>Away</th><th>Action</th></tr></thead>
+                        <tbody>
+                            ${data.fixtures.map(f => `
+                                <tr>
+                                    <td>R${f.round} M${f.match_number}</td>
+                                    <td>${f.home_player?.name || 'TBD'}</td>
+                                    <td>
+                                        ${f.played ? 
+                                            `<span class="badge bg-info">${f.home_score} - ${f.away_score}</span>` :
+                                            `<input type="number" class="form-control form-control-sm bg-dark text-light d-inline" style="width:40px" id="home-${f.id}" min="0" value="0">
+                                             -
+                                             <input type="number" class="form-control form-control-sm bg-dark text-light d-inline" style="width:40px" id="away-${f.id}" min="0" value="0">`
+                                        }
+                                    </td>
+                                    <td>${f.away_player?.name || 'TBD'}</td>
+                                    <td>
+                                        ${!f.played ? `<button class="btn btn-xs btn-success" onclick="recordFixtureResult(${f.id})"><i class="fas fa-check"></i></button>` : '<i class="fas fa-check-circle text-success"></i>'}
+                                    </td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>` :
+                    '<p class="text-muted text-center">No fixtures generated yet. Click "Generate Fixtures" to create matches.</p>';
+                document.getElementById('tournament-fixtures-list').innerHTML = fixturesHtml;
+                
+                // Standings
+                const standingsHtml = data.standings.length ?
+                    `<table class="table table-dark table-sm">
+                        <thead><tr><th>#</th><th>Player</th><th>P</th><th>W</th><th>D</th><th>L</th><th>GD</th><th>Pts</th></tr></thead>
+                        <tbody>
+                            ${data.standings.map((s, i) => `
+                                <tr>
+                                    <td>${i + 1}</td>
+                                    <td>${s.player?.name || s.players?.name || 'Unknown'}</td>
+                                    <td>${s.played}</td>
+                                    <td>${s.wins}</td>
+                                    <td>${s.draws}</td>
+                                    <td>${s.losses}</td>
+                                    <td>${s.goal_difference >= 0 ? '+' : ''}${s.goal_difference}</td>
+                                    <td><strong>${s.points}</strong></td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>` :
+                    '<p class="text-muted text-center">Standings will appear after fixtures are generated</p>';
+                document.getElementById('tournament-standings-list').innerHTML = standingsHtml;
+                
+                // Show/hide generate button based on status
+                document.getElementById('btn-generate-fixtures').style.display = 
+                    t.status === 'registration_open' ? 'inline-block' : 'none';
+                
+                // Populate settings tab
+                document.getElementById('edit-entry-fee').value = t.entry_fee || 0;
+                document.getElementById('edit-prize-pool').value = t.prize_pool || 0;
+                document.getElementById('edit-max-players').value = t.max_players || 16;
+                document.getElementById('edit-status').value = t.status || 'upcoming';
+                document.getElementById('edit-description').value = t.description || '';
+                
+                new bootstrap.Modal(document.getElementById('tournamentModal')).show();
+            } catch (err) {
+                showToast('Error loading tournament details', 'error');
+            }
+        }
+        
+        async function generateTournamentFixtures() {
+            if (!currentTournamentId) return;
+            
+            if (!confirm('Generate fixtures? This will start the tournament and close registration.')) return;
+            
+            const btn = document.getElementById('btn-generate-fixtures');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Generating...';
+            
+            try {
+                const res = await fetch(`/api/tournaments/${currentTournamentId}/generate-fixtures`, {
+                    method: 'POST'
+                });
+                const data = await res.json();
+                
+                if (data.success) {
+                    showToast(`Generated ${data.fixtures_count} fixtures!`, 'success');
+                    viewTournament(currentTournamentId);
+                } else {
+                    showToast(data.message || 'Failed to generate fixtures', 'error');
+                }
+            } catch (err) {
+                showToast('Error generating fixtures', 'error');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-magic me-2"></i>Generate Fixtures';
+            }
+        }
+        
+        async function recordFixtureResult(fixtureId) {
+            const homeScore = parseInt(document.getElementById(`home-${fixtureId}`).value) || 0;
+            const awayScore = parseInt(document.getElementById(`away-${fixtureId}`).value) || 0;
+            
+            try {
+                const res = await fetch('/api/tournaments/record-result', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        fixture_id: fixtureId,
+                        home_score: homeScore,
+                        away_score: awayScore
+                    })
+                });
+                
+                const data = await res.json();
+                
+                if (data.success) {
+                    showToast('Result recorded!', 'success');
+                    viewTournament(currentTournamentId);
+                } else {
+                    showToast(data.message || 'Failed to record result', 'error');
+                }
+            } catch (err) {
+                showToast('Error recording result', 'error');
+            }
+        }
+        
+        async function saveTournamentSettings() {
+            if (!currentTournamentId) {
+                alert('No tournament selected');
+                return;
+            }
+            
+            const btn = event.target;
+            const originalText = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Saving...';
+            
+            const updates = {
+                entry_fee: parseFloat(document.getElementById('edit-entry-fee').value) || 0,
+                prize_pool: parseFloat(document.getElementById('edit-prize-pool').value) || 0,
+                max_players: parseInt(document.getElementById('edit-max-players').value) || 16,
+                status: document.getElementById('edit-status').value,
+                description: document.getElementById('edit-description').value
+            };
+            
+            console.log('Saving tournament settings:', currentTournamentId, updates);
+            
+            try {
+                const res = await fetch(`/api/tournaments/${currentTournamentId}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(updates)
+                });
+                const data = await res.json();
+                console.log('Save response:', data);
+                
+                if (data.success) {
+                    showToast('✅ Tournament settings saved!', 'success');
+                    btn.innerHTML = '<i class="fas fa-check me-2"></i>Saved!';
+                    btn.classList.remove('btn-primary');
+                    btn.classList.add('btn-success');
+                    loadTournaments(); // Refresh the list
+                    
+                    // Reset button after 2 seconds
+                    setTimeout(() => {
+                        btn.innerHTML = originalText;
+                        btn.classList.remove('btn-success');
+                        btn.classList.add('btn-primary');
+                        btn.disabled = false;
+                    }, 2000);
+                } else {
+                    showToast(data.message || 'Failed to save settings', 'error');
+                    btn.innerHTML = originalText;
+                    btn.disabled = false;
+                }
+            } catch (err) {
+                console.error('Save error:', err);
+                showToast('Error saving settings: ' + err.message, 'error');
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            }
+        }
+        
+        async function deleteTournament() {
+            if (!currentTournamentId) return;
+            
+            if (!confirm('Are you sure you want to delete this tournament? This cannot be undone.')) return;
+            
+            try {
+                const res = await fetch(`/api/tournaments/${currentTournamentId}`, {
+                    method: 'DELETE'
+                });
+                const data = await res.json();
+                
+                if (data.success) {
+                    showToast('Tournament deleted', 'success');
+                    bootstrap.Modal.getInstance(document.getElementById('tournamentModal')).hide();
+                    loadTournaments();
+                } else {
+                    showToast(data.message || 'Failed to delete', 'error');
+                }
+            } catch (err) {
+                showToast('Error deleting tournament', 'error');
+            }
+        }
+
+        // ==================== NOTIFICATION FUNCTIONS ====================
+        
+        // Send notification to all users
+        document.getElementById('send-notification-form')?.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const title = document.getElementById('notification-title').value.trim();
+            const body = document.getElementById('notification-body').value.trim();
+            const url = document.getElementById('notification-url').value.trim();
+            
+            if (!title || !body) {
+                showToast('Please fill in title and message', 'error');
+                return;
+            }
+            
+            const btn = document.getElementById('send-notification-btn');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Sending...';
+            btn.disabled = true;
+            
+            try {
+                const response = await fetch('/api/send-notification-to-all', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        title,
+                        body,
+                        data: url ? { url } : {}
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showToast(`✅ Notification sent to ${data.successCount} users!`, 'success');
+                    
+                    // Update stats
+                    document.getElementById('last-sent-count').textContent = data.successCount || 0;
+                    document.getElementById('last-failed-count').textContent = data.failureCount || 0;
+                    
+                    // Show status
+                    const statusDiv = document.getElementById('notification-status');
+                    const alertDiv = document.getElementById('notification-alert');
+                    alertDiv.className = 'alert alert-success';
+                    alertDiv.innerHTML = `
+                        <i class="fas fa-check-circle me-2"></i>
+                        <strong>Success!</strong> Notification sent to ${data.successCount} users.
+                        ${data.failureCount > 0 ? `<br><small>${data.failureCount} failed to send.</small>` : ''}
+                    `;
+                    statusDiv.style.display = 'block';
+                    
+                    // Clear form
+                    document.getElementById('send-notification-form').reset();
+                    
+                    // Hide status after 5 seconds
+                    setTimeout(() => {
+                        statusDiv.style.display = 'none';
+                    }, 5000);
+                } else {
+                    showToast(data.message || 'Failed to send notification', 'error');
+                    
+                    const statusDiv = document.getElementById('notification-status');
+                    const alertDiv = document.getElementById('notification-alert');
+                    alertDiv.className = 'alert alert-danger';
+                    alertDiv.innerHTML = `
+                        <i class="fas fa-exclamation-circle me-2"></i>
+                        <strong>Error:</strong> ${data.message || 'Failed to send notification'}
+                    `;
+                    statusDiv.style.display = 'block';
+                }
+            } catch (error) {
+                console.error('Error sending notification:', error);
+                showToast('Error sending notification: ' + error.message, 'error');
+                
+                const statusDiv = document.getElementById('notification-status');
+                const alertDiv = document.getElementById('notification-alert');
+                alertDiv.className = 'alert alert-danger';
+                alertDiv.innerHTML = `
+                    <i class="fas fa-exclamation-circle me-2"></i>
+                    <strong>Error:</strong> ${error.message}
+                `;
+                statusDiv.style.display = 'block';
+            } finally {
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            }
+        });
+        
+        // Load notification statistics
+        async function loadNotificationStats() {
+            try {
+                // Get total subscribers from database
+                const response = await fetch('/api/fcm-tokens-count');
+                if (response.ok) {
+                    const data = await response.json();
+                    document.getElementById('total-subscribers').textContent = data.count || 0;
+                }
+            } catch (error) {
+                console.error('Error loading notification stats:', error);
+            }
+        }
+        
+        // Use notification template
+        function useNotificationTemplate(type) {
+            const templates = {
+                fixtures: {
+                    title: '📅 New Fixtures Available',
+                    body: 'Check out the latest match schedule!',
+                    url: '/fixtures'
+                },
+                results: {
+                    title: '⚽ Match Results Updated',
+                    body: 'Latest match results are now available. See how your favorite players performed!',
+                    url: '/results'
+                },
+                tournament: {
+                    title: '🏆 Tournament Announcement',
+                    body: 'Important tournament update! Check it out now.',
+                    url: '/'
+                },
+                reminder: {
+                    title: '⏰ Match Reminder',
+                    body: 'Your match is coming up soon. Get ready!',
+                    url: '/player-dashboard.html'
+                }
+            };
+            
+            const template = templates[type];
+            if (template) {
+                document.getElementById('notification-title').value = template.title;
+                document.getElementById('notification-body').value = template.body;
+                document.getElementById('notification-url').value = template.url;
+                showToast('Template loaded! Edit and send.', 'info');
+            }
+        }
+        
+        // Load stats when notifications tab is shown
+        document.getElementById('notifications-tab')?.addEventListener('shown.bs.tab', function() {
+            loadNotificationStats();
+        });
+    </script>
+    
+    <!-- Notifications Script -->
+    <script src="/js/notifications.js"></script>
+</body>
+</html>

@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Database Setup - eFootball League 2025</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/theme.css">
+    <style>
+        .setup-container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        .status-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+        .table-status {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem 0;
+            border-bottom: 1px solid var(--border-color);
+        }
+        .table-status:last-child {
+            border-bottom: none;
+        }
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 0.5rem;
+        }
+        .status-dot.ready { background: var(--success); }
+        .status-dot.missing { background: var(--error); }
+        .status-dot.checking { background: var(--warning); animation: pulse 1s infinite; }
+        .sql-box {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            padding: 1rem;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 0.8rem;
+            overflow-x: auto;
+            white-space: pre-wrap;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .copy-btn {
+            position: absolute;
+            top: 0.5rem;
+            right: 0.5rem;
+        }
+        .step-number {
+            width: 28px;
+            height: 28px;
+            background: var(--gradient-primary);
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 0.85rem;
+            margin-right: 0.75rem;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
+        }
+    </style>
+</head>
+<body>
+    <div class="setup-container">
+        <div style="text-align: center; margin-bottom: 2rem;">
+            <div style="
+                width: 70px;
+                height: 70px;
+                background: var(--gradient-primary);
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                margin: 0 auto 1rem;
+                font-size: 1.5rem;
+                font-weight: bold;
+                color: white;
+            ">EFL</div>
+            <h1 style="font-size: 1.75rem; margin-bottom: 0.5rem;">Database Setup</h1>
+            <p style="color: var(--text-muted);">Set up the required tables for player registration</p>
+        </div>
+
+        <!-- Status Card -->
+        <div class="status-card">
+            <h3 style="margin-bottom: 1rem; display: flex; align-items: center;">
+                <span style="margin-right: 0.5rem;">📊</span> Table Status
+                <button onclick="checkStatus()" class="btn btn-outline" style="margin-left: auto; padding: 0.5rem 1rem; font-size: 0.85rem;">
+                    Refresh
+                </button>
+            </h3>
+            <div id="table-status">
+                <div class="table-status">
+                    <span style="display: flex; align-items: center;">
+                        <span class="status-dot checking"></span>
+                        Checking...
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Setup Instructions -->
+        <div class="status-card" id="setup-instructions" style="display: none;">
+            <h3 style="margin-bottom: 1rem;">
+                <span style="margin-right: 0.5rem;">🔧</span> Setup Instructions
+            </h3>
+            
+            <div style="margin-bottom: 1.5rem;">
+                <p style="display: flex; align-items: center; margin-bottom: 0.75rem;">
+                    <span class="step-number">1</span>
+                    <span>Go to your <a href="https://supabase.com/dashboard" target="_blank" style="color: var(--primary-400);">Supabase Dashboard</a></span>
+                </p>
+                <p style="display: flex; align-items: center; margin-bottom: 0.75rem;">
+                    <span class="step-number">2</span>
+                    <span>Select your project → Click "SQL Editor" in the sidebar</span>
+                </p>
+                <p style="display: flex; align-items: center; margin-bottom: 0.75rem;">
+                    <span class="step-number">3</span>
+                    <span>Copy the SQL below and paste it in the editor</span>
+                </p>
+                <p style="display: flex; align-items: center;">
+                    <span class="step-number">4</span>
+                    <span>Click "Run" to create the tables</span>
+                </p>
+            </div>
+
+            <div style="position: relative;">
+                <button onclick="copySQL()" class="btn btn-secondary copy-btn" style="padding: 0.4rem 0.75rem; font-size: 0.8rem;">
+                    Copy SQL
+                </button>
+                <div class="sql-box" id="sql-content">Loading...</div>
+            </div>
+        </div>
+
+        <!-- Success Card -->
+        <div class="status-card" id="success-card" style="display: none; text-align: center; border-color: var(--success);">
+            <div style="
+                width: 60px;
+                height: 60px;
+                background: var(--success);
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                margin: 0 auto 1rem;
+                font-size: 1.5rem;
+                color: white;
+            ">✓</div>
+            <h3 style="color: var(--success); margin-bottom: 0.5rem;">All Tables Ready!</h3>
+            <p style="color: var(--text-muted); margin-bottom: 1.5rem;">Your database is set up and ready to use.</p>
+            <div style="display: flex; gap: 1rem; justify-content: center;">
+                <a href="/" class="btn btn-primary">Go to Home</a>
+                <a href="/register.html" class="btn btn-success">Register Players</a>
+            </div>
+        </div>
+
+        <!-- Back Link -->
+        <div style="text-align: center; margin-top: 2rem;">
+            <a href="/" style="color: var(--text-muted); text-decoration: none;">← Back to Home</a>
+        </div>
+    </div>
+
+    <script>
+        let sqlContent = '';
+
+        async function checkStatus() {
+            const statusDiv = document.getElementById('table-status');
+            statusDiv.innerHTML = `
+                <div class="table-status">
+                    <span style="display: flex; align-items: center;">
+                        <span class="status-dot checking"></span>
+                        Checking database...
+                    </span>
+                </div>
+            `;
+
+            try {
+                const res = await fetch('/api/db/status');
+                const data = await res.json();
+
+                if (data.success) {
+                    const tables = data.tables;
+                    let html = '';
+                    let allReady = true;
+
+                    for (const [name, status] of Object.entries(tables)) {
+                        const isReady = status.exists;
+                        if (!isReady) allReady = false;
+                        
+                        html += `
+                            <div class="table-status">
+                                <span style="display: flex; align-items: center;">
+                                    <span class="status-dot ${isReady ? 'ready' : 'missing'}"></span>
+                                    <code style="background: var(--bg-tertiary); padding: 0.2rem 0.5rem; border-radius: 4px;">${name}</code>
+                                </span>
+                                <span class="badge badge-${isReady ? 'success' : 'error'}">
+                                    ${isReady ? 'Ready' : 'Missing'}
+                                </span>
+                            </div>
+                        `;
+                    }
+
+                    statusDiv.innerHTML = html;
+
+                    if (allReady) {
+                        document.getElementById('setup-instructions').style.display = 'none';
+                        document.getElementById('success-card').style.display = 'block';
+                    } else {
+                        document.getElementById('setup-instructions').style.display = 'block';
+                        document.getElementById('success-card').style.display = 'none';
+                        loadSQL();
+                    }
+                }
+            } catch (err) {
+                statusDiv.innerHTML = `
+                    <div class="table-status">
+                        <span style="color: var(--error);">Error checking status: ${err.message}</span>
+                    </div>
+                `;
+            }
+        }
+
+        async function loadSQL() {
+            try {
+                const res = await fetch('/api/db/sql');
+                sqlContent = await res.text();
+                document.getElementById('sql-content').textContent = sqlContent;
+            } catch (err) {
+                document.getElementById('sql-content').textContent = 'Error loading SQL';
+            }
+        }
+
+        function copySQL() {
+            navigator.clipboard.writeText(sqlContent).then(() => {
+                const btn = document.querySelector('.copy-btn');
+                btn.textContent = 'Copied!';
+                setTimeout(() => {
+                    btn.textContent = 'Copy SQL';
+                }, 2000);
+            });
+        }
+
+        // Check status on load
+        checkStatus();
+    </script>
+</body>
+</html>
