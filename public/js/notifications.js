@@ -4,7 +4,7 @@ const firebaseConfig = {
   apiKey: "AIzaSyDX99S2FDS3yd8NBEREBKK-P77G4OOWfoM",
   authDomain: "efootball-league-4f456.firebaseapp.com",
   projectId: "efootball-league-4f456",
-  storageBucket: "efootball-league-4f456.firebasestorage.app",
+  storageBucket: "efootball-league-4f456.appspot.com",  // ✅ FIXED
   messagingSenderId: "688740313852",
   appId: "1:688740313852:web:9bbf8fe7e4318a11874579",
   measurementId: "G-MW8F3RD48D"
@@ -28,6 +28,25 @@ async function initFirebase() {
       firebase.initializeApp(firebaseConfig);
     }
     messaging = firebase.messaging();
+
+    // ==================== Foreground Message Handler (moved here) ====================
+    messaging.onMessage((payload) => {
+      console.log("FCM Foreground:", payload);
+
+      const title = payload.notification?.title || "eFootball League";
+      const body = payload.notification?.body || "New update!";
+
+      // Trigger UI toast
+      if (typeof showToastNotification === "function") {
+        showToastNotification(title, body);
+      }
+
+      // Update unread badge if function exists
+      if (typeof updateUnreadBadge === "function") {
+        updateUnreadBadge();
+      }
+    });
+
   } catch (e) {
     console.error("Firebase init failed:", e);
   }
@@ -36,7 +55,6 @@ async function initFirebase() {
 // ==================== Request Permission ====================
 async function requestNotificationPermission() {
   const permission = await Notification.requestPermission();
-
   if (permission !== "granted") return;
 
   const reg = await navigator.serviceWorker.register("/firebase-messaging-sw.js");
@@ -57,7 +75,6 @@ async function saveTokenToSupabase(token) {
     const session = JSON.parse(localStorage.getItem("player_session") || "{}");
     const playerId = session.account_id || null;
 
-    // UPSERT (update token if exists)
     const response = await fetch(SAVE_URL, {
       method: "POST",
       headers: {
@@ -67,15 +84,14 @@ async function saveTokenToSupabase(token) {
         Prefer: "resolution=merge-duplicates"
       },
       body: JSON.stringify({
-        token: token,
+        token,
         player_id: playerId,
         device_info: { ua: navigator.userAgent }
       })
     });
 
     if (!response.ok) {
-      const err = await response.json();
-      console.error("Save failed:", err);
+      console.error("Supabase upsert error:", await response.json());
     }
   } catch (error) {
     console.error("Error saving token:", error);
