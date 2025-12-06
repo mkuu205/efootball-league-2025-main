@@ -15,7 +15,7 @@ import fcmNotifications from './api/fcm-notifications.js';
 
 dotenv.config();
 
-/* ===================== PATHS ===================== */
+/* ===================== PATH SETUP ===================== */
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -27,13 +27,13 @@ const PORT = process.env.PORT || 3000;
 app.use(cors());
 app.use(express.json());
 
-/* ===================== SUPABASE ===================== */
+/* ===================== SUPABASE ADMIN ===================== */
 const supabaseAdmin = createClient(
   process.env.SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
-/* ===================== HEALTH ===================== */
+/* ===================== HEALTH CHECK ===================== */
 app.get('/api/health', (req, res) => {
   res.json({
     success: true,
@@ -43,12 +43,12 @@ app.get('/api/health', (req, res) => {
   });
 });
 
-/* ===================== ✅ API ROUTES (FIRST) ===================== */
+/* ===================== API ROUTES (✅ FIRST) ===================== */
 
 // Payments
 payflowRoutes(app, supabaseAdmin);
 
-// Auth
+// Player authentication
 playerAuthRoutes(app, supabaseAdmin);
 
 // Database setup
@@ -57,7 +57,7 @@ dbSetupRoutes(app, supabaseAdmin);
 // Firebase Cloud Messaging (ONLY push system)
 fcmNotifications(app);
 
-// Tournaments
+// Tournament routes
 tournamentRoutes.initTournaments(supabaseAdmin);
 app.get('/api/tournaments', tournamentRoutes.getTournaments);
 app.get('/api/tournaments/:id', tournamentRoutes.getTournament);
@@ -69,29 +69,43 @@ app.post('/api/tournaments/:id/generate-fixtures', tournamentRoutes.generateFixt
 app.post('/api/tournaments/record-result', tournamentRoutes.recordResult);
 app.post('/api/tournaments/initialize-main', tournamentRoutes.initializeMainTournament);
 
-/* ===================== STATIC FILES ===================== */
-/**
- * index.html is NOT here
- * only assets live in /public
- */
+/* ===================== STATIC ASSETS ===================== */
 app.use(express.static(path.join(__dirname, 'public')));
 app.use('/css', express.static(path.join(__dirname, 'public/css')));
 app.use('/js', express.static(path.join(__dirname, 'public/js')));
 app.use('/icons', express.static(path.join(__dirname, 'public/icons')));
 
-/* ===================== ✅ SPA FALLBACK ===================== */
+/* ===================== ROOT HTML PAGES ===================== */
+app.get('/admin.html', (req, res) =>
+  res.sendFile(path.join(__dirname, 'admin.html'))
+);
+app.get('/register.html', (req, res) =>
+  res.sendFile(path.join(__dirname, 'register.html'))
+);
+app.get('/player-login.html', (req, res) =>
+  res.sendFile(path.join(__dirname, 'player-login.html'))
+);
+app.get('/player-dashboard.html', (req, res) =>
+  res.sendFile(path.join(__dirname, 'player-dashboard.html'))
+);
+app.get('/setup.html', (req, res) =>
+  res.sendFile(path.join(__dirname, 'setup.html'))
+);
+
+/* ===================== SPA FALLBACK (✅ LAST ✅) ===================== */
 /**
- * index.html is at PROJECT ROOT
- * /api/* must NEVER be redirected
+ * Any route that:
+ * - is NOT /api/*
+ * - is NOT an exact html file above
+ * loads index.html
  */
-app.get(/^\/(?!api).*/, (req, res) => {
+app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'index.html'));
 });
 
-/* ===================== ERROR HANDLER ===================== */
+/* ===================== ERROR HANDLING ===================== */
 app.use((err, req, res, next) => {
-  console.error('❌ Server error:', err);
-
+  console.error('❌ Server Error:', err);
   res.status(500).json({
     success: false,
     message:
@@ -104,8 +118,8 @@ app.use((err, req, res, next) => {
 /* ===================== START SERVER ===================== */
 app.listen(PORT, '0.0.0.0', async () => {
   console.log(`🚀 Server running on port ${PORT}`);
-  console.log(`🌍 Env: ${process.env.NODE_ENV || 'development'}`);
-  console.log(`🔗 Health: /api/health`);
+  console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
+  console.log(`🔗 Health check: /api/health`);
 
   await initializeDatabase(supabaseAdmin);
   console.log('✅ Database initialized');
