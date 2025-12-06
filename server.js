@@ -43,18 +43,13 @@ app.get('/api/health', (req, res) => {
   });
 });
 
-/* ===================== API ROUTES (✅ FIRST) ===================== */
+/* ===================== ✅ API ROUTES (FIRST) ===================== */
 
-// Payments
 payflowRoutes(app, supabaseAdmin);
-
-// Player authentication
 playerAuthRoutes(app, supabaseAdmin);
-
-// Database setup
 dbSetupRoutes(app, supabaseAdmin);
 
-// Firebase Cloud Messaging (ONLY push system)
+// ✅ Firebase Cloud Messaging routes
 fcmNotifications(app);
 
 // Tournament routes
@@ -75,6 +70,16 @@ app.use('/css', express.static(path.join(__dirname, 'public/css')));
 app.use('/js', express.static(path.join(__dirname, 'public/js')));
 app.use('/icons', express.static(path.join(__dirname, 'public/icons')));
 
+/* ===================== ✅ SERVICE WORKER (EXPLICIT) ===================== */
+/**
+ * Prevent SPA fallback from hijacking the service worker.
+ * This guarantees correct JS MIME type.
+ */
+app.get('/public/firebase-messaging-sw.js', (req, res) => {
+  res.type('application/javascript');
+  res.sendFile(path.join(__dirname, 'public', 'firebase-messaging-sw.js'));
+});
+
 /* ===================== ROOT HTML PAGES ===================== */
 app.get('/admin.html', (req, res) =>
   res.sendFile(path.join(__dirname, 'admin.html'))
@@ -92,14 +97,14 @@ app.get('/setup.html', (req, res) =>
   res.sendFile(path.join(__dirname, 'setup.html'))
 );
 
-/* ===================== SPA FALLBACK (✅ LAST ✅) ===================== */
+/* ===================== ✅ SPA FALLBACK (LAST) ===================== */
 /**
- * Any route that:
- * - is NOT /api/*
- * - is NOT an exact html file above
- * loads index.html
+ * Excludes:
+ * - /api/*
+ * - service worker
+ * Ensures SW returns JS, not HTML
  */
-app.get('*', (req, res) => {
+app.get(/^\/(?!api|public\/firebase-messaging-sw\.js).*/, (req, res) => {
   res.sendFile(path.join(__dirname, 'index.html'));
 });
 
@@ -119,7 +124,7 @@ app.use((err, req, res, next) => {
 app.listen(PORT, '0.0.0.0', async () => {
   console.log(`🚀 Server running on port ${PORT}`);
   console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
-  console.log(`🔗 Health check: /api/health`);
+  console.log(`🔗 Health: /api/health`);
 
   await initializeDatabase(supabaseAdmin);
   console.log('✅ Database initialized');
