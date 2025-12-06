@@ -5,7 +5,7 @@ import { fileURLToPath } from 'url';
 import { createClient } from '@supabase/supabase-js';
 import dotenv from 'dotenv';
 
-// API modules
+// API route modules
 import payflowRoutes from './api/payflow.js';
 import playerAuthRoutes from './api/player-auth.js';
 import dbSetupRoutes from './api/db-setup.js';
@@ -15,9 +15,11 @@ import fcmNotifications from './api/fcm-notifications.js';
 
 dotenv.config();
 
+/* ===================== PATHS ===================== */
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+/* ===================== APP ===================== */
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -32,15 +34,16 @@ const supabaseAdmin = createClient(
 );
 
 /* ===================== HEALTH ===================== */
-app.get('/api/health', (_req, res) => {
+app.get('/api/health', (req, res) => {
   res.json({
-    status: 'online',
+    success: true,
     service: 'eFootball League 2025 API',
+    env: process.env.NODE_ENV || 'development',
     timestamp: new Date().toISOString()
   });
 });
 
-/* ===================== API ROUTES (ALWAYS FIRST) ===================== */
+/* ===================== ✅ API ROUTES (FIRST) ===================== */
 
 // Payments
 payflowRoutes(app, supabaseAdmin);
@@ -48,10 +51,10 @@ payflowRoutes(app, supabaseAdmin);
 // Auth
 playerAuthRoutes(app, supabaseAdmin);
 
-// DB setup
+// Database setup
 dbSetupRoutes(app, supabaseAdmin);
 
-// ✅ Firebase Cloud Messaging (THE ONLY PUSH SYSTEM)
+// Firebase Cloud Messaging (ONLY push system)
 fcmNotifications(app);
 
 // Tournaments
@@ -67,24 +70,28 @@ app.post('/api/tournaments/record-result', tournamentRoutes.recordResult);
 app.post('/api/tournaments/initialize-main', tournamentRoutes.initializeMainTournament);
 
 /* ===================== STATIC FILES ===================== */
-
+/**
+ * index.html is NOT here
+ * only assets live in /public
+ */
 app.use(express.static(path.join(__dirname, 'public')));
 app.use('/css', express.static(path.join(__dirname, 'public/css')));
 app.use('/js', express.static(path.join(__dirname, 'public/js')));
 app.use('/icons', express.static(path.join(__dirname, 'public/icons')));
 
-/* ===================== SPA FALLBACK (FIXED) ===================== */
+/* ===================== ✅ SPA FALLBACK ===================== */
 /**
- * ✅ /api/* never gets index.html
- * ✅ frontend routing still works
+ * index.html is at PROJECT ROOT
+ * /api/* must NEVER be redirected
  */
-app.get(/^\/(?!api).*/, (_req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+app.get(/^\/(?!api).*/, (req, res) => {
+  res.sendFile(path.join(__dirname, 'index.html'));
 });
 
-/* ===================== ERRORS ===================== */
-app.use((err, _req, res, _next) => {
-  console.error('❌ Server Error:', err);
+/* ===================== ERROR HANDLER ===================== */
+app.use((err, req, res, next) => {
+  console.error('❌ Server error:', err);
+
   res.status(500).json({
     success: false,
     message:
@@ -94,9 +101,10 @@ app.use((err, _req, res, _next) => {
   });
 });
 
-/* ===================== START ===================== */
+/* ===================== START SERVER ===================== */
 app.listen(PORT, '0.0.0.0', async () => {
   console.log(`🚀 Server running on port ${PORT}`);
+  console.log(`🌍 Env: ${process.env.NODE_ENV || 'development'}`);
   console.log(`🔗 Health: /api/health`);
 
   await initializeDatabase(supabaseAdmin);
