@@ -1,209 +1,86 @@
-import admin from 'firebase-admin';
-import { createClient } from '@supabase/supabase-js';
-import { readFileSync } from 'fs';
-import dotenv from 'dotenv';
+import admin from "firebase-admin";
+import { createClient } from "@supabase/supabase-js";
+import { readFileSync } from "fs";
 
-dotenv.config();
-
-// Initialize Supabase
+// ✅ SUPABASE
 const supabase = createClient(
   process.env.SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
-// Firebase initialization
-let firebaseInitialized = false;
+// ✅ FIREBASE ADMIN INIT
+if (!admin.apps.length) {
+  const serviceAccount = JSON.parse(
+    readFileSync("./firebase-service-account.json", "utf8")
+  );
 
-function initializeFirebase() {
-  if (firebaseInitialized) return;
-
-  try {
-    const serviceAccount = JSON.parse(
-      readFileSync('./firebase-service-account.json', 'utf8')
-    );
-
-    admin.initializeApp({
-      credential: admin.credential.cert(serviceAccount)
-    });
-
-    firebaseInitialized = true;
-    console.log('✅ Firebase Admin initialized');
-  } catch (error) {
-    console.error('❌ Firebase Admin initialization failed:', error.message);
-    console.log('ℹ️ Save your service account as firebase-service-account.json');
-  }
+  admin.initializeApp({
+    credential: admin.credential.cert(serviceAccount)
+  });
 }
 
 export default function (app) {
-  initializeFirebase();
 
-  // --------------------------
-  // 1️⃣ SAVE FCM TOKEN
-  // --------------------------
-  app.post('/api/save-fcm-token', async (req, res) => {
-    try {
-      const { token, player_id, device_info } = req.body;
+  // ✅ SAVE TOKEN
+  app.post("/api/save-fcm-token", async (req, res) => {
+    const { token, player_id, device_info } = req.body;
 
-      if (!token) {
-        return res.status(400).json({
-          success: false,
-          message: 'FCM token is required',
-        });
-      }
+    await supabase
+      .from("fcm_tokens")
+      .upsert({ token, player_id, device_info }, { onConflict: "token" });
 
-      // FIX: remove created_at/updated_at (Supabase handles automatically)
-      const { error } = await supabase
-        .from('fcm_tokens')
-        .upsert(
-          {
-            token,
-            player_id: player_id || null,
-            device_info: device_info || {},
-          },
-          { onConflict: 'token' }
-        );
-
-      if (error) throw error;
-
-      res.json({
-        success: true,
-        message: 'FCM token saved successfully',
-      });
-
-    } catch (error) {
-      console.error('❌ Error saving FCM token:', error.message);
-      res.status(500).json({ success: false, message: error.message });
-    }
+    res.json({ success: true });
   });
 
-  // --------------------------
-  // 2️⃣ SEND TO SPECIFIC PLAYER
-  // --------------------------
-  app.post('/api/send-notification-to-player', async (req, res) => {
-    try {
-      const { player_id, title, body, data } = req.body;
+  // ✅ SEND TO ALL + AUTO CLEAN
+  app.post("/api/send-notification-to-all", async (req, res) => {
+    const { title, body, data } = req.body;
 
-      if (!firebaseInitialized) {
-        return res.status(500).json({ success: false, message: 'Firebase not initialized' });
-      }
+    const { data: tokens } = await supabase
+      .from("fcm_tokens")
+      .select("token");
 
-      if (!player_id || !title || !body) {
-        return res.status(400).json({
-          success: false,
-          message: 'player_id, title, and body are required'
-        });
-      }
-
-      const { data: tokens, error } = await supabase
-        .from('fcm_tokens')
-        .select('token')
-        .eq('player_id', player_id);
-
-      if (error) throw error;
-
-      if (!tokens?.length) {
-        return res.status(404).json({
-          success: false,
-          message: 'No FCM tokens for this player'
-        });
-      }
-
-      const message = {
-        notification: { title, body },
-        data: data || {},
-        tokens: tokens.map(t => t.token)
-      };
-
-      const response = await admin.messaging().sendEachForMulticast(message);
-
-      res.json({
-        success: true,
-        successCount: response.successCount,
-        failureCount: response.failureCount
-      });
-
-    } catch (error) {
-      console.error('❌ Error sending notification:', error);
-      res.status(500).json({ success: false, message: error.message });
+    if (!tokens?.length) {
+      return res.json({ success: false, message: "No subscribers" });
     }
-  });
 
-  // --------------------------
-  // 3️⃣ SEND TO ALL USERS
-  // --------------------------
-  app.post('/api/send-notification-to-all', async (req, res) => {
-    try {
-      const { title, body, data } = req.body;
+    const message = {
+      notification: { title, body },
+      data: data || {},
+      tokens: tokens.map(t => t.token)
+    };
 
-      if (!firebaseInitialized) {
-        return res.status(500).json({ success: false, message: 'Firebase not initialized' });
+    const result = await admin.messaging().sendEachForMulticast(message);
+
+    // ✅ AUTO DELETE INVALID TOKENS
+    const invalidTokens = [];
+    result.responses.forEach((r, i) => {
+      if (!r.success) {
+        const code = r.error?.code || "";
+        if (
+          code.includes("registration-token-not-registered") ||
+          code.includes("invalid-registration-token")
+        ) {
+          invalidTokens.push(tokens[i].token);
+        }
       }
+    });
 
-      if (!title || !body) {
-        return res.status(400).json({ success: false, message: 'title and body are required' });
-      }
-
-      const { data: tokens, error } = await supabase
-        .from('fcm_tokens')
-        .select('token');
-
-      if (error) throw error;
-
-      if (!tokens?.length) {
-        return res.status(404).json({ success: false, message: 'No FCM tokens found' });
-      }
-
-      // FCM batch limit is 500
-      const batchSize = 500;
-      let successTotal = 0;
-      let failTotal = 0;
-
-      for (let i = 0; i < tokens.length; i += batchSize) {
-        const batchTokens = tokens.slice(i, i + batchSize).map(t => t.token);
-
-        const message = {
-          notification: { title, body },
-          data: data || {},
-          tokens: batchTokens
-        };
-
-        const result = await admin.messaging().sendEachForMulticast(message);
-        successTotal += result.successCount;
-        failTotal += result.failureCount;
-      }
-
-      res.json({
-        success: true,
-        successCount: successTotal,
-        failureCount: failTotal,
-        totalTokens: tokens.length
-      });
-
-    } catch (error) {
-      console.error('❌ Sending failed:', error);
-      res.status(500).json({ success: false, message: error.message });
+    if (invalidTokens.length) {
+      await supabase
+        .from("fcm_tokens")
+        .delete()
+        .in("token", invalidTokens);
     }
-  });
 
-  // --------------------------
-  // 4️⃣ COUNT TOKENS
-  // --------------------------
-  app.get('/api/fcm-tokens-count', async (req, res) => {
-    try {
-      const { count, error } = await supabase
-        .from('fcm_tokens')
-        .select('*', { count: 'exact', head: true });
+    console.log("✅ Sent:", result.successCount);
+    console.log("🧹 Removed invalid tokens:", invalidTokens.length);
 
-      if (error) throw error;
-
-      res.json({
-        success: true,
-        count: count || 0
-      });
-
-    } catch (error) {
-      console.error('❌ Count error:', error.message);
-      res.status(500).json({ success: false, message: error.message });
-    }
+    res.json({
+      success: true,
+      sent: result.successCount,
+      failed: result.failureCount,
+      cleaned: invalidTokens.length
+    });
   });
 }
