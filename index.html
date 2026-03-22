@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>eFootball League 2025</title>
+    <title>eFootball League 2026</title>
 
     <!-- Theme initialization (prevent flash) -->
     <script>
@@ -20,15 +20,43 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css">
     <!-- Font Awesome (CDN) -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <!-- App CSS -->
-    <link rel="stylesheet" href="/css/style.css">
-
+    
     <style>
-        /* Clean Navbar Styles */
+        /* ============================================ */
+        /* REFACTORED CSS - CLEAN FLAT DARK DASHBOARD   */
+        /* Removed: glows, neon, glassmorphism          */
+        /* Kept: same layout, structure, primary color  */
+        /* ============================================ */
+
+        /* Base theme variables - flat dark only */
+        :root {
+            --primary: #0ea5e9;
+            --primary-dark: #0284c7;
+            --bg-dark: #0f172a;
+            --card-bg: #1e293b;
+            --card-border: rgba(255, 255, 255, 0.05);
+            --text-primary: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --border-subtle: rgba(255, 255, 255, 0.08);
+        }
+
+        /* Reset any lingering glow/glass effects */
+        * {
+            backdrop-filter: none !important;
+            -webkit-backdrop-filter: none !important;
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-primary);
+        }
+
+        /* ===== NAVBAR - COMPLETELY FLAT ===== */
         .navbar {
+            background: #0a0f1c !important;
+            backdrop-filter: none !important;
+            border-bottom: 1px solid var(--card-border);
             padding: 0.5rem 0;
-            background: rgba(15, 23, 42, 0.85) !important;
-            backdrop-filter: blur(20px) saturate(180%);
         }
 
         .navbar-brand {
@@ -36,73 +64,130 @@
             font-size: 1.1rem;
             font-family: 'Orbitron', sans-serif;
             letter-spacing: 0.5px;
+            color: var(--text-primary) !important;
         }
 
         .navbar .logo {
             width: 40px;
             height: 40px;
-            font-size: 0.9rem;
-            background: linear-gradient(135deg, #06B6D4 0%, #3B82F6 100%);
-            box-shadow: 0 0 15px rgba(6, 182, 212, 0.5);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            color: white;
+            background: transparent;
+        }
+
+        .navbar .logo img {
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            object-fit: contain;
         }
 
         .navbar-nav .nav-link {
             padding: 0.5rem 0.6rem;
             font-size: 0.85rem;
             font-weight: 600;
-            color: rgba(203, 213, 225, 0.9);
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            color: var(--text-secondary);
+            transition: color 0.2s ease;
         }
 
         .navbar-nav .nav-link:hover,
         .navbar-nav .nav-link.active {
-            color: #fff;
-            background: linear-gradient(135deg, #06B6D4 0%, #3B82F6 100%);
-            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2), 0 0 20px rgba(6, 182, 212, 0.5);
+            color: var(--primary);
+            background: transparent;
         }
 
         .dropdown-menu-dark {
-            background: rgba(15, 23, 42, 0.95);
-            backdrop-filter: blur(20px);
-            border: 1px solid rgba(6, 182, 212, 0.3);
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            box-shadow: none;
         }
 
         .dropdown-item {
             font-size: 0.9rem;
             padding: 0.65rem 1.25rem;
-            transition: all 0.2s ease;
+            color: var(--text-secondary);
         }
 
         .dropdown-item:hover {
-            background: rgba(6, 182, 212, 0.2);
-            transform: translateX(5px);
+            background: rgba(14, 165, 233, 0.1);
+            color: var(--primary);
+            transform: none;
         }
 
+        /* Mobile nav adjustments */
         @media (max-width: 991px) {
             .navbar-collapse {
-                background: rgba(15, 23, 42, 0.98);
-                backdrop-filter: blur(30px);
+                background: var(--bg-dark);
                 padding: 1.25rem;
                 margin-top: 0.75rem;
-                border-radius: 15px;
-                border: 1px solid rgba(6, 182, 212, 0.3);
-                box-shadow: 0 12px 48px rgba(0, 0, 0, 0.4);
+                border-radius: 12px;
+                border: 1px solid var(--card-border);
             }
 
             .navbar-nav .nav-link {
                 padding: 0.9rem 1.25rem;
-                border-radius: 10px;
-            }
-            
-            /* Adjust icon spacing for mobile */
-            .navbar-nav .nav-link i {
-                width: 20px;
-                text-align: center;
+                border-radius: 8px;
             }
         }
 
-        /* Custom styles for the sliders */
+        /* ===== BUTTONS & BADGES ===== */
+        .btn-primary {
+            background: var(--primary);
+            border: none;
+            box-shadow: none;
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-dark);
+        }
+
+        .btn-outline-secondary {
+            border-color: var(--border-subtle);
+            color: var(--text-secondary);
+        }
+
+        .btn-outline-secondary:hover {
+            background: rgba(255, 255, 255, 0.05);
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+
+        .badge {
+            box-shadow: none;
+        }
+
+        /* ===== CARDS - FLAT DESIGN ===== */
+        .card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 12px;
+            margin-bottom: 1.5rem;
+            box-shadow: none;
+        }
+
+        .card-header {
+            background: rgba(0, 0, 0, 0.2);
+            border-bottom: 1px solid var(--card-border);
+            padding: 1rem 1.25rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .card-body {
+            background: var(--card-bg);
+            color: var(--text-secondary);
+        }
+
+        /* Remove all gradient backgrounds */
+        .card-body[style*="background"] {
+            background: var(--card-bg) !important;
+        }
+
+        /* ===== CAROUSEL ===== */
         .carousel-content {
             min-height: 450px;
             display: flex;
@@ -111,8 +196,9 @@
             text-align: center;
             padding: 3rem;
             position: relative;
-            border-radius: 20px;
+            border-radius: 12px;
             overflow: hidden;
+            background: #0a0f1c !important;
         }
 
         @media (max-width: 768px) {
@@ -125,45 +211,40 @@
         .carousel-control-prev,
         .carousel-control-next {
             width: 8%;
-            opacity: 0.7;
-            transition: opacity 0.3s ease;
+            opacity: 0.5;
         }
 
         .carousel-control-prev:hover,
         .carousel-control-next:hover {
-            opacity: 1;
+            opacity: 0.8;
         }
 
         .carousel-indicators button {
-            width: 14px;
-            height: 14px;
+            width: 10px;
+            height: 10px;
             border-radius: 50%;
             margin: 0 6px;
-            background: rgba(6, 182, 212, 0.6);
-            border: 2px solid rgba(255, 255, 255, 0.3);
-            transition: all 0.3s ease;
+            background: var(--text-secondary);
+            border: none;
         }
 
         .carousel-indicators button.active {
-            background: #06B6D4;
-            transform: scale(1.3);
-            box-shadow: 0 0 15px rgba(6, 182, 212, 0.8);
+            background: var(--primary);
+            transform: scale(1.1);
         }
 
+        /* ===== MATCH SLIDER - FLAT ===== */
         .match-slider {
-            background: rgba(15, 23, 42, 0.6);
-            backdrop-filter: blur(20px);
-            border: 1px solid rgba(6, 182, 212, 0.2);
-            border-radius: 20px;
-            padding: 2rem;
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 12px;
+            padding: 0;
             margin-bottom: 2rem;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-            transition: all 0.3s ease;
+            box-shadow: none;
         }
 
         .match-slider:hover {
-            border-color: rgba(6, 182, 212, 0.4);
-            box-shadow: 0 12px 48px rgba(0, 0, 0, 0.4), 0 0 30px rgba(6, 182, 212, 0.3);
+            border-color: var(--border-subtle);
         }
 
         .match-slide {
@@ -171,10 +252,13 @@
             text-align: center;
         }
 
+        /* ===== MATCH TEAMS ===== */
         .match-teams {
             display: flex;
             align-items: center;
-            justify-content: space-between;
+            justify-content: center;
+            gap: 25px;
+            width: 100%;
             margin-bottom: 1.5rem;
         }
 
@@ -190,99 +274,291 @@
             height: 90px;
             border-radius: 50%;
             object-fit: cover;
-            border: 4px solid rgba(6, 182, 212, 0.6);
+            border: 2px solid var(--border-subtle);
             margin-bottom: 0.75rem;
-            transition: all 0.3s ease;
-            box-shadow: 0 0 20px rgba(6, 182, 212, 0.4);
+            transition: border-color 0.2s ease;
+            box-shadow: none;
         }
 
         .team-logo:hover {
-            transform: scale(1.1);
-            border-color: #06B6D4;
-            box-shadow: 0 0 30px rgba(6, 182, 212, 0.8);
+            transform: none;
+            border-color: var(--primary);
         }
 
         .vs-badge {
-            background: linear-gradient(135deg, #F97316 0%, #EF4444 100%);
+            background: var(--primary);
             color: white;
-            padding: 0.75rem 1.5rem;
-            border-radius: 25px;
-            font-weight: 800;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-weight: 700;
             font-family: 'Orbitron', sans-serif;
             letter-spacing: 1px;
-            box-shadow: 0 4px 16px rgba(249, 115, 22, 0.4);
+            box-shadow: none;
         }
 
         .match-details {
-            background: rgba(6, 182, 212, 0.1);
-            backdrop-filter: blur(10px);
-            border-radius: 15px;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 12px;
             padding: 1rem;
             margin-top: 1.25rem;
-            border: 1px solid rgba(6, 182, 212, 0.2);
+            border: 1px solid var(--border-subtle);
         }
 
-        .contact-info {
-            margin-bottom: 1.5rem;
+        /* ===== UPCOMING MATCHES ===== */
+        .upcoming-match-card {
+            text-align: center;
         }
 
+        .team-logo-placeholder {
+            width: 90px;
+            height: 90px;
+            border-radius: 50%;
+            background: #334155 !important;
+        }
+
+        /* ===== TABLES ===== */
+        .table-dark {
+            background-color: transparent;
+            color: var(--text-secondary);
+        }
+
+        .table-dark th,
+        .table-dark td {
+            border-color: var(--card-border);
+            padding: 0.75rem;
+        }
+
+        .table-dark thead th {
+            background: rgba(0, 0, 0, 0.2);
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+
+        .table-hover tbody tr:hover {
+            background-color: rgba(14, 165, 233, 0.05);
+        }
+
+        /* ===== COUNTDOWN TIMER & PRIZE POOL ===== */
+        #countdown-timer {
+            font-weight: 800;
+            font-family: 'Orbitron', sans-serif;
+            color: var(--primary);
+            background: none;
+            -webkit-background-clip: unset;
+            background-clip: unset;
+            -webkit-text-fill-color: var(--primary);
+            filter: none;
+        }
+
+        .responsive-prize {
+            font-weight: 800;
+            font-family: 'Orbitron', sans-serif;
+            color: #f97316;
+            background: none;
+            -webkit-background-clip: unset;
+            background-clip: unset;
+            -webkit-text-fill-color: #f97316;
+            filter: none;
+        }
+
+        /* ===== CONTACT INFO ===== */
         .contact-info h5 {
-            border-bottom: 2px solid #06B6D4;
+            border-bottom: 2px solid var(--primary);
             padding-bottom: 0.75rem;
             margin-bottom: 1rem;
             font-family: 'Orbitron', sans-serif;
+            color: var(--text-primary);
         }
 
-        .contact-info .fa-envelope {
-            color: #06B6D4;
+        .contact-info .fa-envelope { color: var(--primary); }
+        .contact-info .fa-phone { color: #10b981; }
+        .contact-info .fa-user { color: #f97316; }
+        .contact-info .fa-clock { color: #8b5cf6; }
+
+        /* ===== NOTIFICATION PANEL - FLAT ===== */
+        #notif-panel {
+            background: var(--bg-dark) !important;
+            box-shadow: -4px 0 24px rgba(0, 0, 0, 0.3) !important;
+            border-left: 1px solid var(--card-border);
         }
 
-        .contact-info .fa-phone {
-            color: #10B981;
+        /* ===== LIVE TOAST - FLAT ===== */
+        #live-toast {
+            background: var(--card-bg) !important;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
+            border: 1px solid var(--card-border);
+            border-radius: 12px;
         }
 
-        .contact-info .fa-user {
-            color: #F97316;
+        /* ===== FOOTER - SIMPLIFIED ===== */
+        footer {
+            background: #0a0f1c;
+            border-top: 1px solid var(--card-border);
+            padding: 1.5rem 0;
+            text-align: center;
         }
 
-        .contact-info .fa-clock {
-            color: #8B5CF6;
+        footer p {
+            margin: 0;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
         }
 
-        /* Rotating background animation */
+        /* ===== LIST GROUP ===== */
+        .list-group-item {
+            background-color: transparent;
+            border-color: var(--card-border);
+            color: var(--text-secondary);
+        }
+
+        /* ===== FORMS & INPUTS ===== */
+        input, select, textarea {
+            background: var(--bg-dark);
+            border: 1px solid var(--card-border);
+            color: var(--text-primary);
+        }
+
+        input:focus, select:focus, textarea:focus {
+            border-color: var(--primary);
+            outline: none;
+            box-shadow: none;
+        }
+
+        /* ===== ALERTS ===== */
+        .alert-dark {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--card-border);
+            color: var(--text-secondary);
+        }
+
+        /* ===== DROPDOWN MENU ===== */
+        .dropdown-menu {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            box-shadow: none;
+        }
+
+        /* ===== SYNC STATUS ===== */
+        #sync-status {
+            background: #22c55e !important;
+            color: white;
+            padding: 0.35rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+        }
+
+        /* ===== FIXED ROTATING BG - REMOVE GRADIENTS ===== */
         .rotating-bg {
-            transition: background-image 1s ease-in-out;
+            background: #0a0f1c !important;
+            transition: none;
         }
 
-        /* FIX: Keep Upcoming Matches perfectly aligned */
-.match-teams {
-    display: flex;
-    justify-content: center !important;
-    align-items: center;
-    gap: 25px !important;
-    width: 100%;
-}
+        /* ===== IMAGE EXPORT BUTTON ===== */
+        .btn-outline-info {
+            border-color: var(--primary);
+            color: var(--primary);
+        }
 
-.team-info {
-    width: 120px !important;       /* equal team width */
-    text-align: center !important;
-}
+        .btn-outline-info:hover {
+            background: var(--primary);
+            border-color: var(--primary);
+            color: white;
+        }
 
-.team-logo-placeholder {
-    width: 90px !important;
-    height: 90px !important;
-    flex-shrink: 0 !important;     /* prevent overflow clipping */
-}
+        /* ===== TAB CONTENT ===== */
+        .tab-pane {
+            animation: none;
+        }
 
-.team-name {
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;       /* prevents pushing layout */
-}
+        /* ===== USER AVATAR IN NAVBAR ===== */
+        #user-avatar {
+            border: 2px solid var(--primary) !important;
+            box-shadow: none;
+        }
 
-.upcoming-match-card {
-    text-align: center;
+        /* ===== CARD BODY OVERRIDES - REMOVE ALL GRADIENTS ===== */
+        .card-body[style*="linear-gradient"] {
+            background: var(--card-bg) !important;
+            background-image: none !important;
+        }
 
+        /* ===== QUICK STATS SECTION ===== */
+        #quick-stats, #recent-form, #top-scorers {
+            background: var(--card-bg) !important;
+        }
+
+        /* ===== MATCH CARD ===== */
+        .match-card {
+            background: var(--card-bg) !important;
+            border: 1px solid var(--card-border);
+            border-radius: 12px;
+        }
+
+        /* ===== ENSURE TEXT READABILITY ===== */
+        .text-muted {
+            color: var(--text-secondary) !important;
+        }
+
+        .text-info {
+            color: var(--primary) !important;
+        }
+
+        /* ===== RESPONSIVE ADJUSTMENTS ===== */
+        @media (max-width: 768px) {
+            .responsive-timer {
+                font-size: 1.2rem;
+            }
+            
+            .responsive-prize {
+                font-size: 1rem;
+            }
+            
+            .responsive-label {
+                font-size: 0.7rem;
+            }
+        }
+
+        /* Additional flat styling for navbar toggler */
+        .navbar-toggler {
+            border: 1px solid var(--card-border);
+            background: transparent;
+        }
+        
+        .navbar-toggler-icon {
+            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3e%3cpath stroke='rgba(255,255,255,0.8)' stroke-linecap='round' stroke-miterlimit='10' stroke-width='2' d='M4 7h22M4 15h22M4 23h22'/%3e%3c/svg%3e");
+        }
+
+        /* Flat dropdown styling */
+        .dropdown-menu-dark .dropdown-item.active,
+        .dropdown-menu-dark .dropdown-item:active {
+            background: rgba(14, 165, 233, 0.2);
+            color: var(--primary);
+        }
+
+        /* Fix for carousel items */
+        .carousel-item {
+            background: #0a0f1c;
+        }
+
+        /* Flat close button for mobile menu */
+        .btn-close-menu {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 1.25rem;
+            padding: 0.5rem;
+        }
+
+        /* Notification badge styling */
+        #notif-badge {
+            font-size: 0.65rem;
+            min-width: 18px;
+            height: 18px;
+            padding: 2px 5px;
+            border-radius: 10px;
         }
     </style>
 </head>
@@ -291,11 +567,13 @@
     <!-- Navigation -->
     <nav class="navbar navbar-expand-lg navbar-dark sticky-top">
         <div class="container">
-            <!-- Brand -->
+            <!-- Brand with new logo -->
             <a class="navbar-brand d-flex align-items-center" href="#">
-                <div class="logo me-2">EFL</div>
-                <span class="d-none d-md-inline">eFootball League 2025</span>
-                <span class="d-md-none">EFL 2025</span>
+                <div class="logo me-2">
+                    <img src="https://image2url.com/r2/default/images/1774167231174-6239e198-229d-4bb1-8b85-f8d47942bc8a.png" alt="EFL Logo">
+                </div>
+                <span class="d-none d-md-inline">eFootball League 2026</span>
+                <span class="d-md-none">EFL 2026</span>
             </a>
 
             <!-- Mobile Toggle -->
@@ -339,7 +617,7 @@
                     <li class="nav-item position-relative me-2" id="nav-bell-wrapper" style="display:flex;align-items:center;">
                         <a class="nav-link" href="#" id="nav-notifications-link" style="position:relative;" title="Notifications">
                             <i class="fas fa-bell"></i>
-                            <span id="notif-badge" class="badge bg-danger rounded-pill position-absolute" style="top:-6px; right:-6px; display:none; font-size:0.7rem; min-width:22px; padding:3px 6px;">0</span>
+                            <span id="notif-badge" class="badge bg-danger rounded-pill position-absolute" style="top:-6px; right:-6px; display:none; font-size:0.65rem; min-width:18px; padding:2px 5px;">0</span>
                         </a>
                     </li>
     
@@ -370,8 +648,7 @@
                         </a>
                     </li>
                     <li class="nav-item" id="auth-register-btn">
-                        <a class="btn btn-sm btn-primary ms-lg-2 mt-2 mt-lg-0" href="register.html"
-                            style="background: linear-gradient(135deg, #06B6D4 0%, #3B82F6 100%); border: none; box-shadow: 0 4px 16px rgba(6, 182, 212, 0.3);">
+                        <a class="btn btn-sm btn-primary ms-lg-2 mt-2 mt-lg-0" href="register.html">
                             <i class="fas fa-user-plus me-1"></i>Register
                         </a>
                     </li>
@@ -380,19 +657,19 @@
                     <li class="nav-item dropdown" id="auth-user-section" style="display: none;">
                         <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" role="button" data-bs-toggle="dropdown">
                             <img id="user-avatar" src="" alt="Avatar" 
-                                style="width: 32px; height: 32px; border-radius: 50%; border: 2px solid #06B6D4; margin-right: 8px;">
+                                style="width: 32px; height: 32px; border-radius: 50%; border: 2px solid #0ea5e9; margin-right: 8px;">
                             <span id="user-name" class="d-none d-lg-inline"></span>
                         </a>
                         <ul class="dropdown-menu dropdown-menu-dark dropdown-menu-end" style="min-width: 240px; padding: 0.5rem;">
                             <!-- Player Stats Card -->
                             <li>
-                                <div style="background: rgba(6, 182, 212, 0.15); border-radius: 10px; padding: 12px; margin-bottom: 8px;">
+                                <div style="background: rgba(14, 165, 233, 0.1); border-radius: 10px; padding: 12px; margin-bottom: 8px;">
                                     <div style="text-align: center; margin-bottom: 10px; color: #94A3B8; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; font-weight: 600;">
                                         Your Stats
                                     </div>
                                     <div style="display: flex; justify-content: space-around; text-align: center;">
                                         <div>
-                                            <div id="mini-position" style="font-size: 1.25rem; font-weight: 700; color: #06B6D4;">-</div>
+                                            <div id="mini-position" style="font-size: 1.25rem; font-weight: 700; color: #0ea5e9;">-</div>
                                             <div style="font-size: 0.7rem; color: #CBD5E1; margin-top: 2px;">Position</div>
                                         </div>
                                         <div style="border-left: 1px solid rgba(255,255,255,0.15); padding-left: 15px;">
@@ -407,7 +684,7 @@
                                 </div>
                             </li>
                             <li><hr class="dropdown-divider" style="margin: 0.5rem 0; border-color: rgba(255,255,255,0.1);"></li>
-                            <li><a class="dropdown-item py-2" href="player-dashboard.html" style="border-radius: 6px;"><i class="fas fa-tachometer-alt me-2" style="color: #06B6D4;"></i>My Dashboard</a></li>
+                            <li><a class="dropdown-item py-2" href="player-dashboard.html" style="border-radius: 6px;"><i class="fas fa-tachometer-alt me-2" style="color: #0ea5e9;"></i>My Dashboard</a></li>
                             <li><a class="dropdown-item py-2" href="#" onclick="logoutPlayer(); return false;" style="border-radius: 6px;"><i class="fas fa-sign-out-alt me-2" style="color: #EF4444;"></i>Logout</a></li>
                         </ul>
                     </li>
@@ -425,47 +702,48 @@
     </nav>
 
     <div class="container my-4">
-        <!-- Header Stats Row -->
-        <div class="row align-items-center mb-5">
-            <!-- Countdown Timer (Left) -->
-            <div class="col-6 mb-0">
-                <div class="d-flex align-items-center justify-content-start">
-                    <!-- Timer -->
-                    <div id="countdown-timer" class="responsive-timer"
-                        style="font-weight: 800; font-family: 'Orbitron', sans-serif; line-height: 1; background: linear-gradient(135deg, #06B6D4 0%, #3B82F6 100%); background-clip: text; -webkit-background-clip: text; -webkit-text-fill-color: transparent; filter: drop-shadow(0 0 20px rgba(6, 182, 212, 0.4)); margin-right: 1.5rem;">
-                        00:00:00</div>
-
-                    <!-- Label -->
-                    <div class="text-start">
-                        <div class="responsive-label"
-                            style="font-weight: 600; letter-spacing: 2px; color: #CBD5E1; text-transform: uppercase; margin-bottom: 0.25rem;">
-                            Next Match In</div>
-                        <div class="responsive-sublabel" style="color: #94A3B8; display: flex; align-items: center;">
-                            <i class="fas fa-clock me-2" style="color: #06B6D4;"></i> Live Countdown
-                        </div>
-                    </div>
-                </div>
+       <!-- Header Stats Row - Clean Flat Design -->
+<div class="row align-items-center mb-5">
+    <!-- Countdown Timer (Left) -->
+    <div class="col-md-6 mb-3 mb-md-0">
+        <div class="d-flex align-items-center gap-3">
+            <!-- Timer -->
+            <div id="countdown-timer" 
+                style="font-size: 1.8rem; font-weight: 700; font-family: 'Orbitron', monospace; color: #0ea5e9; line-height: 1;">
+                00:00:00
             </div>
-
-            <!-- Prize Pool (Right) -->
-            <div class="col-6">
-                <div class="d-flex align-items-center justify-content-end">
-                    <i class="fas fa-trophy responsive-icon"
-                        style="margin-right: 1.5rem; color: #F97316; text-shadow: 0 0 25px rgba(249, 115, 22, 0.5);"></i>
-                    <div class="text-start">
-                        <div class="responsive-label"
-                            style="font-weight: 600; letter-spacing: 2px; color: #CBD5E1; text-transform: uppercase;">
-                            Prize Pool</div>
-                        <div class="responsive-prize"
-                            style="font-weight: 800; font-family: 'Orbitron', sans-serif; line-height: 1; background: linear-gradient(135deg, #F97316 0%, #EF4444 100%); background-clip: text; -webkit-background-clip: text; -webkit-text-fill-color: transparent; filter: drop-shadow(0 0 15px rgba(249, 115, 22, 0.3));">
-                            1000 KES</div>
-                        <div class="responsive-sublabel" style="font-weight: 500; color: #94A3B8; margin-top: 0.25rem;">
-                            For the
-                            Winner</div>
-                    </div>
+            
+            <!-- Label -->
+            <div>
+                <div style="font-size: 0.7rem; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 2px;">
+                    Next Match In
+                </div>
+                <div style="font-size: 0.85rem; color: #cbd5e1;">
+                    <i class="fas fa-hourglass-half me-1" style="color: #0ea5e9;"></i> 
+                    <span>Countdown</span>
                 </div>
             </div>
         </div>
+    </div>
+    
+    <!-- Prize Pool (Right) -->
+    <div class="col-md-6 text-md-end">
+        <div class="d-flex align-items-center justify-content-md-end gap-3">
+            <!-- Trophy Icon -->
+            <i class="fas fa-trophy" style="font-size: 2rem; color: #f97316;"></i>
+            
+            <!-- Prize Info -->
+            <div>
+                <div style="font-size: 0.7rem; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 2px;">
+                    Prize Pool
+                </div>
+                <div style="font-size: 1.5rem; font-weight: 700; color: #f97316; line-height: 1;">
+                    1,000 KES
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 
         <!-- Main Content Tabs -->
         <div class="tab-content" id="myTabContent">
@@ -482,35 +760,27 @@
                     </div>
                     <div class="carousel-inner rounded">
                         <div class="carousel-item active">
-                            <div id="hero-slide" class="carousel-content position-relative overflow-hidden rotating-bg"
-                                data-images='["https://wallpaperaccess.com/full/493720.jpg","https://wallpaperaccess.com/full/493799.jpg","https://wallpaperaccess.com/full/493856.jpg","https://wallpaperaccess.com/full/1302641.jpg","https://wallpaperaccess.com/full/1302649.jpg"]'
-                                data-gradient="linear-gradient(135deg, rgba(0, 0, 0, 0.5) 0%, rgba(0, 0, 0, 0.4) 100%)"
-                                style="background: linear-gradient(135deg, rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.4)), url('https://wallpaperaccess.com/full/493720.jpg') center/cover no-repeat;">
+                            <div id="hero-slide" class="carousel-content position-relative overflow-hidden"
+                                style="background: #0a0f1c;">
                                 <div class="text-white text-center position-relative"
-                                    style="z-index: 2; text-shadow: 0 2px 10px rgba(0,0,0,0.8);">
-                                    <h2 class="display-4 fw-bold">eFootball League 2025</h2>
+                                    style="z-index: 2;">
+                                    <h2 class="display-4 fw-bold">eFootball League 2026</h2>
                                     <p class="lead fs-3 fw-bold">Round Robin Format</p>
                                     <p class="fs-5">Two Rounds - Home and Away</p>
                                 </div>
                             </div>
                         </div>
                         <div class="carousel-item">
-                            <div class="carousel-content rotating-bg"
-                                data-images='["https://wallpaperaccess.com/full/493799.jpg","https://wallpaperaccess.com/full/493856.jpg","https://wallpaperaccess.com/full/1302641.jpg","https://wallpaperaccess.com/full/1302649.jpg","https://wallpaperaccess.com/full/493720.jpg"]'
-                                data-gradient="linear-gradient(135deg, rgba(0, 0, 0, 0.5) 0%, rgba(0, 0, 0, 0.4) 100%)"
-                                style="background: linear-gradient(135deg, rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.4)), url('https://wallpaperaccess.com/full/493799.jpg') center/cover;">
+                            <div class="carousel-content" style="background: #0a0f1c;">
                                 <div class="text-white">
-                                    <h2 class="display-4 fw-bold">500 KES Prize</h2>
+                                    <h2 class="display-4 fw-bold">1000 KES Prize</h2>
                                     <p class="lead">For the Tournament Winner!</p>
                                     <p>Compete for glory and the cash prize</p>
                                 </div>
                             </div>
                         </div>
                         <div class="carousel-item">
-                            <div class="carousel-content rotating-bg"
-                                data-images='["https://wallpaperaccess.com/full/493856.jpg","https://wallpaperaccess.com/full/1302641.jpg","https://wallpaperaccess.com/full/1302649.jpg","https://wallpaperaccess.com/full/493720.jpg","https://wallpaperaccess.com/full/493799.jpg"]'
-                                data-gradient="linear-gradient(135deg, rgba(0, 0, 0, 0.5) 0%, rgba(0, 0, 0, 0.4) 100%)"
-                                style="background: linear-gradient(135deg, rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.4)), url('https://wallpaperaccess.com/full/493856.jpg') center/cover;">
+                            <div class="carousel-content" style="background: #0a0f1c;">
                                 <div class="text-white">
                                     <h2 class="display-4 fw-bold">Real-time Updates</h2>
                                     <p class="lead">Powered by Supabase</p>
@@ -519,10 +789,7 @@
                             </div>
                         </div>
                         <div class="carousel-item">
-                            <div class="carousel-content rotating-bg"
-                                data-images='["https://wallpaperaccess.com/full/1302641.jpg","https://wallpaperaccess.com/full/1302649.jpg","https://wallpaperaccess.com/full/493720.jpg","https://wallpaperaccess.com/full/493799.jpg","https://wallpaperaccess.com/full/493856.jpg"]'
-                                data-gradient="linear-gradient(135deg, rgba(0, 0, 0, 0.5) 0%, rgba(0, 0, 0, 0.4) 100%)"
-                                style="background: linear-gradient(135deg, rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.4)), url('https://wallpaperaccess.com/full/1302641.jpg') center/cover;">
+                            <div class="carousel-content" style="background: #0a0f1c;">
                                 <div class="text-white">
                                     <h2 class="display-4 fw-bold">Advanced Statistics</h2>
                                     <p class="lead">Track Player Performance</p>
@@ -549,9 +816,8 @@
                             <div class="card-header">
                                 <i class="fas fa-trophy me-2"></i> Tournament Overview
                             </div>
-                            <div class="card-body"
-                                style="background: linear-gradient(135deg, rgba(15, 23, 42, 0.92), rgba(15, 23, 42, 0.95)), url('/images/1637856.jpg') center/cover; background-attachment: fixed;">
-                                <p>Welcome to the eFootball League 2025! This is our class competition where each player
+                            <div class="card-body">
+                                <p>Welcome to the eFootball League 2026! This is our class competition where each player
                                     will face off against every other player in home and away matches.</p>
                                 <p>The tournament follows a round-robin format with balanced teams to ensure fairness
                                     and competitive gameplay.</p>
@@ -561,7 +827,7 @@
                                     <li>All players must play each other</li>
                                     <li>Team strength balanced for fairness</li>
                                     <li>Points system: Win = 3, Draw = 1, Loss = 0</li>
-                                    <li>Prize: 500 KES for the winner</li>
+                                    <li>Prize: 1000 KES for the winner</li>
                                     <li><strong>Real-time updates with Supabase</strong></li>
                                 </ul>
                             </div>
@@ -570,15 +836,14 @@
                         <!-- Upcoming Matches Slider -->
                         <div class="card match-slider">
                             <div class="card-header d-flex justify-content-between align-items-center">
-                                <span><i class="fas fa-calendar-alt me-2"></i> 🏆 EFL 2025 - Upcoming Matches</span>
+                                <span><i class="fas fa-calendar-alt me-2"></i> 🏆 EFL 2026 - Upcoming Matches</span>
                                 <div>
                                     <button class="btn btn-sm btn-outline-light" onclick="showTab('fixtures')">
                                         <i class="fas fa-list me-1"></i> View All
                                     </button>
                                 </div>
                             </div>
-                            <div class="card-body"
-                                style="background: linear-gradient(135deg, rgba(15, 23, 42, 0.92), rgba(15, 23, 42, 0.95)), url('/images/1638044.jpg') center/cover; background-attachment: fixed;">
+                            <div class="card-body">
                                 <div id="upcomingMatchesCarousel" class="carousel slide" data-bs-ride="carousel"
                                     data-bs-interval="8000">
                                     <div class="carousel-indicators" id="upcoming-matches-indicators">
@@ -590,14 +855,14 @@
                                             <div class="upcoming-match-card">
                                                 <div class="match-teams">
                                                     <div class="team-info">
-                                                        <div class="team-logo-placeholder bg-primary rounded-circle d-flex align-items-center justify-content-center mx-auto" style="width: 90px; height: 90px;">
+                                                        <div class="team-logo-placeholder bg-primary rounded-circle d-flex align-items-center justify-content-center mx-auto" style="width: 90px; height: 90px; background: #334155 !important;">
                                                             <i class="fas fa-user text-white fs-3"></i>
                                                         </div>
                                                         <div class="team-name">Loading...</div>
                                                     </div>
                                                     <div class="vs-badge">VS</div>
                                                     <div class="team-info">
-                                                        <div class="team-logo-placeholder bg-danger rounded-circle d-flex align-items-center justify-content-center mx-auto" style="width: 90px; height: 90px;">
+                                                        <div class="team-logo-placeholder bg-danger rounded-circle d-flex align-items-center justify-content-center mx-auto" style="width: 90px; height: 90px; background: #334155 !important;">
                                                             <i class="fas fa-user text-white fs-3"></i>
                                                         </div>
                                                         <div class="team-name">Loading...</div>
@@ -635,8 +900,7 @@
                             <div class="card-header">
                                 <i class="fas fa-star me-2"></i> Top Scorers
                             </div>
-                            <div class="card-body" id="top-scorers"
-                                style="background: linear-gradient(135deg, rgba(15, 23, 42, 0.92), rgba(15, 23, 42, 0.95)), url('/images/1637916.jpg') center/cover; background-attachment: fixed;">
+                            <div class="card-body" id="top-scorers">
                                 <!-- Dynamically loaded -->
                             </div>
                         </div>
@@ -645,8 +909,7 @@
                             <div class="card-header">
                                 <i class="fas fa-chart-line me-2"></i> Recent Form
                             </div>
-                            <div class="card-body" id="recent-form"
-                                style="background: linear-gradient(135deg, rgba(15, 23, 42, 0.92), rgba(15, 23, 42, 0.95)), url('/images/1153483.jpg') center/cover; background-attachment: fixed;">
+                            <div class="card-body" id="recent-form">
                                 <!-- Dynamically loaded -->
                             </div>
                         </div>
@@ -656,8 +919,7 @@
                             <div class="card-header">
                                 <i class="fas fa-chart-bar me-2"></i> Quick Stats
                             </div>
-                            <div class="card-body" id="quick-stats"
-                                style="background: linear-gradient(135deg, rgba(15, 23, 42, 0.92), rgba(15, 23, 42, 0.95)), url('/images/690807.jpg') center/cover; background-attachment: fixed;">
+                            <div class="card-body" id="quick-stats">
                                 <!-- Dynamically loaded -->
                             </div>
                         </div>
@@ -670,7 +932,7 @@
             <div class="tab-pane fade" id="fixtures" role="tabpanel">
                 <div class="card">
                     <div class="card-header d-flex justify-content-between align-items-center">
-                        <span><i class="fas fa-calendar me-2"></i> 🏆 EFL 2025 Tournament - Fixtures</span>
+                        <span><i class="fas fa-calendar me-2"></i> 🏆 EFL 2026 Tournament - Fixtures</span>
                         <div>
                             <button class="btn btn-sm btn-primary me-2" id="show-upcoming">Upcoming</button>
                             <button class="btn btn-sm btn-outline-light" id="show-all">All Fixtures</button>
@@ -696,7 +958,7 @@
                                 <tbody>
                                     <!-- Dynamically loaded -->
                                 </tbody>
-                            </table>
+                             </table>
                         </div>
                     </div>
                 </div>
@@ -706,7 +968,7 @@
             <div class="tab-pane fade" id="results" role="tabpanel">
                 <div class="card">
                     <div class="card-header">
-                        <i class="fas fa-list-alt me-2"></i> 🏆 EFL 2025 Tournament - Match Results
+                        <i class="fas fa-list-alt me-2"></i> 🏆 EFL 2026 Tournament - Match Results
                     </div>
                     <div class="card-body" id="results-container">
                         <!-- Dynamically loaded -->
@@ -718,7 +980,7 @@
             <div class="tab-pane fade" id="table" role="tabpanel">
                 <div class="card">
                     <div class="card-header d-flex justify-content-between align-items-center">
-                        <span><i class="fas fa-table me-2"></i> 🏆 EFL 2025 Tournament - League Table</span>
+                        <span><i class="fas fa-table me-2"></i> 🏆 EFL 2026 Tournament - League Table</span>
                         <button class="btn btn-sm btn-outline-info" onclick="imageExporter.exportLeagueTable()">
                             <i class="fas fa-image me-1"></i> Export Image
                         </button>
@@ -727,7 +989,7 @@
                         <div class="table-responsive">
                             <table class="table table-dark table-hover" id="league-table">
                                 <thead>
-                                    <tr>
+                                    32<tr>
                                         <th>Pos</th>
                                         <th>Player</th>
                                         <th>P</th>
@@ -739,12 +1001,12 @@
                                         <th>GD</th>
                                         <th>Pts</th>
                                         <th>Form</th>
-                                    </tr>
+                                    32</tr>
                                 </thead>
                                 <tbody>
                                     <!-- Dynamically loaded -->
                                 </tbody>
-                            </table>
+                             </table>
                         </div>
                     </div>
                 </div>
@@ -781,8 +1043,8 @@
                                         <div class="contact-info">
                                             <h5><i class="fas fa-envelope me-2"></i> Email Support</h5>
                                             <p class="ms-4">
-                                                <a href="mailto:support@kishtechsite.online" class="text-info">
-                                                    support@kishtechsite.online
+                                                <a href="mailto:support@kishtech.co.ke" class="text-info">
+                                                    support@kishtech.co.ke
                                                 </a>
                                             </p>
                                         </div>
@@ -806,7 +1068,7 @@
                                         </div>
                                     </div>
                                 </div>
-                                <div class="mt-4 p-3 rounded" style="background: rgba(255, 255, 255, 0.1);">
+                                <div class="mt-4 p-3 rounded" style="background: rgba(255, 255, 255, 0.05);">
                                     <h6 class="text-warning">Common Questions:</h6>
                                     <ul class="mt-3">
                                         <li>How do I register for the tournament? - Contact the admin</li>
@@ -855,17 +1117,10 @@
         </div>
     </div>
 
-    <!-- Footer -->
-    <footer class="text-center py-3 mt-4">
+    <!-- Footer - Simplified -->
+    <footer>
         <div class="container">
-            <p class="mb-1">eFootball League 2025 &copy; All rights reserved</p>
-            <p class="text-muted mb-1">This website is for class competition purposes only</p>
-            <p class="mb-0">
-                Made with ❤️ by Kish |
-                Support: <a href="mailto:support@kishtechsite.online" class="text-info">support@kishtechsite.online</a>
-                |
-                Helpline: <a href="tel:0796307638" class="text-info">0796307638</a>
-            </p>
+            <p>eFootball League 2026</p>
         </div>
     </footer>
 
@@ -1007,25 +1262,7 @@
             }
         });
 
-        // Rotating background images for all slides
-        (function () {
-            document.querySelectorAll('.rotating-bg').forEach((el, index) => {
-                const images = JSON.parse(el.dataset.images || '[]');
-                if (images.length > 0) {
-                    let currentIndex = 0;
-                    // Use data-gradient attribute for the gradient overlay
-                    const gradient = el.dataset.gradient || 'linear-gradient(135deg, rgba(0,0,0,0.35), rgba(0,0,0,0.35))';
-
-                    setInterval(() => {
-                        currentIndex = (currentIndex + 1) % images.length;
-                        el.style.background = `${gradient}, url('${images[currentIndex]}') center/cover no-repeat`;
-                    }, 3000 + (index * 500)); // Stagger the rotations
-                }
-            });
-        })();
-
         // Player Session Management
-        // Create a single Supabase instance to avoid multiple instances warning
         let supabaseInstance = null;
         
         function getSupabaseInstance() {
@@ -1040,46 +1277,35 @@
         
         function checkPlayerSession() {
             const sessionData = localStorage.getItem('player_session') || sessionStorage.getItem('player_session');
-            console.log('Session data found:', sessionData);
             
             if (sessionData) {
                 try {
                     const session = JSON.parse(sessionData);
-                    console.log('Parsed session:', session);
                     
                     if (session.logged_in) {
                         showLoggedInState(session);
                         loadPlayerMiniStats(session);
                     } else {
-                        // If session exists but logged_in is false, clear it
                         logoutPlayer();
                     }
                 } catch (e) {
                     console.error('Error parsing session:', e);
-                    // Clear invalid session
                     logoutPlayer();
                 }
-            } else {
-                console.log('No session data found');
             }
         }
 
         function showLoggedInState(session) {
-            console.log('Showing logged in state for:', session);
-            
-            // Hide login/register buttons
             const loginBtn = document.getElementById('auth-login-btn');
             const registerBtn = document.getElementById('auth-register-btn');
             
             if (loginBtn) loginBtn.style.display = 'none';
             if (registerBtn) registerBtn.style.display = 'none';
             
-            // Show user section
             const userSection = document.getElementById('auth-user-section');
             if (userSection) {
                 userSection.style.display = 'block';
                 
-                // Set user info
                 const userName = document.getElementById('user-name');
                 const userAvatar = document.getElementById('user-avatar');
                 
@@ -1094,11 +1320,9 @@
         async function loadPlayerMiniStats(session) {
             try {
                 const supabase = getSupabaseInstance();
-
-                // Get player_id from account
                 const playerId = session.player_id;
+                
                 if (!playerId) {
-                    // Try to get from player_accounts
                     const { data: account } = await supabase
                         .from('player_accounts')
                         .select('player_id')
@@ -1111,7 +1335,6 @@
                     }
                 }
 
-                // Get all players and results for stats calculation
                 const [playersRes, resultsRes] = await Promise.all([
                     supabase.from('players').select('id'),
                     supabase.from('results').select('*')
@@ -1120,7 +1343,6 @@
                 const allPlayers = playersRes.data || [];
                 const allResults = resultsRes.data || [];
 
-                // Calculate player stats
                 const playerResults = allResults.filter(r => 
                     r.home_player_id === session.player_id || r.away_player_id === session.player_id
                 );
@@ -1135,7 +1357,6 @@
                     else if (pScore === oScore) { points += 1; }
                 });
 
-                // Calculate position
                 const leagueTable = allPlayers.map(p => {
                     const pResults = allResults.filter(r => r.home_player_id === p.id || r.away_player_id === p.id);
                     let pts = 0, gd = 0;
@@ -1152,7 +1373,6 @@
 
                 const position = leagueTable.findIndex(p => p.id === session.player_id) + 1;
 
-                // Update mini stats
                 const getSuffix = (n) => {
                     if (n === 1) return 'st';
                     if (n === 2) return 'nd';
@@ -1174,33 +1394,24 @@
         }
 
         function logoutPlayer() {
-            console.log('Logging out player...');
-            
-            // Clear all session storage
             localStorage.removeItem('player_session');
             sessionStorage.removeItem('player_session');
             
-            // Show login/register buttons
             const loginBtn = document.getElementById('auth-login-btn');
             const registerBtn = document.getElementById('auth-register-btn');
             
             if (loginBtn) loginBtn.style.display = 'block';
             if (registerBtn) registerBtn.style.display = 'block';
             
-            // Hide user section
             const userSection = document.getElementById('auth-user-section');
             if (userSection) userSection.style.display = 'none';
             
-            // Force reload to ensure clean state
             window.location.href = window.location.href.split('?')[0];
         }
 
-        // Upcoming Matches Functionality
         async function loadUpcomingMatches() {
             try {
                 const supabase = getSupabaseInstance();
-
-                // Get upcoming fixtures (not played yet)
                 const { data: fixtures, error } = await supabase
                     .from('fixtures')
                     .select(`
@@ -1290,272 +1501,261 @@
     <!-- Notifications Script -->
     <script src="/js/notifications.js"></script>
 
-<!-- Slide-in Notification Panel (Right side) -->
-<div id="notif-panel" aria-hidden="true" style="position:fixed; top:0; right:0; height:100vh; width:360px; max-width:95vw; background:linear-gradient(180deg, rgba(10,14,20,0.98), rgba(15,23,42,0.98)); color:#e6eef8; box-shadow: -24px 0 48px rgba(0,0,0,0.6); transform:translateX(110%); transition:transform 320ms ease; z-index:2000; display:flex; flex-direction:column;">
-  <div style="padding:14px 16px; border-bottom:1px solid rgba(255,255,255,0.03); display:flex; align-items:center; justify-content:space-between;">
-    <div style="display:flex; align-items:center; gap:12px;">
-      <i class="fas fa-bell" style="font-size:1.15rem; color:#06B6D4;"></i>
-      <div>
-        <div style="font-weight:700;">Notifications</div>
-        <div id="notif-panel-count" style="font-size:0.8rem; color:#94a3b8;">0 unread</div>
+    <!-- Slide-in Notification Panel (Right side) -->
+    <div id="notif-panel" aria-hidden="true" style="position:fixed; top:0; right:0; height:100vh; width:360px; max-width:95vw; background:#0f172a; color:#e6eef8; transform:translateX(110%); transition:transform 320ms ease; z-index:2000; display:flex; flex-direction:column;">
+      <div style="padding:14px 16px; border-bottom:1px solid rgba(255,255,255,0.05); display:flex; align-items:center; justify-content:space-between;">
+        <div style="display:flex; align-items:center; gap:12px;">
+          <i class="fas fa-bell" style="font-size:1.15rem; color:#0ea5e9;"></i>
+          <div>
+            <div style="font-weight:700;">Notifications</div>
+            <div id="notif-panel-count" style="font-size:0.8rem; color:#94a3b8;">0 unread</div>
+          </div>
+        </div>
+        <div style="display:flex; gap:8px; align-items:center;">
+          <button id="mark-all-read-btn" class="btn btn-sm btn-outline-light" title="Mark all read">Mark all read</button>
+          <button id="close-notif-panel" class="btn btn-sm btn-light">Close</button>
+        </div>
+      </div>
+      <div id="notif-panel-list" style="overflow:auto; padding:12px; flex:1;">
+        <div style="text-align:center; color:#94a3b8; padding:28px;">No notifications yet</div>
       </div>
     </div>
-    <div style="display:flex; gap:8px; align-items:center;">
-      <button id="mark-all-read-btn" class="btn btn-sm btn-outline-light" title="Mark all read">Mark all read</button>
-      <button id="close-notif-panel" class="btn btn-sm btn-light">Close</button>
+
+    <!-- Live toast popup -->
+    <div id="live-toast" style="position:fixed; bottom:20px; right:20px; background:#1e293b; color:#fff; padding:14px 18px; border-radius:12px; display:none; z-index:3000; min-width:260px; max-width:92vw; transform:translateY(30px); opacity:0; transition:all 320ms ease; border:1px solid rgba(255,255,255,0.05);">
+      <strong id="toast-title"></strong>
+      <div id="toast-body" style="margin-top:6px; font-size:0.95rem; color:#dfe9f2;"></div>
     </div>
-  </div>
-  <div id="notif-panel-list" style="overflow:auto; padding:12px; flex:1;">
-    <div style="text-align:center; color:#94a3b8; padding:28px;">No notifications yet</div>
-  </div>
-</div>
 
+    <!-- Notification sound -->
+    <audio id="notif-sound" src="/sounds/notification.mp3" preload="auto"></audio>
 
-<!-- Live toast popup -->
-<div id="live-toast" style="position:fixed; bottom:20px; right:20px; background:rgba(15,23,42,0.98); color:#fff; padding:14px 18px; border-radius:12px; box-shadow:0 8px 30px rgba(0,0,0,0.5); display:none; z-index:3000; min-width:260px; max-width:92vw; transform:translateY(30px); opacity:0; transition:all 320ms ease;">
-  <strong id="toast-title"></strong>
-  <div id="toast-body" style="margin-top:6px; font-size:0.95rem; color:#dfe9f2;"></div>
-</div>
-
-<!-- Notification sound -->
-<audio id="notif-sound" src="/sounds/notification.mp3" preload="auto"></audio>
-
-
-<script>
-/* ===== Notification UI & FCM Integration (Injected) ===== */
-
-// Helper: get supabase instance from existing function or create one
-function getOrCreateSupabase() {
-    try {
-        if (typeof getSupabaseInstance === 'function') return getSupabaseInstance();
-    } catch (e) {}
-    if (window.supabase) {
-        // try to create using the same URL & anon key used elsewhere
+    <script>
+    function getOrCreateSupabase() {
         try {
-            return window.supabase.createClient(
-                'https://zliedzrqzvywlsyfggcq.supabase.co',
-                'REPLACE_WITH_YOUR_ANON_KEY'
-            );
-        } catch (e) { return null; }
+            if (typeof getSupabaseInstance === 'function') return getSupabaseInstance();
+        } catch (e) {}
+        if (window.supabase) {
+            try {
+                return window.supabase.createClient(
+                    'https://zliedzrqzvywlsyfggcq.supabase.co',
+                    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpsaWVkenJxenZ5d2xzeWZnZ2NxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjEwOTE4NjYsImV4cCI6MjA3NjY2Nzg2Nn0.NbzEZ4ievehtrlyOxCK_mheb7YU4SnNgC0uXuOKPNOI'
+                );
+            } catch (e) { return null; }
+        }
+        return null;
     }
-    return null;
-}
 
-function showToastNotification(title, body) {
-    const toast = document.getElementById("live-toast");
-    const tTitle = document.getElementById("toast-title");
-    const tBody = document.getElementById("toast-body");
+    function showToastNotification(title, body) {
+        const toast = document.getElementById("live-toast");
+        const tTitle = document.getElementById("toast-title");
+        const tBody = document.getElementById("toast-body");
 
-    if (!toast) return;
-    tTitle.textContent = title || 'Notification';
-    tBody.textContent = body || '';
+        if (!toast) return;
+        tTitle.textContent = title || 'Notification';
+        tBody.textContent = body || '';
 
-    toast.style.display = 'block';
-    setTimeout(()=>{ toast.style.transform = 'translateY(0)'; toast.style.opacity = '1'; }, 10);
+        toast.style.display = 'block';
+        setTimeout(()=>{ toast.style.transform = 'translateY(0)'; toast.style.opacity = '1'; }, 10);
+        playNotificationSound();
 
-    // play sound
-    playNotificationSound();
+        setTimeout(()=>{
+            toast.style.transform = 'translateY(30px)';
+            toast.style.opacity = '0';
+            setTimeout(()=>{ toast.style.display = 'none'; }, 300);
+        }, 4200);
 
-    // auto-hide
-    setTimeout(()=>{
-        toast.style.transform = 'translateY(30px)';
-        toast.style.opacity = '0';
-        setTimeout(()=>{ toast.style.display = 'none'; }, 300);
-    }, 4200);
+        toast.onclick = () => {
+            openNotifPanel();
+            markNotificationsAsRead();
+        };
+    }
 
-    toast.onclick = () => {
-        // open panel and mark as read
-        openNotifPanel();
+    function playNotificationSound(){
+        const audio = document.getElementById('notif-sound');
+        if (!audio) return;
+        audio.currentTime = 0;
+        audio.volume = 0.8;
+        audio.play().catch(()=>{});
+    }
+
+    let panelOpen = false;
+    function openNotifPanel() {
+        const panel = document.getElementById('notif-panel');
+        if (!panel) return;
+        panel.style.transform = 'translateX(0)';
+        panel.setAttribute('aria-hidden','false');
+        panelOpen = true;
+        document.body.style.overflow = 'hidden';
         markNotificationsAsRead();
-    };
-}
-
-function playNotificationSound(){
-    const audio = document.getElementById('notif-sound');
-    if (!audio) return;
-    audio.currentTime = 0;
-    audio.volume = 0.8;
-    audio.play().catch(()=>{});
-}
-
-let panelOpen = false;
-function openNotifPanel() {
-    const panel = document.getElementById('notif-panel');
-    if (!panel) return;
-    panel.style.transform = 'translateX(0)';
-    panel.setAttribute('aria-hidden','false');
-    panelOpen = true;
-    document.body.style.overflow = 'hidden';
-    // mark read when opened
-    markNotificationsAsRead();
-}
-
-function closeNotifPanel() {
-    const panel = document.getElementById('notif-panel');
-    if (!panel) return;
-    panel.style.transform = 'translateX(110%)';
-    panel.setAttribute('aria-hidden','true');
-    panelOpen = false;
-    document.body.style.overflow = '';
-}
-
-document.addEventListener('click', function(e){
-    const bell = document.getElementById('nav-notifications-link');
-    const panel = document.getElementById('notif-panel');
-    if (bell && bell.contains(e.target)) {
-        if (!panelOpen) openNotifPanel();
-        else closeNotifPanel();
     }
-});
-document.getElementById && document.getElementById('close-notif-panel') && document.getElementById('close-notif-panel').addEventListener('click', closeNotifPanel);
-document.getElementById && document.getElementById('mark-all-read-btn') && document.getElementById('mark-all-read-btn').addEventListener('click', function(){
-    markNotificationsAsRead();
-});
 
-// Unread badge & loading notifications
-async function updateUnreadBadge() {
-    const supabase = getOrCreateSupabase();
-    const badge = document.getElementById("notif-badge");
-    const panelCount = document.getElementById("notif-panel-count");
-    if (!badge) return;
-    const sessionData = localStorage.getItem("player_session");
-    if (!sessionData) { badge.style.display='none'; return; }
-    const session = JSON.parse(sessionData);
-    const playerId = session.account_id || session.id || null;
-    if (!playerId) { badge.style.display='none'; return; }
+    function closeNotifPanel() {
+        const panel = document.getElementById('notif-panel');
+        if (!panel) return;
+        panel.style.transform = 'translateX(110%)';
+        panel.setAttribute('aria-hidden','true');
+        panelOpen = false;
+        document.body.style.overflow = '';
+    }
 
-    const { data, error } = await supabase
-        .from('app_notifications')
-        .select('id, read_by')
-        .order('created_at', {ascending:false})
-        .limit(100);
-
-    if (error || !data) { badge.style.display='none'; return; }
-
-    let unread = 0;
-    data.forEach(n=>{
-        const readers = n.read_by || [];
-        if (!Array.isArray(readers)) return;
-        if (!readers.includes(playerId)) unread++;
+    document.addEventListener('click', function(e){
+        const bell = document.getElementById('nav-notifications-link');
+        const panel = document.getElementById('notif-panel');
+        if (bell && bell.contains(e.target)) {
+            if (!panelOpen) openNotifPanel();
+            else closeNotifPanel();
+        }
     });
-
-    if (unread > 0) {
-        badge.textContent = unread;
-        badge.style.display = 'inline-block';
-        if (panelCount) panelCount.textContent = `${unread} unread`;
-    } else {
-        badge.style.display = 'none';
-        if (panelCount) panelCount.textContent = `0 unread`;
+    
+    if (document.getElementById('close-notif-panel')) {
+        document.getElementById('close-notif-panel').addEventListener('click', closeNotifPanel);
     }
-}
-
-// Load notifications content into panel
-async function loadNotifications() {
-    const supabase = getOrCreateSupabase();
-    const list = document.getElementById('notif-panel-list');
-    if (!list) return;
-    list.innerHTML = '<div style="text-align:center; color:#94a3b8; padding:28px;"><i class="fas fa-spinner fa-spin"></i> Loading...</div>';
-
-    const { data, error } = await supabase
-        .from('app_notifications')
-        .select('id, title, body, created_at, read_by')
-        .order('created_at', { ascending: false })
-        .limit(50);
-
-    if (error || !data) {
-        list.innerHTML = '<div style="text-align:center; color:#ffb4b4; padding:24px;">Failed to load notifications</div>';
-        return;
-    }
-
-    if (!data || data.length === 0) {
-        list.innerHTML = '<div style="text-align:center; color:#94a3b8; padding:28px;"><i class="fas fa-bell-slash fa-2x mb-2"></i><div>No notifications yet</div></div>';
-        return;
-    }
-
-    list.innerHTML = data.map(n=>{
-        const isRead = Array.isArray(n.read_by) && (n.read_by.length && (localStorage.getItem('player_session') ? JSON.parse(localStorage.getItem('player_session')).account_id : null) && n.read_by.includes(JSON.parse(localStorage.getItem('player_session')).account_id));
-        const time = new Date(n.created_at).toLocaleString();
-        return `
-            <div class="alert alert-dark mb-2" style="background:rgba(255,255,255,0.02); border-left:4px solid ${isRead? 'rgba(255,255,255,0.03)':'#06B6D4'}; padding:10px 12px; cursor:pointer;">
-                <div style="display:flex; justify-content:space-between; align-items:center;">
-                    <div style="max-width:78%;">
-                        <div style="font-weight:700; font-size:0.95rem;">${escapeHtml(n.title)}</div>
-                        <div style="font-size:0.9rem; color:#cbd5e1; margin-top:6px;">${escapeHtml(n.body)}</div>
-                    </div>
-                    <div style="font-size:0.75rem; color:#94a3b8;">${time}</div>
-                </div>
-            </div>
-        `;
-    }).join('');
-
-    // attach click handlers to mark item read and optionally navigate
-    Array.from(list.querySelectorAll('.alert')).forEach((el, idx)=>{
-        el.addEventListener('click', async ()=>{
-            const item = data[idx];
-            // open detailed? for now just mark this one as read and refresh
-            await markSingleNotificationRead(item.id);
-            updateUnreadBadge();
-            loadNotifications();
+    if (document.getElementById('mark-all-read-btn')) {
+        document.getElementById('mark-all-read-btn').addEventListener('click', function(){
+            markNotificationsAsRead();
         });
-    });
-}
+    }
 
-// Mark all notifications as read for current player
-async function markNotificationsAsRead() {
-    const supabase = getOrCreateSupabase();
-    const sessionData = localStorage.getItem('player_session');
-    if (!sessionData) return;
-    const session = JSON.parse(sessionData);
-    const playerId = session.account_id || session.id;
-    if (!playerId) return;
+    async function updateUnreadBadge() {
+        const supabase = getOrCreateSupabase();
+        const badge = document.getElementById("notif-badge");
+        const panelCount = document.getElementById("notif-panel-count");
+        if (!badge) return;
+        const sessionData = localStorage.getItem("player_session");
+        if (!sessionData) { badge.style.display='none'; return; }
+        const session = JSON.parse(sessionData);
+        const playerId = session.account_id || session.id || null;
+        if (!playerId) { badge.style.display='none'; return; }
 
-    // fetch unread notifications
-    const { data } = await supabase.from('app_notifications').select('id, read_by').limit(100);
-    if (!data) return;
-    for (const n of data) {
-        const readers = Array.isArray(n.read_by) ? n.read_by : [];
-        if (!readers.includes(playerId)) {
-            readers.push(playerId);
-            await supabase.from('app_notifications').update({ read_by: readers }).eq('id', n.id);
+        const { data, error } = await supabase
+            .from('app_notifications')
+            .select('id, read_by')
+            .order('created_at', {ascending:false})
+            .limit(100);
+
+        if (error || !data) { badge.style.display='none'; return; }
+
+        let unread = 0;
+        data.forEach(n=>{
+            const readers = n.read_by || [];
+            if (!Array.isArray(readers)) return;
+            if (!readers.includes(playerId)) unread++;
+        });
+
+        if (unread > 0) {
+            badge.textContent = unread;
+            badge.style.display = 'inline-block';
+            if (panelCount) panelCount.textContent = `${unread} unread`;
+        } else {
+            badge.style.display = 'none';
+            if (panelCount) panelCount.textContent = `0 unread`;
         }
     }
-    updateUnreadBadge();
-    loadNotifications();
-}
 
-// mark single notification as read by id
-async function markSingleNotificationRead(id) {
-    const supabase = getOrCreateSupabase();
-    const sessionData = localStorage.getItem('player_session');
-    if (!sessionData) return;
-    const session = JSON.parse(sessionData);
-    const playerId = session.account_id || session.id;
-    if (!playerId) return;
-    const { data } = await supabase.from('app_notifications').select('read_by').eq('id', id).single();
-    if (!data) return;
-    const readers = Array.isArray(data.read_by) ? data.read_by : [];
-    if (!readers.includes(playerId)) {
-        readers.push(playerId);
-        await supabase.from('app_notifications').update({ read_by: readers }).eq('id', id);
+    async function loadNotifications() {
+        const supabase = getOrCreateSupabase();
+        const list = document.getElementById('notif-panel-list');
+        if (!list) return;
+        list.innerHTML = '<div style="text-align:center; color:#94a3b8; padding:28px;"><i class="fas fa-spinner fa-spin"></i> Loading...</div>';
+
+        const { data, error } = await supabase
+            .from('app_notifications')
+            .select('id, title, body, created_at, read_by')
+            .order('created_at', { ascending: false })
+            .limit(50);
+
+        if (error || !data) {
+            list.innerHTML = '<div style="text-align:center; color:#ffb4b4; padding:24px;">Failed to load notifications</div>';
+            return;
+        }
+
+        if (!data || data.length === 0) {
+            list.innerHTML = '<div style="text-align:center; color:#94a3b8; padding:28px;"><i class="fas fa-bell-slash fa-2x mb-2"></i><div>No notifications yet</div></div>';
+            return;
+        }
+
+        list.innerHTML = data.map(n=>{
+            const sessionData = localStorage.getItem('player_session');
+            let isRead = false;
+            if (sessionData) {
+                const session = JSON.parse(sessionData);
+                const playerId = session.account_id || session.id;
+                isRead = Array.isArray(n.read_by) && n.read_by.includes(playerId);
+            }
+            const time = new Date(n.created_at).toLocaleString();
+            return `
+                <div class="alert alert-dark mb-2" style="background:rgba(255,255,255,0.02); border-left:4px solid ${isRead? 'rgba(255,255,255,0.03)':'#0ea5e9'}; padding:10px 12px; cursor:pointer;">
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <div style="max-width:78%;">
+                            <div style="font-weight:700; font-size:0.95rem;">${escapeHtml(n.title)}</div>
+                            <div style="font-size:0.9rem; color:#cbd5e1; margin-top:6px;">${escapeHtml(n.body)}</div>
+                        </div>
+                        <div style="font-size:0.75rem; color:#94a3b8;">${time}</div>
+                    </div>
+                </div>
+            `;
+        }).join('');
+
+        Array.from(list.querySelectorAll('.alert')).forEach((el, idx)=>{
+            el.addEventListener('click', async ()=>{
+                const item = data[idx];
+                await markSingleNotificationRead(item.id);
+                updateUnreadBadge();
+                loadNotifications();
+            });
+        });
     }
-}
 
-// small helper to escape HTML
-function escapeHtml(str) {
-    if (!str) return '';
-    return String(str)
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&#39;');
-}
+    async function markNotificationsAsRead() {
+        const supabase = getOrCreateSupabase();
+        const sessionData = localStorage.getItem('player_session');
+        if (!sessionData) return;
+        const session = JSON.parse(sessionData);
+        const playerId = session.account_id || session.id;
+        if (!playerId) return;
 
-/* ===== FCM foreground handler integration removed — handled in /js/notifications.js ===== */
+        const { data } = await supabase.from('app_notifications').select('id, read_by').limit(100);
+        if (!data) return;
+        for (const n of data) {
+            const readers = Array.isArray(n.read_by) ? n.read_by : [];
+            if (!readers.includes(playerId)) {
+                readers.push(playerId);
+                await supabase.from('app_notifications').update({ read_by: readers }).eq('id', n.id);
+            }
+        }
+        updateUnreadBadge();
+        loadNotifications();
+    }
 
-// auto run badge update every 15s
-setInterval(updateUnreadBadge, 15000);
-document.addEventListener('DOMContentLoaded', ()=>{ updateUnreadBadge(); });
-</script>
+    async function markSingleNotificationRead(id) {
+        const supabase = getOrCreateSupabase();
+        const sessionData = localStorage.getItem('player_session');
+        if (!sessionData) return;
+        const session = JSON.parse(sessionData);
+        const playerId = session.account_id || session.id;
+        if (!playerId) return;
+        const { data } = await supabase.from('app_notifications').select('read_by').eq('id', id).single();
+        if (!data) return;
+        const readers = Array.isArray(data.read_by) ? data.read_by : [];
+        if (!readers.includes(playerId)) {
+            readers.push(playerId);
+            await supabase.from('app_notifications').update({ read_by: readers }).eq('id', id);
+        }
+    }
+
+    function escapeHtml(str) {
+        if (!str) return '';
+        return String(str)
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;')
+          .replace(/'/g, '&#39;');
+    }
+
+    setInterval(updateUnreadBadge, 15000);
+    document.addEventListener('DOMContentLoaded', ()=>{ updateUnreadBadge(); });
+    </script>
 </body>
 </html>
