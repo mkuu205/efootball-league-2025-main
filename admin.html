@@ -206,8 +206,16 @@
                 font-size: 0.85rem;
             }
         }
+        
+        /* Spinner */
+        .spinner-border-sm {
+            width: 1rem;
+            height: 1rem;
+            border-width: 0.15em;
+        }
     </style>
     <script>
+        // Theme handling - runs immediately
         (function() {
             const theme = localStorage.getItem('efl-theme') || 'dark';
             document.documentElement.setAttribute('data-theme', theme);
@@ -255,7 +263,7 @@
             </div>
 
             <div class="navbar-nav ms-auto align-items-center gap-2">
-                <button class="btn btn-outline-info btn-sm" onclick="refreshAllData()">
+                <button class="btn btn-outline-info btn-sm" onclick="window.refreshAllData && window.refreshAllData()">
                     <i class="fas fa-sync-alt me-1"></i> Refresh
                 </button>
                 <button class="theme-toggle" onclick="toggleTheme()" title="Toggle Theme">
@@ -495,10 +503,9 @@
                                     <div class="table-responsive">
                                         <table class="table table-hover" id="players-table">
                                             <thead>
-                                                <tr><th>Player</th><th>Team</th><th>Strength</th><th>Matches</th><th>Points</th><th>Actions</th>th>
-                                            </thead>
+                                                <tr><th>Player</th><th>Team</th><th>Strength</th><th>Matches</th><th>Points</th><th>Actions</th> </thead>
                                             <tbody id="players-tbody"></tbody>
-                                         </table>
+                                        </table>
                                     </div>
                                 </div>
                             </div>
@@ -511,21 +518,21 @@
                     <div class="card">
                         <div class="card-header d-flex justify-content-between align-items-center">
                             <span><i class="fas fa-user-check me-2"></i>Player Registrations & League Members</span>
-                            <button class="btn btn-sm btn-outline-info" onclick="loadRegistrations()"><i class="fas fa-sync-alt me-1"></i>Refresh</button>
+                            <button class="btn btn-sm btn-outline-info" onclick="window.loadRegistrations && window.loadRegistrations()"><i class="fas fa-sync-alt me-1"></i>Refresh</button>
                         </div>
                         <div class="card-body">
                             <ul class="nav nav-pills mb-3" id="reg-tabs">
                                 <li class="nav-item">
-                                    <button class="nav-link active" data-status="all" onclick="filterRegistrations('all')">All</button>
+                                    <button class="nav-link active" data-status="all" onclick="window.filterRegistrations && window.filterRegistrations('all')">All</button>
                                 </li>
                                 <li class="nav-item">
-                                    <button class="nav-link" data-status="in_league" onclick="filterRegistrations('in_league')">In League</button>
+                                    <button class="nav-link" data-status="in_league" onclick="window.filterRegistrations && window.filterRegistrations('in_league')">In League</button>
                                 </li>
                                 <li class="nav-item">
-                                    <button class="nav-link" data-status="pending" onclick="filterRegistrations('pending')">Pending Payment</button>
+                                    <button class="nav-link" data-status="pending" onclick="window.filterRegistrations && window.filterRegistrations('pending')">Pending Payment</button>
                                 </li>
                                 <li class="nav-item">
-                                    <button class="nav-link" data-status="registered" onclick="filterRegistrations('registered')">Registered Only</button>
+                                    <button class="nav-link" data-status="registered" onclick="window.filterRegistrations && window.filterRegistrations('registered')">Registered Only</button>
                                 </li>
                             </ul>
                             <div class="table-responsive">
@@ -571,8 +578,8 @@
                                 <div class="card-header"><i class="fas fa-tools me-2"></i>Fixture Tools</div>
                                 <div class="card-body">
                                     <div class="d-grid gap-2">
-                                        <button class="btn btn-warning" onclick="generateAllFixtures()"><i class="fas fa-magic me-2"></i>Generate All Fixtures</button>
-                                        <button class="btn btn-info" onclick="exportFixtures()"><i class="fas fa-download me-2"></i>Export Fixtures</button>
+                                        <button class="btn btn-warning" onclick="window.generateAllFixtures && window.generateAllFixtures()"><i class="fas fa-magic me-2"></i>Generate All Fixtures</button>
+                                        <button class="btn btn-info" onclick="window.exportFixtures && window.exportFixtures()"><i class="fas fa-download me-2"></i>Export Fixtures</button>
                                     </div>
                                 </div>
                             </div>
@@ -583,7 +590,7 @@
                                 <div class="card-body">
                                     <div class="table-responsive">
                                         <table class="table table-hover" id="admin-fixtures-table">
-                                            <thead><tr><th>Date</th><th>Home</th><th>Away</th><th>Status</th><th>Actions</th></tr></thead>
+                                            <thead>70叉<th>Date</th><th>Home</th><th>Away</th><th>Status</th><th>Actions</th> </thead>
                                             <tbody id="fixtures-tbody"></tbody>
                                         </table>
                                     </div>
@@ -620,7 +627,7 @@
                                 <div class="card-body">
                                     <div class="table-responsive">
                                         <table class="table table-hover" id="admin-results-table">
-                                            <thead><tr><th>Date</th><th>Home</th><th>Score</th><th>Away</th><th>Actions</th></tr></thead>
+                                            <thead> <th>Date</th><th>Home</th><th>Score</th><th>Away</th><th>Actions</th> </thead>
                                             <tbody id="results-tbody"></tbody>
                                         </table>
                                     </div>
@@ -671,8 +678,8 @@
                                 <div class="card-header d-flex justify-content-between">
                                     <span><i class="fas fa-list me-2"></i>All Tournaments</span>
                                     <div>
-                                        <button class="btn btn-sm btn-success me-1" onclick="initializeEFL2026()"><i class="fas fa-magic"></i> Init EFL 2026</button>
-                                        <button class="btn btn-sm btn-outline-light" onclick="loadTournaments()"><i class="fas fa-sync-alt"></i></button>
+                                        <button class="btn btn-sm btn-success me-1" onclick="window.initializeEFL2026 && window.initializeEFL2026()"><i class="fas fa-magic"></i> Init EFL 2026</button>
+                                        <button class="btn btn-sm btn-outline-light" onclick="window.loadTournaments && window.loadTournaments()"><i class="fas fa-sync-alt"></i></button>
                                     </div>
                                 </div>
                                 <div class="card-body" id="tournaments-list"></div>
@@ -688,7 +695,7 @@
                         <div class="card-body">
                             <div class="table-responsive">
                                 <table class="table table-hover" id="payments-table">
-                                    <thead><tr><th>Date</th><th>Player</th><th>Amount</th><th>Transaction Code</th><th>Status</th><th>Receipt</th></tr></thead>
+                                    <thead> <th>Date</th><th>Player</th><th>Amount</th><th>Transaction Code</th><th>Status</th><th>Receipt</th> </thead>
                                     <tbody id="payments-tbody"></tbody>
                                 </table>
                             </div>
@@ -704,8 +711,8 @@
                                 <div class="card-header bg-info text-white"><i class="fas fa-download me-2"></i>Data Export</div>
                                 <div class="card-body">
                                     <div class="d-grid gap-2">
-                                        <button class="btn btn-info" onclick="exportTournamentData()"><i class="fas fa-file-export me-2"></i>Export Tournament Data</button>
-                                        <button class="btn btn-outline-info" onclick="exportLeagueTable()"><i class="fas fa-image me-2"></i>Export League Table</button>
+                                        <button class="btn btn-info" onclick="window.exportTournamentData && window.exportTournamentData()"><i class="fas fa-file-export me-2"></i>Export Tournament Data</button>
+                                        <button class="btn btn-outline-info" onclick="window.exportLeagueTable && window.exportLeagueTable()"><i class="fas fa-image me-2"></i>Export League Table</button>
                                     </div>
                                 </div>
                             </div>
@@ -715,8 +722,8 @@
                                 <div class="card-header bg-danger text-white"><i class="fas fa-exclamation-triangle me-2"></i>Danger Zone</div>
                                 <div class="card-body">
                                     <div class="d-grid gap-2">
-                                        <button class="btn btn-warning" onclick="clearAllResults()"><i class="fas fa-eraser me-2"></i>Clear All Results</button>
-                                        <button class="btn btn-danger" onclick="resetTournament()"><i class="fas fa-bomb me-2"></i>Reset Tournament</button>
+                                        <button class="btn btn-warning" onclick="window.clearAllResults && window.clearAllResults()"><i class="fas fa-eraser me-2"></i>Clear All Results</button>
+                                        <button class="btn btn-danger" onclick="window.resetTournament && window.resetTournament()"><i class="fas fa-bomb me-2"></i>Reset Tournament</button>
                                     </div>
                                     <small class="text-muted mt-3 d-block">⚠️ These actions cannot be undone.</small>
                                 </div>
@@ -746,10 +753,10 @@
                                     </form>
                                     <hr>
                                     <div class="d-flex gap-2 flex-wrap">
-                                        <button class="btn btn-sm btn-outline-secondary" onclick="useTemplate('fixtures')">📅 New Fixtures</button>
-                                        <button class="btn btn-sm btn-outline-secondary" onclick="useTemplate('results')">⚽ Results Update</button>
-                                        <button class="btn btn-sm btn-outline-secondary" onclick="useTemplate('tournament')">🏆 Tournament</button>
-                                        <button class="btn btn-sm btn-outline-secondary" onclick="useTemplate('reminder')">⏰ Match Reminder</button>
+                                        <button class="btn btn-sm btn-outline-secondary" onclick="window.useTemplate && window.useTemplate('fixtures')">📅 New Fixtures</button>
+                                        <button class="btn btn-sm btn-outline-secondary" onclick="window.useTemplate && window.useTemplate('results')">⚽ Results Update</button>
+                                        <button class="btn btn-sm btn-outline-secondary" onclick="window.useTemplate && window.useTemplate('tournament')">🏆 Tournament</button>
+                                        <button class="btn btn-sm btn-outline-secondary" onclick="window.useTemplate && window.useTemplate('reminder')">⏰ Match Reminder</button>
                                     </div>
                                 </div>
                             </div>
@@ -781,37 +788,40 @@
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button class="btn btn-success" onclick="generateTournamentFixtures()"><i class="fas fa-magic me-2"></i>Generate Fixtures</button>
-                    <button class="btn btn-danger" onclick="deleteTournament()"><i class="fas fa-trash me-2"></i>Delete</button>
+                    <button class="btn btn-success" onclick="window.generateTournamentFixtures && window.generateTournamentFixtures()"><i class="fas fa-magic me-2"></i>Generate Fixtures</button>
+                    <button class="btn btn-danger" onclick="window.deleteTournament && window.deleteTournament()"><i class="fas fa-trash me-2"></i>Delete</button>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Load Scripts in Correct Order -->
+    <!-- Scripts - IMPORTANT: Only one Supabase initialization -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
     
+    <!-- Main Admin Script - All logic in one place -->
     <script>
-        // Initialize Supabase - SINGLE DECLARATION
+        // Initialize Supabase - ONLY ONCE, no external modules
         const SUPABASE_URL = 'https://zliedzrqzvywlsyfggcq.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpsaWVkenJxenZ5d2xzeWZnZ2NxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjEwOTE4NjYsImV4cCI6MjA3NjY2Nzg2Nn0.NbzEZ4ievehtrlyOxCK_mheb7YU4SnNgC0uXuOKPNOI';
         
-        // Check if supabaseClient already exists globally
-        if (!window.supabaseClient) {
-            window.supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        // Create supabase client only if not already exists
+        let supabase;
+        if (typeof window.__supabaseClient === 'undefined') {
+            supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+            window.__supabaseClient = supabase;
+        } else {
+            supabase = window.__supabaseClient;
         }
-        const supabase = window.supabaseClient;
         
         let currentTournamentId = null;
         let allRegistrations = [];
         
-        // Login handling
+        // ========== LOGIN HANDLING ==========
         document.getElementById('login-form')?.addEventListener('submit', async (e) => {
             e.preventDefault();
             const password = document.getElementById('admin-password').value;
             
-            // Check admin password
             if (password === 'efl2026admin') {
                 localStorage.setItem('admin_logged_in', 'true');
                 document.getElementById('login-section').classList.add('d-none');
@@ -823,7 +833,7 @@
             }
         });
         
-        // Check if already logged in
+        // Check login status
         if (localStorage.getItem('admin_logged_in') === 'true') {
             const loginSection = document.getElementById('login-section');
             const adminDashboard = document.getElementById('admin-dashboard');
@@ -838,6 +848,7 @@
             location.reload();
         });
         
+        // ========== DATA LOADING FUNCTIONS ==========
         async function loadAllData() {
             await loadPlayers();
             await loadFixtures();
@@ -849,7 +860,7 @@
         }
         
         async function loadPlayers() {
-            const { data: players, error } = await supabase.from('players').select('*, player_accounts(name, email)');
+            const { data: players, error } = await supabase.from('players').select('*').order('name');
             if (error) {
                 console.error('Error loading players:', error);
                 return;
@@ -949,7 +960,8 @@
             }
             
             document.querySelectorAll('#reg-tabs .nav-link').forEach(btn => btn.classList.remove('active'));
-            document.querySelector(`#reg-tabs .nav-link[data-status="${status}"]`)?.classList.add('active');
+            const activeBtn = document.querySelector(`#reg-tabs .nav-link[data-status="${status}"]`);
+            if (activeBtn) activeBtn.classList.add('active');
         };
         
         window.addToLeague = async function(accountId) {
@@ -1145,11 +1157,7 @@
             document.getElementById('live-players').textContent = playersCount;
         }
         
-        window.refreshAllData = function() {
-            loadAllData();
-            showToast('Data refreshed!', 'success');
-        };
-        
+        window.refreshAllData = function() { loadAllData(); showToast('Data refreshed!', 'success'); };
         window.generateAllFixtures = function() { showToast('Fixture generation feature - coming soon', 'info'); };
         window.exportFixtures = function() { showToast('Export feature - coming soon', 'info'); };
         window.exportTournamentData = function() { showToast('Export feature - coming soon', 'info'); };
@@ -1229,6 +1237,7 @@
             }
         };
         
+        // ========== FORM HANDLERS ==========
         document.getElementById('create-tournament-form')?.addEventListener('submit', async (e) => {
             e.preventDefault();
             const tournament = {
@@ -1296,7 +1305,7 @@
             }
         });
         
-        // Load player selects for fixtures
+        // Load player selects
         async function loadPlayerSelects() {
             const { data: players } = await supabase.from('players').select('id, name');
             if (players) {
@@ -1309,17 +1318,13 @@
             }
         }
         loadPlayerSelects();
-    </script>
-    
-    <!-- Notifications script - will handle Firebase separately -->
-    <script>
-        // Override any potential Firebase issues
-        if (typeof window.firebase === 'undefined') {
-            window.firebase = {
-                initializeApp: () => console.log('Firebase placeholder'),
-                messaging: () => ({ getToken: () => Promise.resolve(null), onMessage: () => {} })
-            };
-        }
+        
+        // Export functions to window
+        window.loadRegistrations = loadRegistrations;
+        window.loadTournaments = loadTournaments;
+        window.loadPlayers = loadPlayers;
+        window.loadFixtures = loadFixtures;
+        window.loadResults = loadResults;
     </script>
 </body>
 </html>
