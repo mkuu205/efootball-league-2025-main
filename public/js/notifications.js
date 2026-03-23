@@ -44,9 +44,8 @@ async function initNotifications() {
   if (permission !== "granted") return;
 
   const registration = await navigator.serviceWorker.register(
-    "/public/firebase-messaging-sw.js",
-    { scope: "/" }
-  );
+  "/firebase-messaging-sw.js"
+);
 
   const token = await messaging.getToken({
     vapidKey: VAPID_KEY,
