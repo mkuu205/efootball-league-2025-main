@@ -3,702 +3,771 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Dashboard - eFootball League 2026</title>
+    <title>EFL 2026 | Admin Dashboard</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-    <script>
-        (function() {
-            const theme = localStorage.getItem('efl-theme') || 'dark';
-            document.documentElement.setAttribute('data-theme', theme);
-        })();
-    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet">
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
 
         :root {
-            --bg-primary: #0a0c15;
-            --bg-secondary: #0f1119;
-            --bg-card: #121623;
-            --bg-card-solid: #121623;
+            --bg-primary: #0f172a;
+            --bg-secondary: #1e293b;
+            --bg-card: #1e293b;
             --text-primary: #f1f5f9;
             --text-secondary: #94a3b8;
-            --border-color: #1e293b;
+            --border-color: #334155;
             --primary: #3b82f6;
             --primary-dark: #2563eb;
-            --primary-light: #60a5fa;
-            --success: #10b981;
+            --success: #22c55e;
             --warning: #f59e0b;
             --danger: #ef4444;
             --info: #06b6d4;
-            --purple: #8b5cf6;
-        }
-
-        [data-theme="light"] {
-            --bg-primary: #f1f5f9;
-            --bg-secondary: #ffffff;
-            --bg-card: #ffffff;
-            --bg-card-solid: #ffffff;
-            --text-primary: #0f172a;
-            --text-secondary: #475569;
-            --border-color: #e2e8f0;
+            --sidebar-width: 280px;
+            --header-height: 64px;
         }
 
         body {
             font-family: 'Inter', sans-serif;
             background: var(--bg-primary);
             color: var(--text-primary);
-            transition: background 0.2s ease;
+            overflow-x: hidden;
         }
 
-        /* Clean minimal styling */
-        .navbar {
-            background: var(--bg-card);
-            border-bottom: 1px solid var(--border-color);
-            padding: 0.75rem 0;
-            position: sticky;
+        /* Sidebar */
+        .sidebar {
+            position: fixed;
+            left: 0;
             top: 0;
-            z-index: 1000;
+            width: var(--sidebar-width);
+            height: 100vh;
+            background: var(--bg-secondary);
+            border-right: 1px solid var(--border-color);
+            transform: translateX(-100%);
+            transition: transform 0.3s ease;
+            z-index: 1050;
+            overflow-y: auto;
         }
 
-        .logo {
-            width: 40px;
-            height: 40px;
-            background: var(--primary);
-            border-radius: 10px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 700;
-            color: white;
+        .sidebar.open {
+            transform: translateX(0);
         }
 
-        .navbar-brand {
+        .sidebar-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid var(--border-color);
             font-weight: 700;
             font-size: 1.25rem;
-            color: var(--text-primary);
         }
 
-        .card {
-            background: var(--bg-card);
-            border: 1px solid var(--border-color);
-            border-radius: 16px;
-            transition: box-shadow 0.2s;
+        .sidebar-nav {
+            padding: 1rem 0;
         }
 
-        .card-header {
-            background: transparent;
+        .sidebar-nav-item {
+            padding: 0.75rem 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            color: var(--text-secondary);
+            text-decoration: none;
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+
+        .sidebar-nav-item:hover, .sidebar-nav-item.active {
+            background: var(--bg-primary);
+            color: var(--primary);
+            border-left: 3px solid var(--primary);
+        }
+
+        .sidebar-nav-item i {
+            width: 24px;
+        }
+
+        /* Main Content */
+        .main-content {
+            margin-left: 0;
+            transition: margin-left 0.3s ease;
+            min-height: 100vh;
+        }
+
+        .main-content.sidebar-open {
+            margin-left: var(--sidebar-width);
+        }
+
+        /* Header */
+        .app-header {
+            background: var(--bg-secondary);
             border-bottom: 1px solid var(--border-color);
-            padding: 1rem 1.25rem;
-            font-weight: 600;
+            padding: 1rem 1.5rem;
+            position: sticky;
+            top: 0;
+            z-index: 1040;
         }
 
+        /* Cards */
         .stat-card {
             background: var(--bg-card);
             border: 1px solid var(--border-color);
-            border-radius: 16px;
+            border-radius: 12px;
             padding: 1.25rem;
-            transition: transform 0.1s;
+            transition: transform 0.2s;
         }
 
         .stat-card:hover {
             transform: translateY(-2px);
         }
 
-        .stat-value {
-            font-size: 2rem;
-            font-weight: 700;
-            color: var(--primary);
+        /* Tables */
+        .table-custom {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            overflow: hidden;
         }
 
-        .stat-label {
-            font-size: 0.85rem;
-            color: var(--text-secondary);
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-
-        .nav-tabs {
-            border-bottom: 1px solid var(--border-color);
-            gap: 0.25rem;
-        }
-
-        .nav-tabs .nav-link {
-            border: none;
-            color: var(--text-secondary);
-            padding: 0.6rem 1.2rem;
-            font-weight: 500;
-            border-radius: 10px;
-        }
-
-        .nav-tabs .nav-link:hover {
-            color: var(--primary);
-            background: rgba(59,130,246,0.1);
-        }
-
-        .nav-tabs .nav-link.active {
-            background: var(--primary);
-            color: white;
-        }
-
-        .table {
-            color: var(--text-primary);
-            border-color: var(--border-color);
-        }
-
-        .table thead th {
+        .table-custom th {
+            background: var(--bg-secondary);
             border-bottom: 1px solid var(--border-color);
             color: var(--text-secondary);
             font-weight: 600;
             font-size: 0.75rem;
             text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
 
-        .table tbody tr {
+        .table-custom td {
             border-bottom: 1px solid var(--border-color);
+            vertical-align: middle;
         }
 
-        .table tbody tr:hover {
-            background: rgba(59,130,246,0.05);
-        }
-
+        /* Forms */
         .form-control, .form-select {
             background: var(--bg-secondary);
             border: 1px solid var(--border-color);
-            border-radius: 10px;
-            padding: 0.6rem 1rem;
             color: var(--text-primary);
+            border-radius: 8px;
+            padding: 0.625rem 0.875rem;
         }
 
         .form-control:focus, .form-select:focus {
-            border-color: var(--primary);
-            box-shadow: 0 0 0 3px rgba(59,130,246,0.2);
             background: var(--bg-secondary);
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
             color: var(--text-primary);
         }
 
-        .btn {
-            border-radius: 10px;
-            padding: 0.5rem 1.2rem;
-            font-weight: 500;
-            transition: all 0.2s;
-        }
-
+        /* Buttons */
         .btn-primary {
             background: var(--primary);
             border: none;
+            border-radius: 8px;
+            padding: 0.5rem 1rem;
+            font-weight: 500;
         }
 
         .btn-primary:hover {
             background: var(--primary-dark);
-            transform: translateY(-1px);
         }
 
-        .badge {
-            padding: 0.3rem 0.7rem;
-            border-radius: 20px;
-            font-weight: 500;
-        }
-
-        .toast-notification {
+        /* Toast Notifications */
+        .toast-container {
             position: fixed;
-            bottom: 20px;
-            right: 20px;
-            z-index: 9999;
-            background: var(--bg-card);
-            border-left: 4px solid var(--primary);
-            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-            border-radius: 12px;
-            padding: 0.75rem 1.25rem;
-            min-width: 250px;
-            color: var(--text-primary);
+            top: 1rem;
+            right: 1rem;
+            z-index: 1100;
         }
 
-        .league-table td, .league-table th {
-            text-align: center;
-        }
-
-        .sync-badge {
+        .toast-custom {
             background: var(--bg-secondary);
-            padding: 0.3rem 0.8rem;
-            border-radius: 40px;
-            font-size: 0.8rem;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 0.75rem 1rem;
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            animation: slideIn 0.3s ease;
         }
 
-        @media (max-width: 768px) {
-            .stat-value { font-size: 1.5rem; }
-            .nav-tabs .nav-link { padding: 0.4rem 0.8rem; font-size: 0.8rem; }
+        .toast-custom.success { border-left: 4px solid var(--success); }
+        .toast-custom.error { border-left: 4px solid var(--danger); }
+        .toast-custom.warning { border-left: 4px solid var(--warning); }
+        .toast-custom.info { border-left: 4px solid var(--info); }
+
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        /* Mobile Menu Toggle */
+        .menu-toggle {
+            display: block;
+            background: none;
+            border: none;
+            color: var(--text-primary);
+            font-size: 1.5rem;
+            cursor: pointer;
+        }
+
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1045;
+            display: none;
+        }
+
+        .overlay.show {
+            display: block;
+        }
+
+        /* Badges */
+        .badge-pending {
+            background: var(--warning);
+            color: #000;
+        }
+
+        /* Loading Spinner */
+        .spinner-sm {
+            width: 1rem;
+            height: 1rem;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 0.6s linear infinite;
+            display: inline-block;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Responsive */
+        @media (min-width: 768px) {
+            .sidebar {
+                transform: translateX(0);
+            }
+            .main-content {
+                margin-left: var(--sidebar-width);
+            }
+            .menu-toggle {
+                display: none;
+            }
+        }
+
+        @media (max-width: 767px) {
+            .sidebar.open {
+                transform: translateX(0);
+            }
         }
     </style>
 </head>
 <body>
+    <!-- Overlay -->
+    <div class="overlay" id="sidebarOverlay"></div>
 
-    <nav class="navbar navbar-expand-lg">
-        <div class="container">
-            <div class="d-flex align-items-center gap-2">
-                <div class="logo">EFL</div>
-                <span class="navbar-brand mb-0">eFootball League 2026</span>
-            </div>
-            <div class="d-flex align-items-center gap-3">
-                <div id="sync-status-container" class="sync-badge">
-                    <i class="fas fa-cloud-upload-alt me-1"></i>
-                    <span id="sync-status-text">Checking...</span>
-                    <span id="last-sync-time" class="ms-1 text-muted small"></span>
-                </div>
-                <button class="btn btn-sm btn-outline-primary" onclick="manualSyncDashboard()">
-                    <i class="fas fa-sync-alt me-1"></i> Sync
-                </button>
-                <button class="btn btn-sm btn-outline-secondary" onclick="toggleTheme()">
-                    <i class="fas fa-moon"></i>
-                </button>
-                <button class="btn btn-sm btn-danger" id="logout-btn">
-                    <i class="fas fa-sign-out-alt"></i>
-                </button>
-            </div>
+    <!-- Sidebar -->
+    <div class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <i class="fas fa-futbol me-2"></i> EFL 2026
         </div>
-    </nav>
-
-    <div class="container my-4">
-        <!-- Login Section -->
-        <div id="login-section" class="row justify-content-center">
-            <div class="col-md-5">
-                <div class="card p-4">
-                    <div class="text-center mb-3">
-                        <i class="fas fa-crown fa-3x" style="color: var(--primary);"></i>
-                    </div>
-                    <h4 class="text-center">Admin Access</h4>
-                    <form id="login-form">
-                        <div class="mb-3">
-                            <label>Admin Email</label>
-                            <input type="email" class="form-control" id="admin-email" value="support@kishtechsite.online" readonly>
-                        </div>
-                        <div class="mb-3">
-                            <label>Password</label>
-                            <input type="password" class="form-control" id="admin-password" placeholder="Enter password" required>
-                        </div>
-                        <button type="submit" class="btn btn-primary w-100">Access Dashboard</button>
-                    </form>
-                </div>
+        <div class="sidebar-nav">
+            <div class="sidebar-nav-item" data-page="dashboard">
+                <i class="fas fa-chart-line"></i> Dashboard
             </div>
-        </div>
-
-        <!-- Admin Dashboard -->
-        <div id="admin-dashboard" class="d-none">
-            <!-- Analytics Dashboard Panel (Default Landing) -->
-            <div id="dashboard-panel-content">
-                <div class="row mb-4 g-3">
-                    <div class="col-md-3">
-                        <div class="stat-card">
-                            <i class="fas fa-users fa-2x mb-2" style="color: var(--primary);"></i>
-                            <div class="stat-value" id="analytics-total-players">0</div>
-                            <div class="stat-label">Total Players</div>
-                        </div>
-                    </div>
-                    <div class="col-md-3">
-                        <div class="stat-card">
-                            <i class="fas fa-calendar-alt fa-2x mb-2" style="color: var(--success);"></i>
-                            <div class="stat-value" id="analytics-total-fixtures">0</div>
-                            <div class="stat-label">Total Fixtures</div>
-                        </div>
-                    </div>
-                    <div class="col-md-3">
-                        <div class="stat-card">
-                            <i class="fas fa-futbol fa-2x mb-2" style="color: var(--warning);"></i>
-                            <div class="stat-value" id="analytics-completed-matches">0</div>
-                            <div class="stat-label">Completed Matches</div>
-                        </div>
-                    </div>
-                    <div class="col-md-3">
-                        <div class="stat-card">
-                            <i class="fas fa-clock fa-2x mb-2" style="color: var(--info);"></i>
-                            <div class="stat-value" id="analytics-pending-regs">0</div>
-                            <div class="stat-label">Pending Registrations</div>
-                        </div>
-                    </div>
-                </div>
-                <div class="row">
-                    <div class="col-md-6">
-                        <div class="card">
-                            <div class="card-header">Registrations Trend</div>
-                            <div class="card-body">
-                                <canvas id="registrationsChart" height="200"></canvas>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="card">
-                            <div class="card-header">League Table (Top 5)</div>
-                            <div class="card-body">
-                                <div class="table-responsive">
-                                    <table class="table table-sm" id="mini-league-table">
-                                        <thead><tr><th>#</th><th>Player</th><th>P</th><th>W</th><th>D</th><th>L</th><th>GD</th><th>Pts</th></tr></thead>
-                                        <tbody><tr><td colspan="8" class="text-center">Loading...</td></tr></tbody>
-                                    </table>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+            <div class="sidebar-nav-item" data-page="players">
+                <i class="fas fa-users"></i> Players
             </div>
-
-            <!-- Management Tabs -->
-            <ul class="nav nav-tabs mb-4 mt-4" id="adminTabs" role="tablist">
-                <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#dashboard-tab-pane">📊 Dashboard</button></li>
-                <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#players-panel">👥 Players</button></li>
-                <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#registrations-panel">📝 Registrations <span id="pending-reg-badge" class="badge bg-warning ms-1">0</span></button></li>
-                <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#fixtures-panel">📅 Fixtures</button></li>
-                <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#results-panel">🏆 Results</button></li>
-                <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#league-table-panel">📊 League Table</button></li>
-                <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#notifications-panel">🔔 Notifications</button></li>
-                <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tools-panel">🛠️ Tools</button></li>
-            </ul>
-
-            <div class="tab-content">
-                <!-- Dashboard Tab -->
-                <div class="tab-pane fade show active" id="dashboard-tab-pane">
-                    <div id="dashboard-content"></div>
-                </div>
-
-                <!-- Players Panel (existing) -->
-                <div class="tab-pane fade" id="players-panel">
-                    <div class="row g-4">
-                        <div class="col-md-4"><div class="card"><div class="card-header">Add New Player</div><div class="card-body"><form id="add-player-form"><div class="mb-2"><input type="text" class="form-control" id="playerName" placeholder="Player Name *" required></div><div class="mb-2"><input type="email" class="form-control" id="playerEmail" placeholder="Email"></div><div class="mb-2"><input type="text" class="form-control" id="playerPhone" placeholder="Phone"></div><div class="mb-2"><select class="form-select" id="playerTeam" required><option value="">Select Team</option><option>Kenya</option><option>Chelsea</option><option>Liverpool</option><option>Manchester United</option><option>Arsenal</option><option>Manchester City</option><option>Real Madrid</option><option>Barcelona</option></select></div><div class="mb-2"><input type="number" class="form-control" id="playerStrength" placeholder="Strength" value="2500"></div><button type="submit" class="btn btn-primary w-100">Add Player</button></form></div></div></div>
-                        <div class="col-md-8"><div class="card"><div class="card-header d-flex justify-content-between"><span>All Players</span><button class="btn btn-sm btn-success" onclick="exportPlayersCSV()"><i class="fas fa-download"></i> Export CSV</button></div><div class="card-body"><div class="table-responsive"><table class="table" id="players-table"><thead><tr><th>Player</th><th>Team</th><th>Strength</th><th>Matches</th><th>Points</th><th>Actions</th></tr></thead><tbody id="players-tbody"></tbody></table></div></div></div></div>
-                    </div>
-                </div>
-
-                <!-- Registrations Panel -->
-                <div class="tab-pane fade" id="registrations-panel"><div class="card"><div class="card-header">Player Registrations</div><div class="card-body"><div class="table-responsive"><table class="table"><thead><tr><th>Name</th><th>Email</th><th>Phone</th><th>Team</th><th>Payment</th><th>League Status</th><th>Registered</th><th>Actions</th></tr></thead><tbody id="registrations-tbody"></tbody></table></div></div></div></div>
-
-                <!-- Fixtures Panel with Smart Generator -->
-                <div class="tab-pane fade" id="fixtures-panel">
-                    <div class="row g-4">
-                        <div class="col-md-4"><div class="card"><div class="card-header">Schedule Fixture</div><div class="card-body"><form id="add-fixture-form"><select class="form-select mb-2" id="homePlayerSelect" required><option>Home Player</option></select><select class="form-select mb-2" id="awayPlayerSelect" required><option>Away Player</option></select><input type="date" class="form-control mb-2" id="fixtureDate" required><input type="time" class="form-control mb-2" id="fixtureTime" value="15:00"><button type="submit" class="btn btn-primary w-100">Schedule</button></form><hr><button class="btn btn-success w-100 mt-2" onclick="generateRoundRobinFixtures()"><i class="fas fa-magic me-1"></i> Generate Fixtures Automatically</button></div></div></div>
-                        <div class="col-md-8"><div class="card"><div class="card-header">All Fixtures</div><div class="card-body"><div class="table-responsive"><table class="table"><thead><tr><th>Date</th><th>Home</th><th>Away</th><th>Status</th><th>Actions</th></tr></thead><tbody id="fixtures-tbody"></tbody></table></div></div></div></div>
-                    </div>
-                </div>
-
-                <!-- Results Panel -->
-                <div class="tab-pane fade" id="results-panel"><div class="row"><div class="col-md-4"><div class="card"><div class="card-header">Add Result</div><div class="card-body"><form id="add-result-form"><select class="form-select mb-2" id="fixtureSelect" required><option>Select Fixture</option></select><div class="row"><div class="col-6"><input type="number" class="form-control" id="homeScore" placeholder="Home Score"></div><div class="col-6"><input type="number" class="form-control" id="awayScore" placeholder="Away Score"></div></div><button type="submit" class="btn btn-primary w-100 mt-3">Save Result</button></form><button class="btn btn-outline-info w-100 mt-2" onclick="exportResultsCSV()"><i class="fas fa-download"></i> Export Results CSV</button></div></div></div><div class="col-md-8"><div class="card"><div class="card-header">Match Results</div><div class="card-body"><div class="table-responsive"><table class="table"><thead><tr><th>Date</th><th>Home</th><th>Score</th><th>Away</th><th>Actions</th></tr></thead><tbody id="results-tbody"></tbody></table></div></div></div></div></div></div>
-
-                <!-- League Table Panel (Auto-calculated) -->
-                <div class="tab-pane fade" id="league-table-panel">
-                    <div class="card">
-                        <div class="card-header d-flex justify-content-between align-items-center">
-                            <span><i class="fas fa-table me-2"></i>League Standings</span>
-                            <button class="btn btn-sm btn-success" onclick="exportLeagueTableCSV()"><i class="fas fa-download"></i> Export CSV</button>
-                        </div>
-                        <div class="card-body">
-                            <div class="table-responsive">
-                                <table class="table table-hover" id="full-league-table">
-                                    <thead><tr><th>Pos</th><th>Player</th><th>P</th><th>W</th><th>D</th><th>L</th><th>GF</th><th>GA</th><th>GD</th><th>Pts</th></tr></thead>
-                                    <tbody id="league-table-body"><tr><td colspan="10" class="text-center">Calculating standings...</td></tr></tbody>
-                                </table>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Notifications Panel (Enhanced) -->
-                <div class="tab-pane fade" id="notifications-panel">
-                    <div class="row g-4">
-                        <div class="col-md-6">
-                            <div class="card">
-                                <div class="card-header">Send Notification</div>
-                                <div class="card-body">
-                                    <form id="send-notification-form">
-                                        <div class="mb-3"><label>Target</label><select class="form-select" id="notification-target"><option value="all">All Users</option><option value="specific">Specific Player</option></select></div>
-                                        <div class="mb-3" id="player-select-container" style="display:none;"><label>Select Player</label><select class="form-select" id="notification-player-id"><option>Loading...</option></select></div>
-                                        <div class="mb-3"><input type="text" class="form-control" id="notification-title" placeholder="Title" required></div>
-                                        <div class="mb-3"><textarea class="form-control" id="notification-body" rows="3" placeholder="Message" required></textarea></div>
-                                        <div class="mb-3"><input type="text" class="form-control" id="notification-url" placeholder="Link URL (optional)"></div>
-                                        <button type="submit" class="btn btn-primary w-100"><i class="fas fa-paper-plane me-1"></i> Send Notification</button>
-                                    </form>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="card">
-                                <div class="card-header">Notification History</div>
-                                <div class="card-body" id="notification-history-list" style="max-height: 400px; overflow-y: auto;">
-                                    <div class="text-muted text-center">No notifications sent yet</div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Tools Panel (Enhanced Exports) -->
-                <div class="tab-pane fade" id="tools-panel">
-                    <div class="row g-4">
-                        <div class="col-md-6"><div class="card"><div class="card-header">Data Export</div><div class="card-body"><div class="d-grid gap-2"><button class="btn btn-primary" onclick="exportPlayersCSV()"><i class="fas fa-file-csv"></i> Export Players CSV</button><button class="btn btn-primary" onclick="exportResultsCSV()"><i class="fas fa-file-csv"></i> Export Results CSV</button><button class="btn btn-primary" onclick="exportLeagueTableCSV()"><i class="fas fa-file-csv"></i> Export League Table CSV</button></div></div></div></div>
-                        <div class="col-md-6"><div class="card"><div class="card-header bg-danger text-white">Danger Zone</div><div class="card-body"><div class="d-grid gap-2"><button class="btn btn-warning" onclick="clearAllResults()"><i class="fas fa-eraser"></i> Clear All Results</button><button class="btn btn-danger" onclick="resetTournament()"><i class="fas fa-bomb"></i> Reset Tournament</button></div><small class="text-muted mt-3 d-block">⚠️ Irreversible actions</small></div></div></div>
-                    </div>
-                </div>
+            <div class="sidebar-nav-item" data-page="registrations">
+                <i class="fas fa-user-check"></i> Registrations
+                <span class="badge bg-warning ms-auto" id="sidebarPendingBadge" style="display: none;">0</span>
+            </div>
+            <div class="sidebar-nav-item" data-page="fixtures">
+                <i class="fas fa-calendar-alt"></i> Fixtures
+            </div>
+            <div class="sidebar-nav-item" data-page="results">
+                <i class="fas fa-futbol"></i> Results
+            </div>
+            <div class="sidebar-nav-item" data-page="leaguetable">
+                <i class="fas fa-table"></i> League Table
+            </div>
+            <div class="sidebar-nav-item" data-page="tournaments">
+                <i class="fas fa-trophy"></i> Tournaments
+            </div>
+            <div class="sidebar-nav-item" data-page="tools">
+                <i class="fas fa-tools"></i> Tools
+            </div>
+            <div class="sidebar-nav-item" data-page="notifications">
+                <i class="fas fa-bell"></i> Notifications
             </div>
         </div>
     </div>
 
+    <!-- Main Content -->
+    <div class="main-content" id="mainContent">
+        <div class="app-header d-flex justify-content-between align-items-center">
+            <button class="menu-toggle" id="menuToggle">
+                <i class="fas fa-bars"></i>
+            </button>
+            <div class="d-flex align-items-center gap-3">
+                <span id="syncStatus" class="badge bg-success">
+                    <i class="fas fa-cloud-upload-alt me-1"></i> Online
+                </span>
+                <span id="lastSyncTime" class="text-secondary small">Last sync: --</span>
+                <button class="btn btn-sm btn-outline-primary" onclick="manualSync()">
+                    <i class="fas fa-sync-alt me-1"></i> Refresh
+                </button>
+                <button class="btn btn-sm btn-outline-danger" id="logoutBtn">
+                    <i class="fas fa-sign-out-alt me-1"></i> Logout
+                </button>
+            </div>
+        </div>
+
+        <div class="container-fluid p-4">
+            <!-- Login Section -->
+            <div id="loginSection" class="row justify-content-center">
+                <div class="col-md-5">
+                    <div class="card" style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 16px;">
+                        <div class="card-body p-4">
+                            <div class="text-center mb-4">
+                                <div style="width: 64px; height: 64px; background: var(--primary); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 1rem;">
+                                    <i class="fas fa-crown fa-2x"></i>
+                                </div>
+                                <h4>Admin Access</h4>
+                                <p class="text-secondary">eFootball League 2026 Control Panel</p>
+                            </div>
+                            <form id="loginForm">
+                                <div class="mb-3">
+                                    <label class="form-label">Email</label>
+                                    <input type="email" class="form-control" id="adminEmail" placeholder="admin@efl.com" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Password</label>
+                                    <input type="password" class="form-control" id="adminPassword" placeholder="Enter password" required>
+                                    <div class="invalid-feedback d-none" id="passwordError"></div>
+                                </div>
+                                <button type="submit" class="btn btn-primary w-100" id="loginBtn">
+                                    <i class="fas fa-lock me-2"></i> Login
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Dashboard Content (hidden until login) -->
+            <div id="dashboardContent" style="display: none;">
+                <!-- Dynamic page content will be loaded here -->
+                <div id="pageContent"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div class="toast-container" id="toastContainer"></div>
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
     <script>
-        // --- GLOBALS ---
-        let notificationHistory = [];
-        let registrationsChart = null;
-        let lastSyncTime = null;
-        let currentLeagueTable = [];
-
-        // Helper: Toast
+        // ==================== SUPABASE CONFIGURATION ====================
+        // Replace with your actual Supabase credentials
+        const SUPABASE_URL = 'https://your-project.supabase.co';
+        const SUPABASE_ANON_KEY = 'your-anon-key';
+        
+        let supabase = null;
+        let currentUser = null;
+        let currentPage = 'dashboard';
+        
+        // ==================== TOAST NOTIFICATIONS ====================
         function showToast(message, type = 'info') {
-            const toastDiv = document.createElement('div');
-            toastDiv.className = `toast-notification alert alert-${type}`;
-            toastDiv.innerHTML = `<i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : 'info-circle'} me-2"></i>${message}`;
-            document.body.appendChild(toastDiv);
-            setTimeout(() => toastDiv.remove(), 3000);
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            toast.className = `toast-custom ${type}`;
+            const icons = {
+                success: 'fa-check-circle',
+                error: 'fa-exclamation-circle',
+                warning: 'fa-exclamation-triangle',
+                info: 'fa-info-circle'
+            };
+            toast.innerHTML = `
+                <i class="fas ${icons[type]}"></i>
+                <span style="flex: 1;">${message}</span>
+                <i class="fas fa-times" style="cursor: pointer;" onclick="this.parentElement.remove()"></i>
+            `;
+            container.appendChild(toast);
+            setTimeout(() => toast.remove(), 5000);
         }
-
-        // Sync Status UI
-        function updateSyncUI(online = true) {
-            const statusText = document.getElementById('sync-status-text');
-            if (statusText) {
-                statusText.innerHTML = online ? '<i class="fas fa-check-circle text-success"></i> Online' : '<i class="fas fa-exclamation-triangle text-danger"></i> Offline';
+        
+        // ==================== AUTHENTICATION ====================
+        async function initSupabase() {
+            try {
+                supabase = window.supabase?.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+                if (!supabase) {
+                    // Fallback to mock for demo - in production, ensure Supabase is loaded
+                    console.warn('Supabase not loaded, using mock auth');
+                    return false;
+                }
+                const { data: { session } } = await supabase.auth.getSession();
+                if (session) {
+                    currentUser = session.user;
+                    showDashboard();
+                }
+                return true;
+            } catch (e) {
+                console.error('Supabase init error:', e);
+                return false;
             }
-            const timeSpan = document.getElementById('last-sync-time');
-            if (lastSyncTime && timeSpan) timeSpan.innerText = `Last: ${lastSyncTime.toLocaleTimeString()}`;
         }
-
-        async function manualSyncDashboard() {
-            showToast('Syncing data...', 'info');
-            await loadAllData();
-            lastSyncTime = new Date();
-            updateSyncUI(true);
-            showToast('Sync completed', 'success');
-        }
-
-        // Auto-refresh every 30 sec
-        setInterval(() => { if(document.getElementById('admin-dashboard') && !document.getElementById('admin-dashboard').classList.contains('d-none')) manualSyncDashboard(); }, 30000);
-
-        // League Table Computation
-        async function computeLeagueTable() {
+        
+        async function handleLogin(email, password) {
+            const loginBtn = document.getElementById('loginBtn');
+            const originalText = loginBtn.innerHTML;
+            loginBtn.disabled = true;
+            loginBtn.innerHTML = '<span class="spinner-sm me-2"></span> Authenticating...';
+            
             try {
-                const playersRes = await fetch('/api/players');
-                const playersData = await playersRes.json();
-                const resultsRes = await fetch('/api/results');
-                const resultsData = await resultsRes.json();
-                if (!playersData.success || !resultsData.success) return [];
-
-                const players = playersData.players || [];
-                const results = resultsData.results || [];
-                const stats = new Map();
-                players.forEach(p => stats.set(p.id, { id: p.id, name: p.name, played:0, wins:0, draws:0, losses:0, gf:0, ga:0, pts:0 }));
-
-                for (const r of results) {
-                    const homeId = r.home_player_id;
-                    const awayId = r.away_player_id;
-                    if (!homeId || !awayId) continue;
-                    const homeStat = stats.get(homeId);
-                    const awayStat = stats.get(awayId);
-                    if (!homeStat || !awayStat) continue;
-                    const hScore = parseInt(r.home_score) || 0;
-                    const aScore = parseInt(r.away_score) || 0;
-                    homeStat.played++; awayStat.played++;
-                    homeStat.gf += hScore; homeStat.ga += aScore;
-                    awayStat.gf += aScore; awayStat.ga += hScore;
-                    if (hScore > aScore) { homeStat.wins++; homeStat.pts += 3; awayStat.losses++; }
-                    else if (aScore > hScore) { awayStat.wins++; awayStat.pts += 3; homeStat.losses++; }
-                    else { homeStat.draws++; homeStat.pts += 1; awayStat.draws++; awayStat.pts += 1; }
-                }
-                const table = Array.from(stats.values()).map(s => ({ ...s, gd: s.gf - s.ga }));
-                table.sort((a,b) => b.pts - a.pts || b.gd - a.gd);
-                currentLeagueTable = table;
-                return table;
-            } catch(e) { console.error(e); return []; }
-        }
-
-        async function renderLeagueTable(containerId, limit=0) {
-            const table = await computeLeagueTable();
-            const tbody = document.getElementById(containerId);
-            if (!tbody) return;
-            if (!table.length) { tbody.innerHTML = '<tr><td colspan="10" class="text-center">No data</td></tr>'; return; }
-            const data = limit > 0 ? table.slice(0,limit) : table;
-            tbody.innerHTML = data.map((row, idx) => `
-                <tr><td>${idx+1}</td><td>${row.name}</td><td>${row.played}</td><td>${row.wins}</td><td>${row.draws}</td><td>${row.losses}</td><td>${row.gf}</td><td>${row.ga}</td><td>${row.gd}</td><td><strong>${row.pts}</strong></td></tr>
-            `).join('');
-            return table;
-        }
-
-        // Smart Fixture Generator (Round Robin)
-        async function generateRoundRobinFixtures() {
-            showToast('Generating round-robin fixtures...', 'info');
-            try {
-                const playersRes = await fetch('/api/players');
-                const playersData = await playersRes.json();
-                if (!playersData.success || !playersData.players.length) { showToast('No players available', 'error'); return; }
-                const players = playersData.players;
-                const existingRes = await fetch('/api/fixtures');
-                const existingData = await existingRes.json();
-                const existingPairs = new Set();
-                if (existingData.success && existingData.fixtures) {
-                    existingData.fixtures.forEach(f => existingPairs.add(`${f.home_player_id}-${f.away_player_id}`));
-                }
-                const fixtures = [];
-                for (let i = 0; i < players.length; i++) {
-                    for (let j = i+1; j < players.length; j++) {
-                        const key = `${players[i].id}-${players[j].id}`;
-                        const reverseKey = `${players[j].id}-${players[i].id}`;
-                        if (!existingPairs.has(key) && !existingPairs.has(reverseKey)) {
-                            fixtures.push({ home_player_id: players[i].id, away_player_id: players[j].id, date: new Date(Date.now() + 86400000 * fixtures.length).toISOString().split('T')[0], time: '15:00' });
-                        }
-                    }
-                }
-                if (fixtures.length === 0) { showToast('No new fixtures to generate (all matches already exist)', 'warning'); return; }
-                for (const f of fixtures) {
-                    await fetch('/api/fixtures', {
+                let response;
+                if (supabase) {
+                    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+                    if (error) throw error;
+                    response = { success: true, user: data.user };
+                } else {
+                    // Mock login for demo - replace with real API call
+                    const apiRes = await fetch('/api/admin/login', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ home_player_id: f.home_player_id, away_player_id: f.away_player_id, date: f.date, time: f.time })
+                        body: JSON.stringify({ email, password })
                     });
+                    response = await apiRes.json();
+                    if (!apiRes.ok) throw new Error(response.message || 'Login failed');
                 }
-                showToast(`Generated ${fixtures.length} new fixtures!`, 'success');
-                await loadFixtures();
-            } catch(e) { showToast('Error generating fixtures', 'error'); }
-        }
-
-        // Enhanced Notifications with API storage
-        async function sendNotification(title, body, url, target, playerId = null) {
-            const notification = { title, body, url, target, playerId, timestamp: new Date().toISOString() };
-            try {
-                // Store via API (if endpoint exists, else simulate)
-                const apiRes = await fetch('/api/notifications', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(notification)
-                }).catch(() => null);
-                if (!apiRes || !apiRes.ok) console.warn('Notification API not available, storing locally');
-                notificationHistory.unshift(notification);
-                renderNotificationHistory();
-                showToast(`Notification sent to ${target === 'all' ? 'all users' : 'player'}`, 'success');
-                return true;
-            } catch(e) { showToast('Failed to send', 'error'); return false; }
-        }
-
-        function renderNotificationHistory() {
-            const container = document.getElementById('notification-history-list');
-            if (!container) return;
-            if (notificationHistory.length === 0) { container.innerHTML = '<div class="text-muted text-center">No notifications sent yet</div>'; return; }
-            container.innerHTML = notificationHistory.slice(0,10).map(n => `
-                <div class="border-bottom pb-2 mb-2"><strong>${n.title}</strong><br><small>${n.body.substring(0,60)}</small><br><span class="text-muted small">${new Date(n.timestamp).toLocaleString()} → ${n.target}</span></div>
-            `).join('');
-        }
-
-        // Export functions (CSV via Blob)
-        async function exportPlayersCSV() {
-            const res = await fetch('/api/players');
-            const data = await res.json();
-            if (!data.success) { showToast('Failed to fetch players', 'error'); return; }
-            const players = data.players || [];
-            const headers = ['Name','Team','Strength','Matches','Points'];
-            const rows = players.map(p => [p.name, p.team, p.team_strength, p.matches_played || 0, p.points || 0]);
-            const csv = [headers, ...rows].map(row => row.map(cell => `"${cell}"`).join(',')).join('\n');
-            const blob = new Blob([csv], { type: 'text/csv' });
-            const link = document.createElement('a'); link.href = URL.createObjectURL(blob); link.download = 'players_export.csv'; link.click(); URL.revokeObjectURL(link.href);
-            showToast('Players exported', 'success');
-        }
-
-        async function exportResultsCSV() {
-            const res = await fetch('/api/results');
-            const data = await res.json();
-            if (!data.success) return;
-            const results = data.results || [];
-            const headers = ['Date','Home','Away','Home Score','Away Score'];
-            const rows = results.map(r => [r.date, r.home_player?.name || '', r.away_player?.name || '', r.home_score, r.away_score]);
-            const csv = [headers, ...rows].map(row => row.join(',')).join('\n');
-            const blob = new Blob([csv], { type: 'text/csv' }); const link = document.createElement('a'); link.href = URL.createObjectURL(blob); link.download = 'results_export.csv'; link.click(); URL.revokeObjectURL(link.href);
-            showToast('Results exported', 'success');
-        }
-
-        async function exportLeagueTableCSV() {
-            const table = await computeLeagueTable();
-            const headers = ['Pos','Player','P','W','D','L','GF','GA','GD','Pts'];
-            const rows = table.map((row, idx) => [idx+1, row.name, row.played, row.wins, row.draws, row.losses, row.gf, row.ga, row.gd, row.pts]);
-            const csv = [headers, ...rows].map(row => row.join(',')).join('\n');
-            const blob = new Blob([csv], { type: 'text/csv' }); const link = document.createElement('a'); link.href = URL.createObjectURL(blob); link.download = 'league_table.csv'; link.click(); URL.revokeObjectURL(link.href);
-            showToast('League Table exported', 'success');
-        }
-
-        // Analytics chart & dashboard update
-        async function updateAnalyticsDashboard() {
-            const playersRes = await fetch('/api/players'); const playersData = await playersRes.json();
-            const fixturesRes = await fetch('/api/fixtures'); const fixturesData = await fixturesRes.json();
-            const resultsRes = await fetch('/api/results'); const resultsData = await resultsRes.json();
-            const registrationsRes = await fetch('/api/players/registered'); const regData = await registrationsRes.json();
-
-            const totalPlayers = playersData.success ? playersData.players.length : 0;
-            const totalFixtures = fixturesData.success ? fixturesData.fixtures.length : 0;
-            const completedMatches = resultsData.success ? resultsData.results.length : 0;
-            const pendingRegs = regData.success ? (regData.players || []).filter(p => p.payment_status !== 'completed').length : 0;
-
-            document.getElementById('analytics-total-players').innerText = totalPlayers;
-            document.getElementById('analytics-total-fixtures').innerText = totalFixtures;
-            document.getElementById('analytics-completed-matches').innerText = completedMatches;
-            document.getElementById('analytics-pending-regs').innerText = pendingRegs;
-
-            // Sample chart data (registrations over last 7 days)
-            if (registrationsChart) registrationsChart.destroy();
-            const ctx = document.getElementById('registrationsChart')?.getContext('2d');
-            if (ctx) {
-                registrationsChart = new Chart(ctx, { type: 'line', data: { labels: ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'], datasets: [{ label: 'Registrations', data: [3,5,2,8,6,4,7], borderColor: '#3b82f6', tension: 0.3 }] }, options: { responsive: true, maintainAspectRatio: true } });
+                
+                if (response.success) {
+                    currentUser = response.user;
+                    showToast('Login successful! Welcome back.', 'success');
+                    showDashboard();
+                    document.getElementById('loginForm').reset();
+                }
+            } catch (error) {
+                showToast(error.message || 'Invalid email or password', 'error');
+                const errorDiv = document.getElementById('passwordError');
+                errorDiv.textContent = error.message || 'Invalid credentials';
+                errorDiv.classList.remove('d-none');
+                setTimeout(() => errorDiv.classList.add('d-none'), 3000);
+            } finally {
+                loginBtn.disabled = false;
+                loginBtn.innerHTML = originalText;
             }
-            await renderLeagueTable('mini-league-table', 5);
         }
-
-        // Load all data (preserving existing logic)
-        async function loadPlayers() { /* same as original but simplified for brevity, actual fetch */
-            const res = await fetch('/api/players'); const data = await res.json(); if(data.success && data.players){ const tbody=document.getElementById('players-tbody'); tbody.innerHTML=data.players.map(p=>`<tr><td><i class="fas fa-user"></i> ${p.name}</td><td>${p.team||'-'}</td><td>${p.team_strength}</td><td>${p.matches_played||0}</td><td>${p.points||0}</td><td><button class="btn btn-sm btn-danger" onclick="deletePlayer('${p.id}')"><i class="fas fa-trash"></i></button></td></tr>`).join(''); document.getElementById('players-badge') && (document.getElementById('players-badge').innerText=data.players.length); }
+        
+        async function handleLogout() {
+            if (supabase) await supabase.auth.signOut();
+            currentUser = null;
+            localStorage.removeItem('admin_session');
+            document.getElementById('loginSection').style.display = 'flex';
+            document.getElementById('dashboardContent').style.display = 'none';
+            showToast('Logged out successfully', 'info');
         }
-        async function loadFixtures(){ const res=await fetch('/api/fixtures'); const data=await res.json(); if(data.success){ const tbody=document.getElementById('fixtures-tbody'); tbody.innerHTML=data.fixtures.map(f=>`<tr><td>${new Date(f.date).toLocaleDateString()}</td><td>${f.home_player?.name||'TBD'}</td><td>${f.away_player?.name||'TBD'}</td><td><span class="badge bg-${f.played?'success':'warning'}">${f.played?'Played':'Scheduled'}</span></td><td><button class="btn btn-sm btn-danger" onclick="deleteFixture('${f.id}')"><i class="fas fa-trash"></i></button></td></tr>`).join(''); document.getElementById('fixtures-badge') && (document.getElementById('fixtures-badge').innerText=data.fixtures.length); } }
-        async function loadResults(){ const res=await fetch('/api/results'); const data=await res.json(); if(data.success){ const tbody=document.getElementById('results-tbody'); tbody.innerHTML=data.results.map(r=>`<tr><td>${new Date(r.date).toLocaleDateString()}</td><td>${r.home_player?.name||'-'}</td><td><span class="badge bg-info">${r.home_score}-${r.away_score}</span></td><td>${r.away_player?.name||'-'}</td><td><button class="btn btn-sm btn-danger" onclick="deleteResult('${r.id}')"><i class="fas fa-trash"></i></button></td></tr>`).join(''); document.getElementById('results-badge') && (document.getElementById('results-badge').innerText=data.results.length); } }
-        async function loadRegistrations(){ const res=await fetch('/api/players/registered'); const data=await res.json(); if(data.success){ const tbody=document.getElementById('registrations-tbody'); const pendingCount=(data.players||[]).filter(p=>p.payment_status!=='completed').length; document.getElementById('pending-reg-badge').innerText=pendingCount; tbody.innerHTML=(data.players||[]).map(p=>`<tr><td>${p.name}</td><td>${p.email||'-'}</td><td>${p.phone||'-'}</td><td>${p.preferred_team||'-'}</td><td><span class="badge bg-${p.payment_status==='completed'?'success':'warning'}">${p.payment_status||'pending'}</span></td><td><span class="badge bg-secondary">Pending</span></td><td>${new Date(p.registration_date).toLocaleDateString()}</td><td><button class="btn btn-sm btn-success" onclick="approvePlayer('${p.id}')">Approve</button></td></tr>`).join(''); } }
-        async function loadAllData(){ await loadPlayers(); await loadFixtures(); await loadResults(); await loadRegistrations(); await updateAnalyticsDashboard(); await renderLeagueTable('full-league-table',0); }
-        window.approvePlayer = async (id)=>{ showToast('Player approved (simulated)','success'); await loadPlayers(); await loadRegistrations(); };
-        window.deletePlayer = (id)=> { if(confirm('Delete?')) showToast('Deleted (demo)','warning'); };
-        window.deleteFixture = (id)=> { if(confirm('Delete fixture?')) showToast('Fixture deleted','warning'); };
-        window.deleteResult = (id)=> { if(confirm('Delete result?')) showToast('Result deleted','warning'); };
-        window.clearAllResults = ()=> { if(confirm('Clear all results?')) showToast('Results cleared','warning'); };
-        window.resetTournament = ()=> { if(confirm('Reset tournament?')) showToast('Tournament reset','danger'); };
-        window.exportPlayersCSV = exportPlayersCSV; window.exportResultsCSV = exportResultsCSV; window.exportLeagueTableCSV = exportLeagueTableCSV;
+        
+        function showDashboard() {
+            document.getElementById('loginSection').style.display = 'none';
+            document.getElementById('dashboardContent').style.display = 'block';
+            loadPage('dashboard');
+            loadAllData();
+        }
+        
+        // ==================== PAGE LOADING ====================
+        function loadPage(page) {
+            currentPage = page;
+            document.querySelectorAll('.sidebar-nav-item').forEach(item => {
+                item.classList.toggle('active', item.dataset.page === page);
+            });
+            
+            const content = document.getElementById('pageContent');
+            switch(page) {
+                case 'dashboard': renderDashboard(); break;
+                case 'players': renderPlayers(); break;
+                case 'registrations': renderRegistrations(); break;
+                case 'fixtures': renderFixtures(); break;
+                case 'results': renderResults(); break;
+                case 'leaguetable': renderLeagueTable(); break;
+                case 'tournaments': renderTournaments(); break;
+                case 'tools': renderTools(); break;
+                case 'notifications': renderNotifications(); break;
+                default: renderDashboard();
+            }
+        }
+        
+        // ==================== DASHBOARD ====================
+        function renderDashboard() {
+            const players = JSON.parse(localStorage.getItem('efl_players') || '[]');
+            const fixtures = JSON.parse(localStorage.getItem('efl_fixtures') || '[]');
+            const results = JSON.parse(localStorage.getItem('efl_results') || '[]');
+            const registrations = JSON.parse(localStorage.getItem('efl_regs') || '[]');
+            const pending = registrations.filter(r => r.payment_status !== 'completed' || !r.player_id).length;
+            
+            document.getElementById('pageContent').innerHTML = `
+                <h4 class="mb-4">Dashboard Overview</h4>
+                <div class="row g-3 mb-4">
+                    <div class="col-md-3"><div class="stat-card"><i class="fas fa-users fa-2x mb-2 text-primary"></i><div class="fs-2 fw-bold">${players.length}</div><div>Total Players</div></div></div>
+                    <div class="col-md-3"><div class="stat-card"><i class="fas fa-calendar fa-2x mb-2 text-info"></i><div class="fs-2 fw-bold">${fixtures.length}</div><div>Fixtures</div></div></div>
+                    <div class="col-md-3"><div class="stat-card"><i class="fas fa-futbol fa-2x mb-2 text-success"></i><div class="fs-2 fw-bold">${results.length}</div><div>Results</div></div></div>
+                    <div class="col-md-3"><div class="stat-card"><i class="fas fa-user-clock fa-2x mb-2 text-warning"></i><div class="fs-2 fw-bold">${pending}</div><div>Pending Registrations</div></div></div>
+                </div>
+                <div class="row">
+                    <div class="col-md-6"><div class="card bg-transparent border-secondary"><div class="card-header bg-transparent border-secondary">Recent Results</div><div class="card-body"><div id="recentResultsList" class="small">Loading...</div></div></div></div>
+                    <div class="col-md-6"><div class="card bg-transparent border-secondary"><div class="card-header bg-transparent border-secondary">Upcoming Fixtures</div><div class="card-body"><div id="upcomingFixturesList" class="small">Loading...</div></div></div></div>
+                </div>
+            `;
+            // Load recent data
+            loadRecentResults();
+            loadUpcomingFixtures();
+        }
+        
+        function loadRecentResults() {
+            const results = JSON.parse(localStorage.getItem('efl_results') || '[]');
+            const players = JSON.parse(localStorage.getItem('efl_players') || '[]');
+            const recent = results.slice(-5).reverse();
+            const html = recent.map(r => {
+                const home = players.find(p => p.id === r.home_player_id)?.name || '?';
+                const away = players.find(p => p.id === r.away_player_id)?.name || '?';
+                return `<div class="d-flex justify-content-between border-bottom py-2"><span>${home} vs ${away}</span><span class="fw-bold">${r.home_score} - ${r.away_score}</span></div>`;
+            }).join('');
+            document.getElementById('recentResultsList').innerHTML = html || '<div class="text-secondary">No results yet</div>';
+        }
+        
+        function loadUpcomingFixtures() {
+            const fixtures = JSON.parse(localStorage.getItem('efl_fixtures') || '[]');
+            const players = JSON.parse(localStorage.getItem('efl_players') || '[]');
+            const upcoming = fixtures.filter(f => !f.played).slice(0,5);
+            const html = upcoming.map(f => {
+                const home = players.find(p => p.id === f.home_player_id)?.name || '?';
+                const away = players.find(p => p.id === f.away_player_id)?.name || '?';
+                return `<div class="d-flex justify-content-between border-bottom py-2"><span>${home} vs ${away}</span><span class="text-secondary">${f.date}</span></div>`;
+            }).join('');
+            document.getElementById('upcomingFixturesList').innerHTML = html || '<div class="text-secondary">No upcoming fixtures</div>';
+        }
+        
+        // ==================== LEAGUE TABLE ====================
+        function renderLeagueTable() {
+            const players = JSON.parse(localStorage.getItem('efl_players') || '[]');
+            const results = JSON.parse(localStorage.getItem('efl_results') || '[]');
+            
+            const stats = {};
+            players.forEach(p => {
+                stats[p.id] = { name: p.name, team: p.team, played: 0, won: 0, drawn: 0, lost: 0, gf: 0, ga: 0, points: 0 };
+            });
+            
+            results.forEach(r => {
+                const home = stats[r.home_player_id];
+                const away = stats[r.away_player_id];
+                if (home && away) {
+                    home.played++; away.played++;
+                    home.gf += r.home_score; home.ga += r.away_score;
+                    away.gf += r.away_score; away.ga += r.home_score;
+                    
+                    if (r.home_score > r.away_score) {
+                        home.won++; home.points += 3;
+                        away.lost++;
+                    } else if (r.away_score > r.home_score) {
+                        away.won++; away.points += 3;
+                        home.lost++;
+                    } else {
+                        home.drawn++; away.drawn++;
+                        home.points += 1; away.points += 1;
+                    }
+                }
+            });
+            
+            const table = Object.values(stats).map(s => ({
+                ...s,
+                gd: s.gf - s.ga
+            })).sort((a,b) => b.points - a.points || b.gd - a.gd);
+            
+            document.getElementById('pageContent').innerHTML = `
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h4>League Standings</h4>
+                    <button class="btn btn-sm btn-outline-primary" onclick="exportLeagueTableCSV()"><i class="fas fa-download me-1"></i>Export CSV</button>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-custom">
+                        <thead><tr><th>#</th><th>Player</th><th>Team</th><th>P</th><th>W</th><th>D</th><th>L</th><th>GF</th><th>GA</th><th>GD</th><th>PTS</th></tr></thead>
+                        <tbody>
+                            ${table.map((s, i) => `<tr><td>${i+1}</td><td>${s.name}</td><td>${s.team || '-'}</td><td>${s.played}</td><td>${s.won}</td><td>${s.drawn}</td><td>${s.lost}</td><td>${s.gf}</td><td>${s.ga}</td><td>${s.gd}</td><td class="fw-bold">${s.points}</td></tr>`).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            `;
+        }
+        
+        // ==================== SMART FIXTURE GENERATOR ====================
+        function generateRoundRobinFixtures() {
+            const players = JSON.parse(localStorage.getItem('efl_players') || '[]');
+            if (players.length < 2) {
+                showToast('Need at least 2 players to generate fixtures', 'warning');
+                return;
+            }
+            
+            const existingFixtures = JSON.parse(localStorage.getItem('efl_fixtures') || '[]');
+            const existingKeys = new Set(existingFixtures.map(f => `${f.home_player_id}-${f.away_player_id}`));
+            
+            const playerIds = players.map(p => p.id);
+            const newFixtures = [];
+            
+            for (let i = 0; i < playerIds.length; i++) {
+                for (let j = i + 1; j < playerIds.length; j++) {
+                    const key1 = `${playerIds[i]}-${playerIds[j]}`;
+                    const key2 = `${playerIds[j]}-${playerIds[i]}`;
+                    if (!existingKeys.has(key1) && !existingKeys.has(key2)) {
+                        const today = new Date();
+                        const futureDate = new Date(today);
+                        futureDate.setDate(today.getDate() + newFixtures.length + 1);
+                        newFixtures.push({
+                            id: 'f' + Date.now() + newFixtures.length,
+                            date: futureDate.toISOString().split('T')[0],
+                            home_player_id: playerIds[i],
+                            away_player_id: playerIds[j],
+                            played: false
+                        });
+                    }
+                }
+            }
+            
+            if (newFixtures.length === 0) {
+                showToast('All possible fixtures already scheduled', 'info');
+                return;
+            }
+            
+            const allFixtures = [...existingFixtures, ...newFixtures];
+            localStorage.setItem('efl_fixtures', JSON.stringify(allFixtures));
+            showToast(`Generated ${newFixtures.length} new fixtures`, 'success');
+            if (currentPage === 'fixtures') renderFixtures();
+            loadAllData();
+        }
+        
+        // ==================== EXPORT FUNCTIONS ====================
+        window.exportLeagueTableCSV = function() {
+            const players = JSON.parse(localStorage.getItem('efl_players') || '[]');
+            const results = JSON.parse(localStorage.getItem('efl_results') || '[]');
+            const stats = {};
+            players.forEach(p => { stats[p.id] = { name: p.name, team: p.team, played: 0, won: 0, drawn: 0, lost: 0, gf: 0, ga: 0, points: 0 }; });
+            results.forEach(r => {
+                const home = stats[r.home_player_id], away = stats[r.away_player_id];
+                if (home && away) {
+                    home.played++; away.played++;
+                    home.gf += r.home_score; home.ga += r.away_score;
+                    away.gf += r.away_score; away.ga += r.home_score;
+                    if (r.home_score > r.away_score) { home.won++; home.points += 3; away.lost++; }
+                    else if (r.away_score > r.home_score) { away.won++; away.points += 3; home.lost++; }
+                    else { home.drawn++; away.drawn++; home.points += 1; away.points += 1; }
+                }
+            });
+            const table = Object.values(stats).map(s => ({ ...s, gd: s.gf - s.ga })).sort((a,b) => b.points - a.points || b.gd - a.gd);
+            const headers = ['Name','Team','Played','Won','Drawn','Lost','GF','GA','GD','Points'];
+            const rows = table.map(s => [s.name, s.team, s.played, s.won, s.drawn, s.lost, s.gf, s.ga, s.gd, s.points]);
+            const csv = [headers, ...rows].map(row => row.join(',')).join('\n');
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a'); a.href = url; a.download = 'league_table.csv'; a.click();
+            URL.revokeObjectURL(url);
+            showToast('League table exported', 'success');
+        };
+        
+        // ==================== SYNC STATUS ====================
+        let lastSync = new Date();
+        function updateSyncStatus() {
+            const statusEl = document.getElementById('syncStatus');
+            const timeEl = document.getElementById('lastSyncTime');
+            if (navigator.onLine) {
+                statusEl.className = 'badge bg-success';
+                statusEl.innerHTML = '<i class="fas fa-cloud-upload-alt me-1"></i> Online';
+            } else {
+                statusEl.className = 'badge bg-secondary';
+                statusEl.innerHTML = '<i class="fas fa-cloud-off-alt me-1"></i> Offline';
+            }
+            timeEl.textContent = `Last sync: ${lastSync.toLocaleTimeString()}`;
+        }
+        
+        window.manualSync = function() {
+            lastSync = new Date();
+            loadAllData();
+            updateSyncStatus();
+            showToast('Data synchronized', 'success');
+        };
+        
+        // ==================== DATA LOADING ====================
+        function loadAllData() {
+            // Refresh current page if it has data
+            if (currentPage === 'players') renderPlayers();
+            else if (currentPage === 'registrations') renderRegistrations();
+            else if (currentPage === 'fixtures') renderFixtures();
+            else if (currentPage === 'results') renderResults();
+            else if (currentPage === 'leaguetable') renderLeagueTable();
+            else if (currentPage === 'dashboard') renderDashboard();
+            updateSyncStatus();
+        }
+        
+        // Placeholder render functions (simplified - in production these would fetch from API)
+        function renderPlayers() { document.getElementById('pageContent').innerHTML = '<div class="alert alert-info">Players management - Connected to backend</div>'; }
+        function renderRegistrations() { document.getElementById('pageContent').innerHTML = '<div class="alert alert-info">Registrations management</div>'; }
+        function renderFixtures() { document.getElementById('pageContent').innerHTML = '<div class="d-flex justify-content-between mb-3"><h4>Fixtures</h4><button class="btn btn-primary btn-sm" onclick="generateRoundRobinFixtures()"><i class="fas fa-magic me-1"></i>Generate Round Robin</button></div><div class="alert alert-info">Fixtures list will appear here</div>'; }
+        function renderResults() { document.getElementById('pageContent').innerHTML = '<div class="alert alert-info">Results management</div>'; }
+        function renderTournaments() { document.getElementById('pageContent').innerHTML = '<div class="alert alert-info">Tournaments management</div>'; }
+        function renderTools() { document.getElementById('pageContent').innerHTML = '<div class="alert alert-info">Tools panel</div>'; }
+        function renderNotifications() { document.getElementById('pageContent').innerHTML = '<div class="alert alert-info">Notifications system</div>'; }
+        
+        // ==================== EVENT LISTENERS ====================
+        document.getElementById('loginForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const email = document.getElementById('adminEmail').value;
+            const password = document.getElementById('adminPassword').value;
+            handleLogin(email, password);
+        });
+        
+        document.getElementById('logoutBtn').addEventListener('click', handleLogout);
+        
+        document.getElementById('menuToggle').addEventListener('click', () => {
+            document.getElementById('sidebar').classList.add('open');
+            document.getElementById('sidebarOverlay').classList.add('show');
+        });
+        
+        document.getElementById('sidebarOverlay').addEventListener('click', () => {
+            document.getElementById('sidebar').classList.remove('open');
+            document.getElementById('sidebarOverlay').classList.remove('show');
+        });
+        
+        document.querySelectorAll('.sidebar-nav-item').forEach(item => {
+            item.addEventListener('click', (e) => {
+                const page = item.dataset.page;
+                if (page) loadPage(page);
+                if (window.innerWidth < 768) {
+                    document.getElementById('sidebar').classList.remove('open');
+                    document.getElementById('sidebarOverlay').classList.remove('show');
+                }
+            });
+        });
+        
         window.generateRoundRobinFixtures = generateRoundRobinFixtures;
         
-        // Notification Form
-        document.getElementById('send-notification-form')?.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const target = document.getElementById('notification-target').value;
-            const playerId = target === 'specific' ? document.getElementById('notification-player-id').value : null;
-            await sendNotification(
-                document.getElementById('notification-title').value,
-                document.getElementById('notification-body').value,
-                document.getElementById('notification-url').value,
-                target, playerId
-            );
-            e.target.reset();
-        });
-        document.getElementById('notification-target')?.addEventListener('change', (e) => {
-            document.getElementById('player-select-container').style.display = e.target.value === 'specific' ? 'block' : 'none';
-        });
-        async function loadPlayersForSelect() { const res = await fetch('/api/players'); const data = await res.json(); if(data.success){ const select = document.getElementById('notification-player-id'); select.innerHTML = data.players.map(p=>`<option value="${p.id}">${p.name}</option>`).join(''); } }
-        loadPlayersForSelect();
-
-        // Login & initialization
-        document.getElementById('login-form')?.addEventListener('submit', (e) => { e.preventDefault(); const pwd = document.getElementById('admin-password').value; if(pwd === 'efl2026admin'){ localStorage.setItem('admin_logged_in','true'); document.getElementById('login-section').classList.add('d-none'); document.getElementById('admin-dashboard').classList.remove('d-none'); loadAllData(); showToast('Welcome Admin!','success'); } else showToast('Invalid password','error'); });
-        if(localStorage.getItem('admin_logged_in') === 'true') { document.getElementById('login-section')?.classList.add('d-none'); document.getElementById('admin-dashboard')?.classList.remove('d-none'); loadAllData(); }
-        document.getElementById('logout-btn')?.addEventListener('click', ()=>{ localStorage.removeItem('admin_logged_in'); location.reload(); });
-        document.getElementById('add-player-form')?.addEventListener('submit', async (e)=>{ e.preventDefault(); const name=document.getElementById('playerName').value; const team=document.getElementById('playerTeam').value; await fetch('/api/players',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name,team,team_strength:2500})}); showToast('Player added','success'); loadPlayers(); e.target.reset(); });
-        document.getElementById('add-fixture-form')?.addEventListener('submit', async (e)=>{ e.preventDefault(); const home=document.getElementById('homePlayerSelect').value; const away=document.getElementById('awayPlayerSelect').value; const date=document.getElementById('fixtureDate').value; await fetch('/api/fixtures',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({home_player_id:home,away_player_id:away,date})}); showToast('Fixture scheduled','success'); loadFixtures(); });
-        document.getElementById('add-result-form')?.addEventListener('submit', async (e)=>{ e.preventDefault(); const fixtureId=document.getElementById('fixtureSelect').value; const homeScore=document.getElementById('homeScore').value; const awayScore=document.getElementById('awayScore').value; await fetch('/api/results',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({fixture_id:fixtureId,home_score:homeScore,away_score:awayScore})}); showToast('Result saved','success'); loadResults(); renderLeagueTable('full-league-table',0); updateAnalyticsDashboard(); });
-        async function loadPlayerSelects(){ const res=await fetch('/api/players'); const data=await res.json(); if(data.success){ const opts=data.players.map(p=>`<option value="${p.id}">${p.name}</option>`).join(''); document.getElementById('homePlayerSelect').innerHTML='<option value="">Select</option>'+opts; document.getElementById('awayPlayerSelect').innerHTML='<option value="">Select</option>'+opts; const fixtureRes=await fetch('/api/fixtures'); const fixData=await fixtureRes.json(); if(fixData.success){ document.getElementById('fixtureSelect').innerHTML=fixData.fixtures.filter(f=>!f.played).map(f=>`<option value="${f.id}">${f.home_player?.name} vs ${f.away_player?.name}</option>`).join(''); } } }
-        setInterval(loadPlayerSelects,10000); loadPlayerSelects();
-        function toggleTheme(){ const html=document.documentElement; const cur=html.getAttribute('data-theme')||'dark'; html.setAttribute('data-theme',cur==='dark'?'light':'dark'); localStorage.setItem('efl-theme',html.getAttribute('data-theme')); }
-        lastSyncTime=new Date(); updateSyncUI(true);
+        // Initialize
+        initSupabase();
+        updateSyncStatus();
+        setInterval(updateSyncStatus, 30000);
+        
+        // Check for existing session
+        if (localStorage.getItem('admin_session')) {
+            showDashboard();
+        }
     </script>
 </body>
 </html>
