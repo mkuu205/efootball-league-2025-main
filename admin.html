@@ -36,7 +36,7 @@
             --info: #06b6d4;
             --text-primary: #ffffff;
             --text-secondary: #a1a1aa;
-            --text-muted: #6b7280;
+            --text-muted: #b0b8c1;
             --glass-blur: blur(12px);
             --shadow-sm: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
             --shadow-md: 0 10px 15px -3px rgba(0, 0, 0, 0.4);
@@ -176,7 +176,7 @@
             font-size: 12px;
         }
         
-        /* Modern Tables */
+        /* Modern Tables - FIXED CONTRAST */
         .table {
             color: var(--text-primary);
         }
@@ -197,10 +197,38 @@
         .table-dark td {
             border-bottom: 1px solid var(--border-light);
             vertical-align: middle;
+            color: rgba(255, 255, 255, 0.9) !important;
+        }
+        
+        .table-dark tbody tr {
+            background-color: #1f2430 !important;
         }
         
         .table-dark tbody tr:hover {
-            background: rgba(59, 130, 246, 0.05);
+            background-color: rgba(59, 130, 246, 0.15) !important;
+        }
+        
+        /* Ensure all table text is readable */
+        .table td, 
+        .table th {
+            color: var(--text-primary) !important;
+        }
+        
+        .table a, 
+        .table span, 
+        .table button {
+            color: inherit;
+        }
+        
+        /* Fix text-muted contrast */
+        .text-muted {
+            color: var(--text-muted) !important;
+        }
+        
+        /* Modal table text */
+        .modal-content .table-dark td,
+        .modal-content .table-dark th {
+            color: rgba(255, 255, 255, 0.9) !important;
         }
         
         /* Modern Tabs */
@@ -555,7 +583,7 @@
                 <li class="nav-item" role="presentation">
                     <button class="nav-link" id="registrations-tab" data-bs-toggle="tab" data-bs-target="#registrations-panel" type="button" role="tab">
                         <i class="fas fa-user-check me-2"></i>Registrations
-                        <span class="badge bg-success ms-1" id="pending-registrations-badge">0</span>
+                        <span class="badge bg-success ms-1" id="paid-registrations-badge">0</span>
                     </button>
                 </li>
                 <li class="nav-item" role="presentation">
@@ -674,14 +702,14 @@
                                     <div class="table-responsive">
                                         <table class="table table-dark table-hover" id="players-table">
                                             <thead>
-                                                <tr>
+                                                 <tr>
                                                     <th>Player</th>
                                                     <th>Team</th>
                                                     <th>Strength</th>
                                                     <th>Matches</th>
                                                     <th>Points</th>
                                                     <th>Actions</th>
-                                                </tr>
+                                                 </tr>
                                             </thead>
                                             <tbody>
                                                 <!-- Players will be loaded here -->
@@ -1335,10 +1363,10 @@
             document.getElementById('last-sync').textContent = lastSync ? new Date(lastSync).toLocaleString() : 'Never';
         }
 
-        // Load player registrations
+        // Load player registrations - FIXED: Count paid players only
         async function loadRegistrations() {
             const tbody = document.getElementById('registrations-tbody');
-            tbody.innerHTML = '苦难<td colspan="8" class="text-center"><i class="fas fa-spinner fa-spin"></i> Loading...</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="8" class="text-center"><i class="fas fa-spinner fa-spin"></i> Loading...</td></tr>';
             
             try {
                 const response = await fetch('/api/players/registered');
@@ -1346,12 +1374,17 @@
                 
                 if (!data.success || !data.players || data.players.length === 0) {
                     tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted">No registrations yet</td></tr>';
-                    document.getElementById('pending-registrations-badge').textContent = '0';
+                    document.getElementById('paid-registrations-badge').textContent = '0';
                     return;
                 }
                 
-                const pendingCount = data.players.filter(p => p.payment_status === 'pending' || p.status !== 'active').length;
-                document.getElementById('pending-registrations-badge').textContent = pendingCount;
+                // FIXED: Count PAID players only (payment_status completed OR payment_date exists)
+                const paidCount = data.players.filter(p => {
+                    const paymentStatus = (p.payment_status || '').toLowerCase();
+                    return paymentStatus === 'completed' || p.payment_date;
+                }).length;
+                
+                document.getElementById('paid-registrations-badge').textContent = paidCount;
                 
                 tbody.innerHTML = data.players.map(function(player) {
                     const hasCompletedPayment = player.payment_status === 'completed' || player.payment_date;
@@ -1686,7 +1719,7 @@
                             ${data.fixtures.map(f => `
                                 <tr>
                                     <td>R${f.round} M${f.match_number}</td>
-                                    <td>${f.home_player?.name || 'TBD'}</td>
+                                    <td>${f.home_player?.name || 'TBD'}--</td>
                                     <td>
                                         ${f.played ? 
                                             `<span class="badge bg-info">${f.home_score} - ${f.away_score}</span>` :
@@ -1694,22 +1727,22 @@
                                              -
                                              <input type="number" class="form-control form-control-sm bg-dark text-light d-inline" style="width:40px" id="away-${f.id}" min="0" value="0">`
                                         }
-                                    </td>
-                                    <td>${f.away_player?.name || 'TBD'}</td>
+                                     </td>
+                                    <td>${f.away_player?.name || 'TBD'} </td>
                                     <td>
                                         ${!f.played ? `<button class="btn btn-xs btn-success" onclick="recordFixtureResult(${f.id})"><i class="fas fa-check"></i></button>` : '<i class="fas fa-check-circle text-success"></i>'}
-                                    </td>
-                                比
+                                     </td>
+                                 </tr>
                             `).join('')}
                         </tbody>
-                    </table>` :
+                     </table>` :
                     '<p class="text-muted text-center">No fixtures generated yet. Click "Generate Fixtures" to create matches.</p>';
                 document.getElementById('tournament-fixtures-list').innerHTML = fixturesHtml;
                 
                 // Standings
                 const standingsHtml = data.standings.length ?
                     `<table class="table table-dark table-sm">
-                        <thead><tr><th>#</th><th>Player</th><th>P</th><th>W</th><th>D</th><th>L</th><th>GD</th><th>Pts</th> </thead>
+                        <thead> <tr><th>#</th><th>Player</th><th>P</th><th>W</th><th>D</th><th>L</th><th>GD</th><th>Pts</th> </tr></thead>
                         <tbody>
                             ${data.standings.map((s, i) => `
                                 <tr>
@@ -1721,7 +1754,7 @@
                                     <td>${s.losses}</td>
                                     <td>${s.goal_difference >= 0 ? '+' : ''}${s.goal_difference}</td>
                                     <td><strong>${s.points}</strong></td>
-                                 </tr>
+                                </tr>
                             `).join('')}
                         </tbody>
                     </table>` :
