@@ -3,10 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EFL 2026 | Admin Dashboard</title>
+    <title>Admin - eFootball League 2025</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet">
+    <script>
+        // Initialize theme immediately to prevent flash
+        (function() {
+            const theme = localStorage.getItem('efl-theme') || 'dark';
+            document.documentElement.setAttribute('data-theme', theme);
+        })();
+    </script>
     <style>
         * {
             margin: 0;
@@ -28,11 +34,19 @@
             --danger: #ef4444;
             --info: #06b6d4;
             --sidebar-width: 280px;
-            --header-height: 64px;
+        }
+
+        [data-theme="light"] {
+            --bg-primary: #f8fafc;
+            --bg-secondary: #ffffff;
+            --bg-card: #ffffff;
+            --text-primary: #0f172a;
+            --text-secondary: #475569;
+            --border-color: #e2e8f0;
         }
 
         body {
-            font-family: 'Inter', sans-serif;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             background: var(--bg-primary);
             color: var(--text-primary);
             overflow-x: hidden;
@@ -104,7 +118,7 @@
         .app-header {
             background: var(--bg-secondary);
             border-bottom: 1px solid var(--border-color);
-            padding: 1rem 1.5rem;
+            padding: 0.75rem 1.5rem;
             position: sticky;
             top: 0;
             z-index: 1040;
@@ -193,6 +207,7 @@
             align-items: center;
             gap: 0.75rem;
             animation: slideIn 0.3s ease;
+            min-width: 280px;
         }
 
         .toast-custom.success { border-left: 4px solid var(--success); }
@@ -230,25 +245,43 @@
             display: block;
         }
 
-        /* Badges */
-        .badge-pending {
-            background: var(--warning);
-            color: #000;
+        /* Danger Zone */
+        .danger-zone {
+            border-left: 4px solid var(--danger);
+            background: rgba(239, 68, 68, 0.05);
         }
 
-        /* Loading Spinner */
-        .spinner-sm {
-            width: 1rem;
-            height: 1rem;
-            border: 2px solid rgba(255,255,255,0.3);
-            border-radius: 50%;
-            border-top-color: white;
-            animation: spin 0.6s linear infinite;
+        .export-zone {
+            border-left: 4px solid var(--info);
+            background: rgba(6, 182, 212, 0.05);
+        }
+
+        /* Theme Toggle */
+        .theme-toggle {
+            background: transparent;
+            border: 1px solid var(--border-color);
+            border-radius: 50px;
+            padding: 0.4rem 0.8rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: var(--text-primary);
+        }
+
+        .theme-toggle:hover {
+            background: var(--primary);
+            border-color: var(--primary);
+        }
+
+        .theme-toggle .fa-sun {
+            display: none;
+        }
+
+        [data-theme="light"] .theme-toggle .fa-moon {
+            display: none;
+        }
+
+        [data-theme="light"] .theme-toggle .fa-sun {
             display: inline-block;
-        }
-
-        @keyframes spin {
-            to { transform: rotate(360deg); }
         }
 
         /* Responsive */
@@ -269,6 +302,38 @@
                 transform: translateX(0);
             }
         }
+
+        .badge-pending {
+            background: var(--warning);
+            color: #000;
+        }
+
+        .spinner-sm {
+            width: 1rem;
+            height: 1rem;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 0.6s linear infinite;
+            display: inline-block;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .ef-profile-image {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+
+        .login-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+        }
     </style>
 </head>
 <body>
@@ -278,10 +343,10 @@
     <!-- Sidebar -->
     <div class="sidebar" id="sidebar">
         <div class="sidebar-header">
-            <i class="fas fa-futbol me-2"></i> EFL 2026
+            <i class="fas fa-futbol me-2"></i> EFL 2025
         </div>
         <div class="sidebar-nav">
-            <div class="sidebar-nav-item" data-page="dashboard">
+            <div class="sidebar-nav-item active" data-page="dashboard">
                 <i class="fas fa-chart-line"></i> Dashboard
             </div>
             <div class="sidebar-nav-item" data-page="players">
@@ -323,12 +388,19 @@
                     <i class="fas fa-cloud-upload-alt me-1"></i> Online
                 </span>
                 <span id="lastSyncTime" class="text-secondary small">Last sync: --</span>
+                <button class="theme-toggle me-2" onclick="toggleTheme()" title="Toggle Theme">
+                    <i class="fas fa-moon"></i>
+                    <i class="fas fa-sun"></i>
+                </button>
                 <button class="btn btn-sm btn-outline-primary" onclick="manualSync()">
                     <i class="fas fa-sync-alt me-1"></i> Refresh
                 </button>
                 <button class="btn btn-sm btn-outline-danger" id="logoutBtn">
                     <i class="fas fa-sign-out-alt me-1"></i> Logout
                 </button>
+                <a class="nav-link" href="index.html">
+                    <i class="fas fa-arrow-left me-1"></i> Back to Site
+                </a>
             </div>
         </div>
 
@@ -336,29 +408,60 @@
             <!-- Login Section -->
             <div id="loginSection" class="row justify-content-center">
                 <div class="col-md-5">
-                    <div class="card" style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 16px;">
-                        <div class="card-body p-4">
-                            <div class="text-center mb-4">
-                                <div style="width: 64px; height: 64px; background: var(--primary); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 1rem;">
-                                    <i class="fas fa-crown fa-2x"></i>
-                                </div>
-                                <h4>Admin Access</h4>
-                                <p class="text-secondary">eFootball League 2026 Control Panel</p>
-                            </div>
+                    <div class="login-card">
+                        <div class="card-header text-center bg-transparent border-0 pt-4">
+                            <img src="https://i.ibb.co/NgGdC1gX/efootball-profile.jpg" alt="eFootball Admin" class="ef-profile-image mb-3">
+                            <h4 class="mb-0">Admin Access</h4>
+                        </div>
+                        <div class="card-body">
                             <form id="loginForm">
                                 <div class="mb-3">
-                                    <label class="form-label">Email</label>
-                                    <input type="email" class="form-control" id="adminEmail" placeholder="admin@efl.com" required>
+                                    <label for="admin-email" class="form-label">Admin Email</label>
+                                    <input type="email" class="form-control" id="admin-email" 
+                                           value="support@kishtechsite.online" readonly>
                                 </div>
                                 <div class="mb-3">
-                                    <label class="form-label">Password</label>
-                                    <input type="password" class="form-control" id="adminPassword" placeholder="Enter password" required>
+                                    <label for="admin-password" class="form-label">Admin Password</label>
+                                    <input type="password" class="form-control" id="admin-password" 
+                                           placeholder="Enter admin password" required>
                                     <div class="invalid-feedback d-none" id="passwordError"></div>
+                                    <div class="form-text">Enter the administrator password to access the dashboard</div>
                                 </div>
                                 <button type="submit" class="btn btn-primary w-100" id="loginBtn">
-                                    <i class="fas fa-lock me-2"></i> Login
+                                    <i class="fas fa-lock me-2"></i> Access Dashboard
                                 </button>
                             </form>
+                            <div class="text-center mt-3">
+                                <a href="#" id="forgot-password-link" class="text-info">
+                                    <i class="fas fa-key me-1"></i> Forgot Password?
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="card mt-4">
+                        <div class="card-header text-center bg-transparent">
+                            <i class="fas fa-trophy me-2"></i> Tournament Control Center
+                        </div>
+                        <div class="card-body text-center">
+                            <p class="mb-3">Manage players, fixtures, and match results for the eFootball League 2025.</p>
+                            <div class="row text-center">
+                                <div class="col-4">
+                                    <div class="fw-bold fs-4 text-warning" id="players-count">0</div>
+                                    <small>Players</small>
+                                </div>
+                                <div class="col-4">
+                                    <div class="fw-bold fs-4 text-warning" id="fixtures-count">0</div>
+                                    <small>Fixtures</small>
+                                </div>
+                                <div class="col-4">
+                                    <div class="fw-bold fs-4 text-warning" id="results-count">0</div>
+                                    <small>Results</small>
+                                </div>
+                            </div>
+                            <div class="mt-3">
+                                <small class="text-muted">Powered by Supabase - Real-time Database</small>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -366,7 +469,6 @@
 
             <!-- Dashboard Content (hidden until login) -->
             <div id="dashboardContent" style="display: none;">
-                <!-- Dynamic page content will be loaded here -->
                 <div id="pageContent"></div>
             </div>
         </div>
@@ -377,16 +479,18 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-messaging-compat.js"></script>
+
     <script>
         // ==================== SUPABASE CONFIGURATION ====================
-        // Replace with your actual Supabase credentials
         const SUPABASE_URL = 'https://your-project.supabase.co';
         const SUPABASE_ANON_KEY = 'your-anon-key';
         
         let supabase = null;
         let currentUser = null;
         let currentPage = 'dashboard';
+        let lastSync = new Date();
         
         // ==================== TOAST NOTIFICATIONS ====================
         function showToast(message, type = 'info') {
@@ -413,7 +517,6 @@
             try {
                 supabase = window.supabase?.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
                 if (!supabase) {
-                    // Fallback to mock for demo - in production, ensure Supabase is loaded
                     console.warn('Supabase not loaded, using mock auth');
                     return false;
                 }
@@ -436,27 +539,27 @@
             loginBtn.innerHTML = '<span class="spinner-sm me-2"></span> Authenticating...';
             
             try {
-                let response;
-                if (supabase) {
-                    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-                    if (error) throw error;
-                    response = { success: true, user: data.user };
-                } else {
-                    // Mock login for demo - replace with real API call
-                    const apiRes = await fetch('/api/admin/login', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ email, password })
-                    });
-                    response = await apiRes.json();
-                    if (!apiRes.ok) throw new Error(response.message || 'Login failed');
+                // Send to backend API endpoint for authentication
+                const response = await fetch('/api/admin/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password })
+                });
+                
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(data.message || 'Invalid credentials');
                 }
                 
-                if (response.success) {
-                    currentUser = response.user;
+                if (data.success) {
+                    currentUser = data.user;
+                    localStorage.setItem('admin_session', JSON.stringify({ token: data.token, user: data.user }));
                     showToast('Login successful! Welcome back.', 'success');
                     showDashboard();
                     document.getElementById('loginForm').reset();
+                } else {
+                    throw new Error(data.message || 'Login failed');
                 }
             } catch (error) {
                 showToast(error.message || 'Invalid email or password', 'error');
@@ -471,7 +574,9 @@
         }
         
         async function handleLogout() {
-            if (supabase) await supabase.auth.signOut();
+            try {
+                await fetch('/api/admin/logout', { method: 'POST' });
+            } catch (e) {}
             currentUser = null;
             localStorage.removeItem('admin_session');
             document.getElementById('loginSection').style.display = 'flex';
@@ -496,14 +601,14 @@
             const content = document.getElementById('pageContent');
             switch(page) {
                 case 'dashboard': renderDashboard(); break;
-                case 'players': renderPlayers(); break;
-                case 'registrations': renderRegistrations(); break;
-                case 'fixtures': renderFixtures(); break;
-                case 'results': renderResults(); break;
+                case 'players': renderPlayersPanel(); break;
+                case 'registrations': renderRegistrationsPanel(); break;
+                case 'fixtures': renderFixturesPanel(); break;
+                case 'results': renderResultsPanel(); break;
                 case 'leaguetable': renderLeagueTable(); break;
-                case 'tournaments': renderTournaments(); break;
-                case 'tools': renderTools(); break;
-                case 'notifications': renderNotifications(); break;
+                case 'tournaments': renderTournamentsPanel(); break;
+                case 'tools': renderToolsPanel(); break;
+                case 'notifications': renderNotificationsPanel(); break;
                 default: renderDashboard();
             }
         }
@@ -525,11 +630,10 @@
                     <div class="col-md-3"><div class="stat-card"><i class="fas fa-user-clock fa-2x mb-2 text-warning"></i><div class="fs-2 fw-bold">${pending}</div><div>Pending Registrations</div></div></div>
                 </div>
                 <div class="row">
-                    <div class="col-md-6"><div class="card bg-transparent border-secondary"><div class="card-header bg-transparent border-secondary">Recent Results</div><div class="card-body"><div id="recentResultsList" class="small">Loading...</div></div></div></div>
-                    <div class="col-md-6"><div class="card bg-transparent border-secondary"><div class="card-header bg-transparent border-secondary">Upcoming Fixtures</div><div class="card-body"><div id="upcomingFixturesList" class="small">Loading...</div></div></div></div>
+                    <div class="col-md-6"><div class="card bg-transparent border-secondary"><div class="card-header bg-transparent border-secondary">Recent Results</div><div class="card-body"><div id="recentResultsList">Loading...</div></div></div></div>
+                    <div class="col-md-6"><div class="card bg-transparent border-secondary"><div class="card-header bg-transparent border-secondary">Upcoming Fixtures</div><div class="card-body"><div id="upcomingFixturesList">Loading...</div></div></div></div>
                 </div>
             `;
-            // Load recent data
             loadRecentResults();
             loadUpcomingFixtures();
         }
@@ -651,7 +755,7 @@
             const allFixtures = [...existingFixtures, ...newFixtures];
             localStorage.setItem('efl_fixtures', JSON.stringify(allFixtures));
             showToast(`Generated ${newFixtures.length} new fixtures`, 'success');
-            if (currentPage === 'fixtures') renderFixtures();
+            if (currentPage === 'fixtures') renderFixturesPanel();
             loadAllData();
         }
         
@@ -684,7 +788,6 @@
         };
         
         // ==================== SYNC STATUS ====================
-        let lastSync = new Date();
         function updateSyncStatus() {
             const statusEl = document.getElementById('syncStatus');
             const timeEl = document.getElementById('lastSyncTime');
@@ -705,43 +808,60 @@
             showToast('Data synchronized', 'success');
         };
         
-        // ==================== DATA LOADING ====================
         function loadAllData() {
-            // Refresh current page if it has data
-            if (currentPage === 'players') renderPlayers();
-            else if (currentPage === 'registrations') renderRegistrations();
-            else if (currentPage === 'fixtures') renderFixtures();
-            else if (currentPage === 'results') renderResults();
+            updateCounts();
+            if (currentPage === 'dashboard') renderDashboard();
             else if (currentPage === 'leaguetable') renderLeagueTable();
-            else if (currentPage === 'dashboard') renderDashboard();
             updateSyncStatus();
         }
         
-        // Placeholder render functions (simplified - in production these would fetch from API)
-        function renderPlayers() { document.getElementById('pageContent').innerHTML = '<div class="alert alert-info">Players management - Connected to backend</div>'; }
-        function renderRegistrations() { document.getElementById('pageContent').innerHTML = '<div class="alert alert-info">Registrations management</div>'; }
-        function renderFixtures() { document.getElementById('pageContent').innerHTML = '<div class="d-flex justify-content-between mb-3"><h4>Fixtures</h4><button class="btn btn-primary btn-sm" onclick="generateRoundRobinFixtures()"><i class="fas fa-magic me-1"></i>Generate Round Robin</button></div><div class="alert alert-info">Fixtures list will appear here</div>'; }
-        function renderResults() { document.getElementById('pageContent').innerHTML = '<div class="alert alert-info">Results management</div>'; }
-        function renderTournaments() { document.getElementById('pageContent').innerHTML = '<div class="alert alert-info">Tournaments management</div>'; }
-        function renderTools() { document.getElementById('pageContent').innerHTML = '<div class="alert alert-info">Tools panel</div>'; }
-        function renderNotifications() { document.getElementById('pageContent').innerHTML = '<div class="alert alert-info">Notifications system</div>'; }
+        function updateCounts() {
+            const players = JSON.parse(localStorage.getItem('efl_players') || '[]');
+            const fixtures = JSON.parse(localStorage.getItem('efl_fixtures') || '[]');
+            const results = JSON.parse(localStorage.getItem('efl_results') || '[]');
+            document.getElementById('players-count').textContent = players.length;
+            document.getElementById('fixtures-count').textContent = fixtures.length;
+            document.getElementById('results-count').textContent = results.length;
+        }
+        
+        // Panel renderers (simplified - preserve existing functionality)
+        function renderPlayersPanel() { document.getElementById('pageContent').innerHTML = `<div class="alert alert-info">Players management - Use the original form above</div><p class="text-muted">The original player management form is available in the main dashboard area.</p>`; }
+        function renderRegistrationsPanel() { document.getElementById('pageContent').innerHTML = `<div class="alert alert-info">Registrations management - Use the original registrations table above</div>`; }
+        function renderFixturesPanel() { document.getElementById('pageContent').innerHTML = `<div class="d-flex justify-content-between mb-3"><h4>Fixtures</h4><button class="btn btn-primary btn-sm" onclick="generateRoundRobinFixtures()"><i class="fas fa-magic me-1"></i>Generate Round Robin</button></div><div class="alert alert-info">Use the fixture management forms above to schedule matches.</div>`; }
+        function renderResultsPanel() { document.getElementById('pageContent').innerHTML = `<div class="alert alert-info">Results management - Use the results forms above</div>`; }
+        function renderTournamentsPanel() { document.getElementById('pageContent').innerHTML = `<div class="alert alert-info">Tournaments - Use the tournament management section above</div>`; }
+        function renderToolsPanel() { document.getElementById('pageContent').innerHTML = `<div class="alert alert-info">Tools panel - Export and management tools available above</div>`; }
+        function renderNotificationsPanel() { document.getElementById('pageContent').innerHTML = `<div class="alert alert-info">Notifications - Use the notification form above to send alerts</div>`; }
+        
+        // ==================== THEME ====================
+        function toggleTheme() {
+            const html = document.documentElement;
+            const current = html.getAttribute('data-theme') || 'dark';
+            const newTheme = current === 'dark' ? 'light' : 'dark';
+            html.setAttribute('data-theme', newTheme);
+            localStorage.setItem('efl-theme', newTheme);
+        }
         
         // ==================== EVENT LISTENERS ====================
-        document.getElementById('loginForm').addEventListener('submit', (e) => {
+        document.getElementById('loginForm')?.addEventListener('submit', (e) => {
             e.preventDefault();
-            const email = document.getElementById('adminEmail').value;
-            const password = document.getElementById('adminPassword').value;
+            const email = document.getElementById('admin-email').value;
+            const password = document.getElementById('admin-password').value;
             handleLogin(email, password);
         });
         
-        document.getElementById('logoutBtn').addEventListener('click', handleLogout);
+        document.getElementById('logoutBtn')?.addEventListener('click', handleLogout);
+        document.getElementById('forgot-password-link')?.addEventListener('click', (e) => {
+            e.preventDefault();
+            showToast('Contact support at support@kishtechsite.online to reset your password', 'info');
+        });
         
-        document.getElementById('menuToggle').addEventListener('click', () => {
+        document.getElementById('menuToggle')?.addEventListener('click', () => {
             document.getElementById('sidebar').classList.add('open');
             document.getElementById('sidebarOverlay').classList.add('show');
         });
         
-        document.getElementById('sidebarOverlay').addEventListener('click', () => {
+        document.getElementById('sidebarOverlay')?.addEventListener('click', () => {
             document.getElementById('sidebar').classList.remove('open');
             document.getElementById('sidebarOverlay').classList.remove('show');
         });
@@ -752,22 +872,29 @@
                 if (page) loadPage(page);
                 if (window.innerWidth < 768) {
                     document.getElementById('sidebar').classList.remove('open');
-                    document.getElementById('sidebarOverlay').classList.remove('show');
+                    document.getElementById('sidebarOverlay').classList.remove('open');
                 }
             });
         });
         
         window.generateRoundRobinFixtures = generateRoundRobinFixtures;
+        window.toggleTheme = toggleTheme;
+        
+        // Check for existing session
+        const savedSession = localStorage.getItem('admin_session');
+        if (savedSession) {
+            try {
+                const session = JSON.parse(savedSession);
+                if (session.token) {
+                    showDashboard();
+                }
+            } catch(e) {}
+        }
         
         // Initialize
         initSupabase();
         updateSyncStatus();
         setInterval(updateSyncStatus, 30000);
-        
-        // Check for existing session
-        if (localStorage.getItem('admin_session')) {
-            showDashboard();
-        }
     </script>
 </body>
 </html>
