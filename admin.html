@@ -3,9 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin - eFootball League 2025</title>
+    <title>Admin - eFootball League 2026</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="css/style.css">
     <script>
         // Initialize theme immediately to prevent flash
         (function() {
@@ -14,826 +15,940 @@
         })();
     </script>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
+        .danger-zone {
+            border-left: 4px solid #dc3545;
+            background: rgba(220, 53, 69, 0.1);
         }
-
-        :root {
-            --bg-primary: #0f172a;
-            --bg-secondary: #1e293b;
-            --bg-card: #1e293b;
-            --text-primary: #f1f5f9;
-            --text-secondary: #94a3b8;
-            --border-color: #334155;
-            --primary: #3b82f6;
-            --primary-dark: #2563eb;
-            --success: #22c55e;
-            --warning: #f59e0b;
-            --danger: #ef4444;
-            --info: #06b6d4;
-            --sidebar-width: 280px;
+        .export-zone {
+            border-left: 4px solid #0dcaf0;
+            background: rgba(13, 202, 240, 0.1);
         }
-
-        [data-theme="light"] {
-            --bg-primary: #f8fafc;
-            --bg-secondary: #ffffff;
-            --bg-card: #ffffff;
-            --text-primary: #0f172a;
-            --text-secondary: #475569;
-            --border-color: #e2e8f0;
+        .error-item {
+            border-left: 3px solid #dc3545;
+            margin-bottom: 10px;
+            padding: 10px;
+            background: rgba(220, 53, 69, 0.05);
         }
-
-        body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: var(--bg-primary);
-            color: var(--text-primary);
-            overflow-x: hidden;
+        .error-item:hover {
+            background: rgba(220, 53, 69, 0.1);
         }
-
-        /* Sidebar */
-        .sidebar {
-            position: fixed;
-            left: 0;
-            top: 0;
-            width: var(--sidebar-width);
-            height: 100vh;
-            background: var(--bg-secondary);
-            border-right: 1px solid var(--border-color);
-            transform: translateX(-100%);
-            transition: transform 0.3s ease;
-            z-index: 1050;
-            overflow-y: auto;
+        .conflict-warning {
+            border-left: 3px solid #ffc107;
+            background: rgba(255, 193, 7, 0.05);
         }
-
-        .sidebar.open {
-            transform: translateX(0);
-        }
-
-        .sidebar-header {
-            padding: 1.5rem;
-            border-bottom: 1px solid var(--border-color);
-            font-weight: 700;
-            font-size: 1.25rem;
-        }
-
-        .sidebar-nav {
-            padding: 1rem 0;
-        }
-
-        .sidebar-nav-item {
-            padding: 0.75rem 1.5rem;
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-            color: var(--text-secondary);
-            text-decoration: none;
-            transition: all 0.2s;
-            cursor: pointer;
-        }
-
-        .sidebar-nav-item:hover, .sidebar-nav-item.active {
-            background: var(--bg-primary);
-            color: var(--primary);
-            border-left: 3px solid var(--primary);
-        }
-
-        .sidebar-nav-item i {
-            width: 24px;
-        }
-
-        /* Main Content */
-        .main-content {
-            margin-left: 0;
-            transition: margin-left 0.3s ease;
-            min-height: 100vh;
-        }
-
-        .main-content.sidebar-open {
-            margin-left: var(--sidebar-width);
-        }
-
-        /* Header */
-        .app-header {
-            background: var(--bg-secondary);
-            border-bottom: 1px solid var(--border-color);
-            padding: 0.75rem 1.5rem;
-            position: sticky;
-            top: 0;
-            z-index: 1040;
-        }
-
-        /* Cards */
-        .stat-card {
-            background: var(--bg-card);
-            border: 1px solid var(--border-color);
-            border-radius: 12px;
-            padding: 1.25rem;
-            transition: transform 0.2s;
-        }
-
-        .stat-card:hover {
-            transform: translateY(-2px);
-        }
-
-        /* Tables */
-        .table-custom {
-            background: var(--bg-card);
-            border: 1px solid var(--border-color);
-            border-radius: 12px;
-            overflow: hidden;
-        }
-
-        .table-custom th {
-            background: var(--bg-secondary);
-            border-bottom: 1px solid var(--border-color);
-            color: var(--text-secondary);
-            font-weight: 600;
-            font-size: 0.75rem;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-
-        .table-custom td {
-            border-bottom: 1px solid var(--border-color);
-            vertical-align: middle;
-        }
-
-        /* Forms */
-        .form-control, .form-select {
-            background: var(--bg-secondary);
-            border: 1px solid var(--border-color);
-            color: var(--text-primary);
-            border-radius: 8px;
-            padding: 0.625rem 0.875rem;
-        }
-
-        .form-control:focus, .form-select:focus {
-            background: var(--bg-secondary);
-            border-color: var(--primary);
-            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-            color: var(--text-primary);
-        }
-
-        /* Buttons */
-        .btn-primary {
-            background: var(--primary);
-            border: none;
-            border-radius: 8px;
-            padding: 0.5rem 1rem;
-            font-weight: 500;
-        }
-
-        .btn-primary:hover {
-            background: var(--primary-dark);
-        }
-
-        /* Toast Notifications */
-        .toast-container {
-            position: fixed;
-            top: 1rem;
-            right: 1rem;
-            z-index: 1100;
-        }
-
-        .toast-custom {
-            background: var(--bg-secondary);
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            padding: 0.75rem 1rem;
-            margin-bottom: 0.5rem;
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-            animation: slideIn 0.3s ease;
-            min-width: 280px;
-        }
-
-        .toast-custom.success { border-left: 4px solid var(--success); }
-        .toast-custom.error { border-left: 4px solid var(--danger); }
-        .toast-custom.warning { border-left: 4px solid var(--warning); }
-        .toast-custom.info { border-left: 4px solid var(--info); }
-
-        @keyframes slideIn {
-            from { transform: translateX(100%); opacity: 0; }
-            to { transform: translateX(0); opacity: 1; }
-        }
-
-        /* Mobile Menu Toggle */
-        .menu-toggle {
-            display: block;
-            background: none;
-            border: none;
-            color: var(--text-primary);
-            font-size: 1.5rem;
-            cursor: pointer;
-        }
-
-        .overlay {
+        .loading-overlay {
             position: fixed;
             top: 0;
             left: 0;
             right: 0;
             bottom: 0;
-            background: rgba(0, 0, 0, 0.5);
-            z-index: 1045;
-            display: none;
+            background: rgba(0,0,0,0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
         }
-
-        .overlay.show {
-            display: block;
+        .fixture-card {
+            transition: all 0.3s ease;
         }
-
-        /* Danger Zone */
-        .danger-zone {
-            border-left: 4px solid var(--danger);
-            background: rgba(239, 68, 68, 0.05);
+        .fixture-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
         }
-
-        .export-zone {
-            border-left: 4px solid var(--info);
-            background: rgba(6, 182, 212, 0.05);
+        .export-btn-group .btn {
+            margin: 2px;
         }
-
-        /* Theme Toggle */
-        .theme-toggle {
-            background: transparent;
-            border: 1px solid var(--border-color);
-            border-radius: 50px;
-            padding: 0.4rem 0.8rem;
-            cursor: pointer;
-            transition: all 0.2s;
-            color: var(--text-primary);
-        }
-
-        .theme-toggle:hover {
-            background: var(--primary);
-            border-color: var(--primary);
-        }
-
-        .theme-toggle .fa-sun {
-            display: none;
-        }
-
-        [data-theme="light"] .theme-toggle .fa-moon {
-            display: none;
-        }
-
-        [data-theme="light"] .theme-toggle .fa-sun {
-            display: inline-block;
-        }
-
-        /* Responsive */
-        @media (min-width: 768px) {
-            .sidebar {
-                transform: translateX(0);
-            }
-            .main-content {
-                margin-left: var(--sidebar-width);
-            }
-            .menu-toggle {
-                display: none;
-            }
-        }
-
-        @media (max-width: 767px) {
-            .sidebar.open {
-                transform: translateX(0);
-            }
-        }
-
-        .badge-pending {
-            background: var(--warning);
-            color: #000;
-        }
-
-        .spinner-sm {
-            width: 1rem;
-            height: 1rem;
-            border: 2px solid rgba(255,255,255,0.3);
-            border-radius: 50%;
-            border-top-color: white;
-            animation: spin 0.6s linear infinite;
-            display: inline-block;
-        }
-
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-
-        .ef-profile-image {
-            width: 80px;
-            height: 80px;
-            border-radius: 50%;
-            object-fit: cover;
-        }
-
-        .login-card {
-            background: var(--bg-card);
-            border: 1px solid var(--border-color);
-            border-radius: 16px;
+        .schedule-preview {
+            max-height: 400px;
+            overflow-y: auto;
         }
     </style>
 </head>
 <body>
-    <!-- Overlay -->
-    <div class="overlay" id="sidebarOverlay"></div>
-
-    <!-- Sidebar -->
-    <div class="sidebar" id="sidebar">
-        <div class="sidebar-header">
-            <i class="fas fa-futbol me-2"></i> EFL 2025
-        </div>
-        <div class="sidebar-nav">
-            <div class="sidebar-nav-item active" data-page="dashboard">
-                <i class="fas fa-chart-line"></i> Dashboard
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark sticky-top">
+        <div class="container">
+            <div class="logo-container">
+                <div class="logo">EFL</div>
+                <span class="navbar-brand mb-0 h1">eFootball League 2026 - Admin</span>
             </div>
-            <div class="sidebar-nav-item" data-page="players">
-                <i class="fas fa-users"></i> Players
-            </div>
-            <div class="sidebar-nav-item" data-page="registrations">
-                <i class="fas fa-user-check"></i> Registrations
-                <span class="badge bg-warning ms-auto" id="sidebarPendingBadge" style="display: none;">0</span>
-            </div>
-            <div class="sidebar-nav-item" data-page="fixtures">
-                <i class="fas fa-calendar-alt"></i> Fixtures
-            </div>
-            <div class="sidebar-nav-item" data-page="results">
-                <i class="fas fa-futbol"></i> Results
-            </div>
-            <div class="sidebar-nav-item" data-page="leaguetable">
-                <i class="fas fa-table"></i> League Table
-            </div>
-            <div class="sidebar-nav-item" data-page="tournaments">
-                <i class="fas fa-trophy"></i> Tournaments
-            </div>
-            <div class="sidebar-nav-item" data-page="tools">
-                <i class="fas fa-tools"></i> Tools
-            </div>
-            <div class="sidebar-nav-item" data-page="notifications">
-                <i class="fas fa-bell"></i> Notifications
-            </div>
-        </div>
-    </div>
-
-    <!-- Main Content -->
-    <div class="main-content" id="mainContent">
-        <div class="app-header d-flex justify-content-between align-items-center">
-            <button class="menu-toggle" id="menuToggle">
-                <i class="fas fa-bars"></i>
-            </button>
-            <div class="d-flex align-items-center gap-3">
-                <span id="syncStatus" class="badge bg-success">
-                    <i class="fas fa-cloud-upload-alt me-1"></i> Online
+            
+            <!-- Sync Status -->
+            <div class="navbar-text ms-3">
+                <span id="sync-status" class="badge bg-success">
+                    <i class="fas fa-cloud me-1"></i>Supabase Online
                 </span>
-                <span id="lastSyncTime" class="text-secondary small">Last sync: --</span>
+            </div>
+
+            <div class="navbar-nav ms-auto align-items-center">
+                <button class="btn btn-outline-info btn-sm me-2" onclick="manualSync()">
+                    <i class="fas fa-sync-alt me-1"></i> Refresh Data
+                </button>
                 <button class="theme-toggle me-2" onclick="toggleTheme()" title="Toggle Theme">
                     <i class="fas fa-moon"></i>
                     <i class="fas fa-sun"></i>
                 </button>
-                <button class="btn btn-sm btn-outline-primary" onclick="manualSync()">
-                    <i class="fas fa-sync-alt me-1"></i> Refresh
-                </button>
-                <button class="btn btn-sm btn-outline-danger" id="logoutBtn">
-                    <i class="fas fa-sign-out-alt me-1"></i> Logout
-                </button>
                 <a class="nav-link" href="index.html">
                     <i class="fas fa-arrow-left me-1"></i> Back to Site
                 </a>
+                <button class="btn btn-outline-light btn-sm ms-2" id="logout-btn">
+                    <i class="fas fa-sign-out-alt me-1"></i> Logout
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container my-4">
+        <!-- Login Section -->
+        <div id="login-section" class="row justify-content-center">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header text-center">
+                        <img src="https://i.ibb.co/NgGdC1gX/efootball-profile.jpg" alt="eFootball Admin" class="ef-profile-image mb-3">
+                        <h4 class="mb-0">Admin Access</h4>
+                    </div>
+                    <div class="card-body">
+                        <form id="login-form">
+                            <div class="mb-3">
+                                <label for="admin-email" class="form-label">Admin Email</label>
+                                <input type="email" class="form-control" id="admin-email" 
+                                       value="support@kishtechsite.online" readonly>
+                            </div>
+                            <div class="mb-3">
+                                <label for="admin-password" class="form-label">Admin Password</label>
+                                <input type="password" class="form-control" id="admin-password" 
+                                       placeholder="Enter admin password" required>
+                            </div>
+                            <button type="submit" class="btn btn-primary w-100">
+                                <i class="fas fa-lock me-2"></i> Access Dashboard
+                            </button>
+                        </form>
+                        <div class="text-center mt-3">
+                            <a href="#" id="forgot-password-link" class="text-info">
+                                <i class="fas fa-key me-1"></i> Forgot Password?
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Tournament Info Card -->
+                <div class="card mt-4">
+                    <div class="card-header text-center">
+                        <i class="fas fa-trophy me-2"></i> Tournament Control Center
+                    </div>
+                    <div class="card-body text-center">
+                        <p class="mb-3">Manage players, fixtures, and match results for the eFootball League 2026.</p>
+                        <div class="row text-center">
+                            <div class="col-4">
+                                <div class="fw-bold fs-4 text-warning" id="players-count">0</div>
+                                <small>Players</small>
+                            </div>
+                            <div class="col-4">
+                                <div class="fw-bold fs-4 text-warning" id="fixtures-count">0</div>
+                                <small>Fixtures</small>
+                            </div>
+                            <div class="col-4">
+                                <div class="fw-bold fs-4 text-warning" id="results-count">0</div>
+                                <small>Results</small>
+                            </div>
+                        </div>
+                        <div class="mt-3">
+                            <small class="text-muted">Powered by Supabase - Real-time Database</small>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
 
-        <div class="container-fluid p-4">
-            <!-- Login Section -->
-            <div id="loginSection" class="row justify-content-center">
-                <div class="col-md-5">
-                    <div class="login-card">
-                        <div class="card-header text-center bg-transparent border-0 pt-4">
-                            <img src="https://i.ibb.co/NgGdC1gX/efootball-profile.jpg" alt="eFootball Admin" class="ef-profile-image mb-3">
-                            <h4 class="mb-0">Admin Access</h4>
-                        </div>
-                        <div class="card-body">
-                            <form id="loginForm">
-                                <div class="mb-3">
-                                    <label for="admin-email" class="form-label">Admin Email</label>
-                                    <input type="email" class="form-control" id="admin-email" 
-                                           value="support@kishtechsite.online" readonly>
-                                </div>
-                                <div class="mb-3">
-                                    <label for="admin-password" class="form-label">Admin Password</label>
-                                    <input type="password" class="form-control" id="admin-password" 
-                                           placeholder="Enter admin password" required>
-                                    <div class="invalid-feedback d-none" id="passwordError"></div>
-                                    <div class="form-text">Enter the administrator password to access the dashboard</div>
-                                </div>
-                                <button type="submit" class="btn btn-primary w-100" id="loginBtn">
-                                    <i class="fas fa-lock me-2"></i> Access Dashboard
-                                </button>
-                            </form>
-                            <div class="text-center mt-3">
-                                <a href="#" id="forgot-password-link" class="text-info">
-                                    <i class="fas fa-key me-1"></i> Forgot Password?
-                                </a>
+        <!-- Forgot Password Section -->
+        <div id="forgot-password-section" class="row justify-content-center d-none">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header text-center">
+                        <h4 class="mb-0"><i class="fas fa-key me-2"></i>Reset Password</h4>
+                    </div>
+                    <div class="card-body">
+                        <form id="forgot-password-form">
+                            <div class="mb-3">
+                                <label for="forgot-email" class="form-label">Admin Email</label>
+                                <input type="email" class="form-control" id="forgot-email" 
+                                       value="support@kishtechsite.online" readonly>
                             </div>
+                            <button type="submit" class="btn btn-primary w-100">
+                                <i class="fas fa-paper-plane me-2"></i> Send Reset Instructions
+                            </button>
+                        </form>
+                        <div class="text-center mt-3">
+                            <a href="#" class="back-to-login text-info">
+                                <i class="fas fa-arrow-left me-1"></i> Back to Login
+                            </a>
                         </div>
                     </div>
-                    
-                    <div class="card mt-4">
-                        <div class="card-header text-center bg-transparent">
-                            <i class="fas fa-trophy me-2"></i> Tournament Control Center
+                </div>
+            </div>
+        </div>
+
+        <!-- Admin Dashboard (shown after login) -->
+        <div id="admin-dashboard" class="d-none">
+            <!-- Quick Stats -->
+            <div class="row mb-4">
+                <div class="col-md-3">
+                    <div class="card text-center bg-primary text-white">
+                        <div class="card-body">
+                            <i class="fas fa-users fa-2x mb-2"></i>
+                            <h3 id="live-players">0</h3>
+                            <p class="mb-0">Total Players</p>
                         </div>
-                        <div class="card-body text-center">
-                            <p class="mb-3">Manage players, fixtures, and match results for the eFootball League 2025.</p>
-                            <div class="row text-center">
-                                <div class="col-4">
-                                    <div class="fw-bold fs-4 text-warning" id="players-count">0</div>
-                                    <small>Players</small>
-                                </div>
-                                <div class="col-4">
-                                    <div class="fw-bold fs-4 text-warning" id="fixtures-count">0</div>
-                                    <small>Fixtures</small>
-                                </div>
-                                <div class="col-4">
-                                    <div class="fw-bold fs-4 text-warning" id="results-count">0</div>
-                                    <small>Results</small>
-                                </div>
-                            </div>
-                            <div class="mt-3">
-                                <small class="text-muted">Powered by Supabase - Real-time Database</small>
-                            </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card text-center bg-warning text-dark">
+                        <div class="card-body">
+                            <i class="fas fa-calendar fa-2x mb-2"></i>
+                            <h3 id="fixtures-badge">0</h3>
+                            <p class="mb-0">Total Fixtures</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card text-center bg-success text-white">
+                        <div class="card-body">
+                            <i class="fas fa-futbol fa-2x mb-2"></i>
+                            <h3 id="results-badge">0</h3>
+                            <p class="mb-0">Match Results</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card text-center bg-info text-white">
+                        <div class="card-body">
+                            <i class="fas fa-database fa-2x mb-2"></i>
+                            <h3 id="database-status">Online</h3>
+                            <p class="mb-0">Database</p>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Dashboard Content (hidden until login) -->
-            <div id="dashboardContent" style="display: none;">
-                <div id="pageContent"></div>
+            <!-- Management Tabs -->
+            <ul class="nav nav-tabs mb-4" id="adminTabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="players-tab" data-bs-toggle="tab" data-bs-target="#players-panel" type="button" role="tab">
+                        <i class="fas fa-users me-2"></i>Players
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="registrations-tab" data-bs-toggle="tab" data-bs-target="#registrations-panel" type="button" role="tab">
+                        <i class="fas fa-user-check me-2"></i>Registrations
+                        <span class="badge bg-success ms-1" id="pending-registrations-badge">0</span>
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="fixtures-tab" data-bs-toggle="tab" data-bs-target="#fixtures-panel" type="button" role="tab">
+                        <i class="fas fa-calendar me-2"></i>Fixtures
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="results-tab" data-bs-toggle="tab" data-bs-target="#results-panel" type="button" role="tab">
+                        <i class="fas fa-futbol me-2"></i>Results
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="tournaments-tab" data-bs-toggle="tab" data-bs-target="#tournaments-panel" type="button" role="tab">
+                        <i class="fas fa-trophy me-2"></i>Tournaments
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="export-tab" data-bs-toggle="tab" data-bs-target="#export-panel" type="button" role="tab">
+                        <i class="fas fa-download me-2"></i>Export Data
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="notifications-tab" data-bs-toggle="tab" data-bs-target="#notifications-panel" type="button" role="tab">
+                        <i class="fas fa-bell me-2"></i>Notifications
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="errors-tab" data-bs-toggle="tab" data-bs-target="#errors-panel" type="button" role="tab">
+                        <i class="fas fa-exclamation-triangle me-2"></i>System Errors
+                        <span class="badge bg-danger ms-1" id="error-count-badge">0</span>
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="tools-tab" data-bs-toggle="tab" data-bs-target="#tools-panel" type="button" role="tab">
+                        <i class="fas fa-tools me-2"></i>Tools
+                    </button>
+                </li>
+            </ul>
+
+            <div class="tab-content" id="adminTabContent">
+                <!-- Players Panel (unchanged, keep existing) -->
+                <div class="tab-pane fade show active" id="players-panel" role="tabpanel">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="card">
+                                <div class="card-header">
+                                    <i class="fas fa-user-plus me-2"></i>Add New Player
+                                </div>
+                                <div class="card-body">
+                                    <form id="add-player-form">
+                                        <div class="mb-3">
+                                            <label for="playerName" class="form-label">Player Name *</label>
+                                            <input type="text" class="form-control bg-dark text-light" id="playerName" required>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="playerEmail" class="form-label">Email (Optional)</label>
+                                            <input type="email" class="form-control bg-dark text-light" id="playerEmail">
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="playerPhone" class="form-label">Phone (Optional)</label>
+                                            <input type="tel" class="form-control bg-dark text-light" id="playerPhone">
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="playerTeam" class="form-label">Team *</label>
+                                            <select class="form-select bg-dark text-light" id="playerTeam" required>
+                                                <option value="">Select team...</option>
+                                                <option value="Kenya">Kenya</option>
+                                                <option value="Chelsea">Chelsea</option>
+                                                <option value="Liverpool">Liverpool</option>
+                                                <option value="Manchester United">Manchester United</option>
+                                                <option value="Arsenal">Arsenal</option>
+                                                <option value="Manchester City">Manchester City</option>
+                                                <option value="Real Madrid">Real Madrid</option>
+                                                <option value="Barcelona">Barcelona</option>
+                                                <option value="Bayern Munich">Bayern Munich</option>
+                                            </select>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="playerStrength" class="form-label">Player Strength (1000-5000)</label>
+                                            <input type="number" class="form-control bg-dark text-light" id="playerStrength" value="2500" min="1000" max="5000">
+                                        </div>
+                                        <button type="submit" class="btn btn-primary w-100">
+                                            <i class="fas fa-plus me-2"></i>Add Player
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-8">
+                            <div class="card">
+                                <div class="card-header d-flex justify-content-between align-items-center">
+                                    <span><i class="fas fa-list me-2"></i>All Players</span>
+                                    <div>
+                                        <button class="btn btn-sm btn-outline-info me-2" onclick="exportPlayersCSV()">
+                                            <i class="fas fa-file-csv"></i> Export CSV
+                                        </button>
+                                        <span class="badge bg-primary" id="players-badge">0</span>
+                                    </div>
+                                </div>
+                                <div class="card-body">
+                                    <div class="table-responsive">
+                                        <table class="table table-dark table-hover" id="players-table">
+                                            <thead>
+                                                <tr>
+                                                    <th>Player</th>
+                                                    <th>Team</th>
+                                                    <th>Strength</th>
+                                                    <th>Matches</th>
+                                                    <th>Points</th>
+                                                    <th>Actions</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody></tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Registrations Panel (unchanged) -->
+                <div class="tab-pane fade" id="registrations-panel" role="tabpanel">
+                    <div class="card">
+                        <div class="card-header">
+                            <i class="fas fa-user-check me-2"></i>Player Registrations
+                            <button class="btn btn-sm btn-outline-info float-end" onclick="loadRegistrations()">
+                                <i class="fas fa-sync-alt me-1"></i>Refresh
+                            </button>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-dark table-hover" id="registrations-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Name</th>
+                                            <th>Email</th>
+                                            <th>Phone</th>
+                                            <th>Team</th>
+                                            <th>Payment</th>
+                                            <th>Status</th>
+                                            <th>Registered</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="registrations-tbody">
+                                        <tr><td colspan="8" class="text-center text-muted">Loading...</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Fixtures Panel with Smart Scheduling -->
+                <div class="tab-pane fade" id="fixtures-panel" role="tabpanel">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="card">
+                                <div class="card-header">
+                                    <i class="fas fa-magic me-2"></i>Smart Fixture Generator
+                                </div>
+                                <div class="card-body">
+                                    <form id="smart-fixture-form">
+                                        <div class="mb-3">
+                                            <label for="smart-tournament" class="form-label">Tournament</label>
+                                            <select class="form-select bg-dark text-light" id="smart-tournament" required>
+                                                <option value="">Select tournament...</option>
+                                            </select>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="start-date" class="form-label">Start Date</label>
+                                            <input type="date" class="form-control bg-dark text-light" id="start-date" required>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="time-interval" class="form-label">Time Between Matches (minutes)</label>
+                                            <input type="number" class="form-control bg-dark text-light" id="time-interval" value="60" min="30" max="120">
+                                        </div>
+                                        <button type="submit" class="btn btn-warning w-100 mb-2">
+                                            <i class="fas fa-magic me-2"></i>Generate Smart Fixtures
+                                        </button>
+                                        <button type="button" class="btn btn-info w-100" onclick="checkFixtureConflicts()">
+                                            <i class="fas fa-exclamation-triangle me-2"></i>Check Conflicts
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+
+                            <!-- Conflict Results -->
+                            <div class="card mt-3" id="conflict-results" style="display:none;">
+                                <div class="card-header bg-warning">
+                                    <i class="fas fa-exclamation-triangle me-2"></i>Conflicts Detected
+                                </div>
+                                <div class="card-body" id="conflict-list" style="max-height: 300px; overflow-y: auto;"></div>
+                            </div>
+                        </div>
+                        <div class="col-md-8">
+                            <div class="card">
+                                <div class="card-header d-flex justify-content-between align-items-center">
+                                    <span><i class="fas fa-list me-2"></i>All Fixtures</span>
+                                    <div>
+                                        <button class="btn btn-sm btn-outline-info me-2" onclick="exportFixturesCSV()">
+                                            <i class="fas fa-file-csv"></i> Export CSV
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-success" onclick="exportFixturesPDF()">
+                                            <i class="fas fa-file-pdf"></i> Export PDF
+                                        </button>
+                                        <span class="badge bg-warning" id="fixtures-badge-count">0</span>
+                                    </div>
+                                </div>
+                                <div class="card-body">
+                                    <div class="table-responsive">
+                                        <table class="table table-dark table-hover" id="admin-fixtures-table">
+                                            <thead>
+                                                <tr>
+                                                    <th>Date</th>
+                                                    <th>Time</th>
+                                                    <th>Home Player</th>
+                                                    <th>Away Player</th>
+                                                    <th>Venue</th>
+                                                    <th>Status</th>
+                                                    <th>Actions</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody></tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Results Panel -->
+                <div class="tab-pane fade" id="results-panel" role="tabpanel">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="card">
+                                <div class="card-header">
+                                    <i class="fas fa-futbol me-2"></i>Add Match Result
+                                </div>
+                                <div class="card-body">
+                                    <form id="add-result-form">
+                                        <div class="mb-3">
+                                            <label for="homePlayerResult" class="form-label">Home Player *</label>
+                                            <select class="form-select bg-dark text-light" id="homePlayerResult" required>
+                                                <option value="">Select player...</option>
+                                            </select>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="awayPlayerResult" class="form-label">Away Player *</label>
+                                            <select class="form-select bg-dark text-light" id="awayPlayerResult" required>
+                                                <option value="">Select player...</option>
+                                            </select>
+                                        </div>
+                                        <div class="row mb-3">
+                                            <div class="col-6">
+                                                <label for="homeScore" class="form-label">Home Score</label>
+                                                <input type="number" class="form-control bg-dark text-light" id="homeScore" value="0" min="0">
+                                            </div>
+                                            <div class="col-6">
+                                                <label for="awayScore" class="form-label">Away Score</label>
+                                                <input type="number" class="form-control bg-dark text-light" id="awayScore" value="0" min="0">
+                                            </div>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="matchDateResult" class="form-label">Match Date *</label>
+                                            <input type="date" class="form-control bg-dark text-light" id="matchDateResult" required>
+                                        </div>
+                                        <button type="submit" class="btn btn-primary w-100">
+                                            <i class="fas fa-save me-2"></i>Save Result
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-8">
+                            <div class="card">
+                                <div class="card-header d-flex justify-content-between align-items-center">
+                                    <span><i class="fas fa-list me-2"></i>Match Results</span>
+                                    <div>
+                                        <button class="btn btn-sm btn-outline-info" onclick="exportResultsExcel()">
+                                            <i class="fas fa-file-excel"></i> Export Excel
+                                        </button>
+                                        <span class="badge bg-success" id="results-badge-count">0</span>
+                                    </div>
+                                </div>
+                                <div class="card-body">
+                                    <div class="table-responsive">
+                                        <table class="table table-dark table-hover" id="admin-results-table">
+                                            <thead>
+                                                <tr>
+                                                    <th>Date</th>
+                                                    <th>Home Player</th>
+                                                    <th>Score</th>
+                                                    <th>Away Player</th>
+                                                    <th>Actions</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody></tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tournaments Panel (keep existing) -->
+                <div class="tab-pane fade" id="tournaments-panel" role="tabpanel">
+                    <div class="row">
+                        <div class="col-md-5">
+                            <div class="card">
+                                <div class="card-header bg-warning text-dark">
+                                    <i class="fas fa-trophy me-2"></i>Create Tournament
+                                </div>
+                                <div class="card-body">
+                                    <form id="create-tournament-form">
+                                        <div class="mb-3">
+                                            <label class="form-label">Tournament Name *</label>
+                                            <input type="text" class="form-control bg-dark text-light" id="tournamentName" required>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label">Description</label>
+                                            <textarea class="form-control bg-dark text-light" id="tournamentDesc" rows="2"></textarea>
+                                        </div>
+                                        <div class="row">
+                                            <div class="col-6 mb-3">
+                                                <label class="form-label">Entry Fee (KES)</label>
+                                                <input type="number" class="form-control bg-dark text-light" id="tournamentFee" value="100">
+                                            </div>
+                                            <div class="col-6 mb-3">
+                                                <label class="form-label">Prize Pool (KES)</label>
+                                                <input type="number" class="form-control bg-dark text-light" id="tournamentPrize" value="0">
+                                            </div>
+                                        </div>
+                                        <div class="row">
+                                            <div class="col-6 mb-3">
+                                                <label class="form-label">Min Players</label>
+                                                <input type="number" class="form-control bg-dark text-light" id="tournamentMinPlayers" value="4">
+                                            </div>
+                                            <div class="col-6 mb-3">
+                                                <label class="form-label">Max Players</label>
+                                                <input type="number" class="form-control bg-dark text-light" id="tournamentMaxPlayers" value="16">
+                                            </div>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label">Format</label>
+                                            <select class="form-control bg-dark text-light" id="tournamentFormat">
+                                                <option value="league">League (Round Robin)</option>
+                                                <option value="knockout">Knockout</option>
+                                            </select>
+                                        </div>
+                                        <button type="submit" class="btn btn-warning w-100">
+                                            <i class="fas fa-plus me-2"></i>Create Tournament
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-7">
+                            <div class="card">
+                                <div class="card-header">
+                                    <i class="fas fa-list me-2"></i>All Tournaments
+                                    <button class="btn btn-sm btn-outline-info float-end" onclick="loadTournaments()">
+                                        <i class="fas fa-sync-alt"></i>
+                                    </button>
+                                </div>
+                                <div class="card-body" id="tournaments-list">
+                                    <div class="text-center text-muted">Loading...</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Export Panel -->
+                <div class="tab-pane fade" id="export-panel" role="tabpanel">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="card export-zone">
+                                <div class="card-header bg-info text-white">
+                                    <i class="fas fa-download me-2"></i>Export Data
+                                </div>
+                                <div class="card-body">
+                                    <h6>Players</h6>
+                                    <div class="btn-group mb-3 export-btn-group">
+                                        <button class="btn btn-outline-info" onclick="exportPlayersCSV()">
+                                            <i class="fas fa-file-csv"></i> CSV
+                                        </button>
+                                        <button class="btn btn-outline-info" onclick="exportPlayersExcel()">
+                                            <i class="fas fa-file-excel"></i> Excel
+                                        </button>
+                                    </div>
+
+                                    <h6>Fixtures</h6>
+                                    <div class="btn-group mb-3 export-btn-group">
+                                        <button class="btn btn-outline-info" onclick="exportFixturesCSV()">
+                                            <i class="fas fa-file-csv"></i> CSV
+                                        </button>
+                                        <button class="btn btn-outline-info" onclick="exportFixturesPDF()">
+                                            <i class="fas fa-file-pdf"></i> PDF
+                                        </button>
+                                    </div>
+
+                                    <h6>Results</h6>
+                                    <div class="btn-group mb-3 export-btn-group">
+                                        <button class="btn btn-outline-info" onclick="exportResultsCSV()">
+                                            <i class="fas fa-file-csv"></i> CSV
+                                        </button>
+                                        <button class="btn btn-outline-info" onclick="exportResultsExcel()">
+                                            <i class="fas fa-file-excel"></i> Excel
+                                        </button>
+                                    </div>
+
+                                    <hr>
+                                    <h6>Full Tournament Report</h6>
+                                    <button class="btn btn-primary w-100" onclick="exportFullReport()">
+                                        <i class="fas fa-file-alt me-2"></i> Export Complete Report (PDF)
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header">
+                                    <i class="fas fa-chart-bar me-2"></i>Export Settings
+                                </div>
+                                <div class="card-body">
+                                    <div class="mb-3">
+                                        <label class="form-label">Select Tournament</label>
+                                        <select class="form-select bg-dark text-light" id="export-tournament-select">
+                                            <option value="">All Tournaments</option>
+                                        </select>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Date Range</label>
+                                        <div class="row">
+                                            <div class="col-6">
+                                                <input type="date" class="form-control bg-dark text-light" id="export-start-date" placeholder="Start">
+                                            </div>
+                                            <div class="col-6">
+                                                <input type="date" class="form-control bg-dark text-light" id="export-end-date" placeholder="End">
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="form-check mb-3">
+                                        <input class="form-check-input" type="checkbox" id="include-stats">
+                                        <label class="form-check-label">Include Player Statistics</label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Notifications Panel V2 -->
+                <div class="tab-pane fade" id="notifications-panel" role="tabpanel">
+                    <div class="row">
+                        <div class="col-md-8 mx-auto">
+                            <div class="card">
+                                <div class="card-header bg-primary text-white">
+                                    <i class="fas fa-bell me-2"></i>Send Push Notification
+                                </div>
+                                <div class="card-body">
+                                    <form id="send-notification-form-v2">
+                                        <div class="mb-3">
+                                            <label class="form-label">Notification Title *</label>
+                                            <input type="text" class="form-control bg-dark text-light" id="notif-title" required maxlength="50">
+                                        </div>
+                                        
+                                        <div class="mb-3">
+                                            <label class="form-label">Message *</label>
+                                            <textarea class="form-control bg-dark text-light" id="notif-body" rows="3" required maxlength="200"></textarea>
+                                        </div>
+
+                                        <div class="mb-3">
+                                            <label class="form-label">Target Audience *</label>
+                                            <select class="form-select bg-dark text-light" id="notif-target">
+                                                <option value="all">All Users</option>
+                                                <option value="active">Active Players Only</option>
+                                                <option value="player">Specific Player</option>
+                                            </select>
+                                        </div>
+
+                                        <div class="mb-3" id="player-select-container" style="display:none;">
+                                            <label class="form-label">Select Player</label>
+                                            <select class="form-select bg-dark text-light" id="notif-player-id">
+                                                <option value="">Choose player...</option>
+                                            </select>
+                                        </div>
+
+                                        <div class="mb-3">
+                                            <label class="form-label">Send Schedule</label>
+                                            <select class="form-select bg-dark text-light" id="notif-schedule">
+                                                <option value="now">Send Now</option>
+                                                <option value="later">Schedule for Later</option>
+                                            </select>
+                                        </div>
+
+                                        <div class="mb-3" id="schedule-datetime" style="display:none;">
+                                            <label class="form-label">Send Date & Time</label>
+                                            <input type="datetime-local" class="form-control bg-dark text-light" id="notif-send-at">
+                                        </div>
+
+                                        <div class="mb-3">
+                                            <label class="form-label">Link URL (Optional)</label>
+                                            <input type="text" class="form-control bg-dark text-light" id="notif-url" placeholder="e.g., /fixtures">
+                                        </div>
+
+                                        <button type="submit" class="btn btn-primary w-100" id="send-notif-btn">
+                                            <i class="fas fa-paper-plane me-2"></i>Send Notification
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+
+                            <!-- Scheduled Notifications -->
+                            <div class="card mt-4">
+                                <div class="card-header">
+                                    <i class="fas fa-clock me-2"></i>Scheduled Notifications
+                                    <button class="btn btn-sm btn-outline-info float-end" onclick="loadScheduledNotifications()">
+                                        <i class="fas fa-sync-alt"></i>
+                                    </button>
+                                </div>
+                                <div class="card-body" id="scheduled-notifications-list">
+                                    <div class="text-center text-muted">Loading...</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- System Errors Panel -->
+                <div class="tab-pane fade" id="errors-panel" role="tabpanel">
+                    <div class="row">
+                        <div class="col-12">
+                            <div class="card">
+                                <div class="card-header d-flex justify-content-between align-items-center">
+                                    <span><i class="fas fa-exclamation-triangle me-2"></i>System Error Logs</span>
+                                    <div>
+                                        <button class="btn btn-sm btn-danger me-2" onclick="clearErrors()">
+                                            <i class="fas fa-trash"></i> Clear All
+                                        </button>
+                                        <button class="btn btn-sm btn-info" onclick="loadErrors()">
+                                            <i class="fas fa-sync-alt"></i> Refresh
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="card-body">
+                                    <div class="mb-3">
+                                        <label>Filter by Status Code:</label>
+                                        <select class="form-select form-select-sm bg-dark text-light w-auto d-inline-block ms-2" id="error-filter" onchange="filterErrors()">
+                                            <option value="all">All</option>
+                                            <option value="4xx">4xx Errors</option>
+                                            <option value="5xx">5xx Errors</option>
+                                        </select>
+                                    </div>
+                                    <div id="errors-list" style="max-height: 500px; overflow-y: auto;">
+                                        <div class="text-center text-muted">Loading errors...</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tools Panel -->
+                <div class="tab-pane fade" id="tools-panel" role="tabpanel">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="card danger-zone">
+                                <div class="card-header bg-danger text-white">
+                                    <i class="fas fa-exclamation-triangle me-2"></i>Danger Zone
+                                </div>
+                                <div class="card-body">
+                                    <p class="card-text text-muted">These actions cannot be undone. Use with extreme caution.</p>
+                                    
+                                    <div class="d-grid gap-2">
+                                        <button class="btn btn-warning" onclick="clearAllResults()">
+                                            <i class="fas fa-eraser me-2"></i> Clear All Results
+                                        </button>
+                                        <button class="btn btn-danger" onclick="resetTournament()">
+                                            <i class="fas fa-bomb me-2"></i> Reset Entire Tournament
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header">
+                                    <i class="fas fa-info-circle me-2"></i>System Information
+                                </div>
+                                <div class="card-body">
+                                    <div class="row">
+                                        <div class="col-6">
+                                            <strong>Database:</strong> Supabase<br>
+                                            <strong>Status:</strong> <span class="badge bg-success">Online</span>
+                                        </div>
+                                        <div class="col-6">
+                                            <strong>Last Sync:</strong> <span id="last-sync-time">Never</span>
+                                        </div>
+                                    </div>
+                                    <hr>
+                                    <div class="row">
+                                        <div class="col-4">
+                                            <strong>Players:</strong> <span id="sys-players">0</span>
+                                        </div>
+                                        <div class="col-4">
+                                            <strong>Fixtures:</strong> <span id="sys-fixtures">0</span>
+                                        </div>
+                                        <div class="col-4">
+                                            <strong>Results:</strong> <span id="sys-results">0</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 
-    <!-- Toast Container -->
-    <div class="toast-container" id="toastContainer"></div>
+    <!-- Modal for Tournament Details -->
+    <div class="modal fade" id="tournamentModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content bg-dark">
+                <div class="modal-header">
+                    <h5 class="modal-title"><span id="modal-tournament-name"></span></h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <ul class="nav nav-tabs mb-3">
+                        <li class="nav-item">
+                            <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#modal-participants">Participants</button>
+                        </li>
+                        <li class="nav-item">
+                            <button class="nav-link" data-bs-toggle="tab" data-bs-target="#modal-fixtures">Fixtures</button>
+                        </li>
+                        <li class="nav-item">
+                            <button class="nav-link" data-bs-toggle="tab" data-bs-target="#modal-standings">Standings</button>
+                        </li>
+                    </ul>
+                    <div class="tab-content">
+                        <div class="tab-pane active" id="modal-participants">
+                            <div id="tournament-participants"></div>
+                        </div>
+                        <div class="tab-pane" id="modal-fixtures">
+                            <div id="tournament-fixtures"></div>
+                        </div>
+                        <div class="tab-pane" id="modal-standings">
+                            <div id="tournament-standings"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-success" onclick="generateTournamentFixtures()">
+                        <i class="fas fa-magic me-2"></i>Generate Fixtures
+                    </button>
+                    <button class="btn btn-danger" onclick="deleteTournament()">
+                        <i class="fas fa-trash me-2"></i>Delete
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-messaging-compat.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.5.28/dist/jspdf.plugin.autotable.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
+    <script type="module" src="/js/database.js"></script>
+    <script type="module" src="/js/auth.js"></script>
+    <script type="module" src="/js/admin.js"></script>
 
     <script>
-        // ==================== SUPABASE CONFIGURATION ====================
-        const SUPABASE_URL = 'https://your-project.supabase.co';
-        const SUPABASE_ANON_KEY = 'your-anon-key';
-        
-        let supabase = null;
-        let currentUser = null;
-        let currentPage = 'dashboard';
-        let lastSync = new Date();
-        
-        // ==================== TOAST NOTIFICATIONS ====================
+        // Global variables
+        let currentTournamentId = null;
+        let allErrors = [];
+
+        // Toast function
         function showToast(message, type = 'info') {
-            const container = document.getElementById('toastContainer');
             const toast = document.createElement('div');
-            toast.className = `toast-custom ${type}`;
-            const icons = {
-                success: 'fa-check-circle',
-                error: 'fa-exclamation-circle',
-                warning: 'fa-exclamation-triangle',
-                info: 'fa-info-circle'
-            };
+            toast.className = `toast align-items-center text-white bg-${type === 'error' ? 'danger' : type === 'success' ? 'success' : 'info'} border-0 position-fixed bottom-0 end-0 m-3`;
+            toast.setAttribute('role', 'alert');
             toast.innerHTML = `
-                <i class="fas ${icons[type]}"></i>
-                <span style="flex: 1;">${message}</span>
-                <i class="fas fa-times" style="cursor: pointer;" onclick="this.parentElement.remove()"></i>
-            `;
-            container.appendChild(toast);
-            setTimeout(() => toast.remove(), 5000);
-        }
-        
-        // ==================== AUTHENTICATION ====================
-        async function initSupabase() {
-            try {
-                supabase = window.supabase?.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-                if (!supabase) {
-                    console.warn('Supabase not loaded, using mock auth');
-                    return false;
-                }
-                const { data: { session } } = await supabase.auth.getSession();
-                if (session) {
-                    currentUser = session.user;
-                    showDashboard();
-                }
-                return true;
-            } catch (e) {
-                console.error('Supabase init error:', e);
-                return false;
-            }
-        }
-        
-        async function handleLogin(email, password) {
-            const loginBtn = document.getElementById('loginBtn');
-            const originalText = loginBtn.innerHTML;
-            loginBtn.disabled = true;
-            loginBtn.innerHTML = '<span class="spinner-sm me-2"></span> Authenticating...';
-            
-            try {
-                // Send to backend API endpoint for authentication
-                const response = await fetch('/api/admin/login', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ email, password })
-                });
-                
-                const data = await response.json();
-                
-                if (!response.ok) {
-                    throw new Error(data.message || 'Invalid credentials');
-                }
-                
-                if (data.success) {
-                    currentUser = data.user;
-                    localStorage.setItem('admin_session', JSON.stringify({ token: data.token, user: data.user }));
-                    showToast('Login successful! Welcome back.', 'success');
-                    showDashboard();
-                    document.getElementById('loginForm').reset();
-                } else {
-                    throw new Error(data.message || 'Login failed');
-                }
-            } catch (error) {
-                showToast(error.message || 'Invalid email or password', 'error');
-                const errorDiv = document.getElementById('passwordError');
-                errorDiv.textContent = error.message || 'Invalid credentials';
-                errorDiv.classList.remove('d-none');
-                setTimeout(() => errorDiv.classList.add('d-none'), 3000);
-            } finally {
-                loginBtn.disabled = false;
-                loginBtn.innerHTML = originalText;
-            }
-        }
-        
-        async function handleLogout() {
-            try {
-                await fetch('/api/admin/logout', { method: 'POST' });
-            } catch (e) {}
-            currentUser = null;
-            localStorage.removeItem('admin_session');
-            document.getElementById('loginSection').style.display = 'flex';
-            document.getElementById('dashboardContent').style.display = 'none';
-            showToast('Logged out successfully', 'info');
-        }
-        
-        function showDashboard() {
-            document.getElementById('loginSection').style.display = 'none';
-            document.getElementById('dashboardContent').style.display = 'block';
-            loadPage('dashboard');
-            loadAllData();
-        }
-        
-        // ==================== PAGE LOADING ====================
-        function loadPage(page) {
-            currentPage = page;
-            document.querySelectorAll('.sidebar-nav-item').forEach(item => {
-                item.classList.toggle('active', item.dataset.page === page);
-            });
-            
-            const content = document.getElementById('pageContent');
-            switch(page) {
-                case 'dashboard': renderDashboard(); break;
-                case 'players': renderPlayersPanel(); break;
-                case 'registrations': renderRegistrationsPanel(); break;
-                case 'fixtures': renderFixturesPanel(); break;
-                case 'results': renderResultsPanel(); break;
-                case 'leaguetable': renderLeagueTable(); break;
-                case 'tournaments': renderTournamentsPanel(); break;
-                case 'tools': renderToolsPanel(); break;
-                case 'notifications': renderNotificationsPanel(); break;
-                default: renderDashboard();
-            }
-        }
-        
-        // ==================== DASHBOARD ====================
-        function renderDashboard() {
-            const players = JSON.parse(localStorage.getItem('efl_players') || '[]');
-            const fixtures = JSON.parse(localStorage.getItem('efl_fixtures') || '[]');
-            const results = JSON.parse(localStorage.getItem('efl_results') || '[]');
-            const registrations = JSON.parse(localStorage.getItem('efl_regs') || '[]');
-            const pending = registrations.filter(r => r.payment_status !== 'completed' || !r.player_id).length;
-            
-            document.getElementById('pageContent').innerHTML = `
-                <h4 class="mb-4">Dashboard Overview</h4>
-                <div class="row g-3 mb-4">
-                    <div class="col-md-3"><div class="stat-card"><i class="fas fa-users fa-2x mb-2 text-primary"></i><div class="fs-2 fw-bold">${players.length}</div><div>Total Players</div></div></div>
-                    <div class="col-md-3"><div class="stat-card"><i class="fas fa-calendar fa-2x mb-2 text-info"></i><div class="fs-2 fw-bold">${fixtures.length}</div><div>Fixtures</div></div></div>
-                    <div class="col-md-3"><div class="stat-card"><i class="fas fa-futbol fa-2x mb-2 text-success"></i><div class="fs-2 fw-bold">${results.length}</div><div>Results</div></div></div>
-                    <div class="col-md-3"><div class="stat-card"><i class="fas fa-user-clock fa-2x mb-2 text-warning"></i><div class="fs-2 fw-bold">${pending}</div><div>Pending Registrations</div></div></div>
-                </div>
-                <div class="row">
-                    <div class="col-md-6"><div class="card bg-transparent border-secondary"><div class="card-header bg-transparent border-secondary">Recent Results</div><div class="card-body"><div id="recentResultsList">Loading...</div></div></div></div>
-                    <div class="col-md-6"><div class="card bg-transparent border-secondary"><div class="card-header bg-transparent border-secondary">Upcoming Fixtures</div><div class="card-body"><div id="upcomingFixturesList">Loading...</div></div></div></div>
+                <div class="d-flex">
+                    <div class="toast-body">${message}</div>
+                    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
                 </div>
             `;
-            loadRecentResults();
-            loadUpcomingFixtures();
+            document.body.appendChild(toast);
+            const bsToast = new bootstrap.Toast(toast, { delay: 3000 });
+            bsToast.show();
+            toast.addEventListener('hidden.bs.toast', () => toast.remove());
         }
-        
-        function loadRecentResults() {
-            const results = JSON.parse(localStorage.getItem('efl_results') || '[]');
-            const players = JSON.parse(localStorage.getItem('efl_players') || '[]');
-            const recent = results.slice(-5).reverse();
-            const html = recent.map(r => {
-                const home = players.find(p => p.id === r.home_player_id)?.name || '?';
-                const away = players.find(p => p.id === r.away_player_id)?.name || '?';
-                return `<div class="d-flex justify-content-between border-bottom py-2"><span>${home} vs ${away}</span><span class="fw-bold">${r.home_score} - ${r.away_score}</span></div>`;
-            }).join('');
-            document.getElementById('recentResultsList').innerHTML = html || '<div class="text-secondary">No results yet</div>';
-        }
-        
-        function loadUpcomingFixtures() {
-            const fixtures = JSON.parse(localStorage.getItem('efl_fixtures') || '[]');
-            const players = JSON.parse(localStorage.getItem('efl_players') || '[]');
-            const upcoming = fixtures.filter(f => !f.played).slice(0,5);
-            const html = upcoming.map(f => {
-                const home = players.find(p => p.id === f.home_player_id)?.name || '?';
-                const away = players.find(p => p.id === f.away_player_id)?.name || '?';
-                return `<div class="d-flex justify-content-between border-bottom py-2"><span>${home} vs ${away}</span><span class="text-secondary">${f.date}</span></div>`;
-            }).join('');
-            document.getElementById('upcomingFixturesList').innerHTML = html || '<div class="text-secondary">No upcoming fixtures</div>';
-        }
-        
-        // ==================== LEAGUE TABLE ====================
-        function renderLeagueTable() {
-            const players = JSON.parse(localStorage.getItem('efl_players') || '[]');
-            const results = JSON.parse(localStorage.getItem('efl_results') || '[]');
-            
-            const stats = {};
-            players.forEach(p => {
-                stats[p.id] = { name: p.name, team: p.team, played: 0, won: 0, drawn: 0, lost: 0, gf: 0, ga: 0, points: 0 };
-            });
-            
-            results.forEach(r => {
-                const home = stats[r.home_player_id];
-                const away = stats[r.away_player_id];
-                if (home && away) {
-                    home.played++; away.played++;
-                    home.gf += r.home_score; home.ga += r.away_score;
-                    away.gf += r.away_score; away.ga += r.home_score;
-                    
-                    if (r.home_score > r.away_score) {
-                        home.won++; home.points += 3;
-                        away.lost++;
-                    } else if (r.away_score > r.home_score) {
-                        away.won++; away.points += 3;
-                        home.lost++;
-                    } else {
-                        home.drawn++; away.drawn++;
-                        home.points += 1; away.points += 1;
-                    }
-                }
-            });
-            
-            const table = Object.values(stats).map(s => ({
-                ...s,
-                gd: s.gf - s.ga
-            })).sort((a,b) => b.points - a.points || b.gd - a.gd);
-            
-            document.getElementById('pageContent').innerHTML = `
-                <div class="d-flex justify-content-between align-items-center mb-4">
-                    <h4>League Standings</h4>
-                    <button class="btn btn-sm btn-outline-primary" onclick="exportLeagueTableCSV()"><i class="fas fa-download me-1"></i>Export CSV</button>
-                </div>
-                <div class="table-responsive">
-                    <table class="table table-custom">
-                        <thead><tr><th>#</th><th>Player</th><th>Team</th><th>P</th><th>W</th><th>D</th><th>L</th><th>GF</th><th>GA</th><th>GD</th><th>PTS</th></tr></thead>
-                        <tbody>
-                            ${table.map((s, i) => `<tr><td>${i+1}</td><td>${s.name}</td><td>${s.team || '-'}</td><td>${s.played}</td><td>${s.won}</td><td>${s.drawn}</td><td>${s.lost}</td><td>${s.gf}</td><td>${s.ga}</td><td>${s.gd}</td><td class="fw-bold">${s.points}</td></tr>`).join('')}
-                        </tbody>
-                    </table>
-                </div>
-            `;
-        }
-        
-        // ==================== SMART FIXTURE GENERATOR ====================
-        function generateRoundRobinFixtures() {
-            const players = JSON.parse(localStorage.getItem('efl_players') || '[]');
-            if (players.length < 2) {
-                showToast('Need at least 2 players to generate fixtures', 'warning');
-                return;
-            }
-            
-            const existingFixtures = JSON.parse(localStorage.getItem('efl_fixtures') || '[]');
-            const existingKeys = new Set(existingFixtures.map(f => `${f.home_player_id}-${f.away_player_id}`));
-            
-            const playerIds = players.map(p => p.id);
-            const newFixtures = [];
-            
-            for (let i = 0; i < playerIds.length; i++) {
-                for (let j = i + 1; j < playerIds.length; j++) {
-                    const key1 = `${playerIds[i]}-${playerIds[j]}`;
-                    const key2 = `${playerIds[j]}-${playerIds[i]}`;
-                    if (!existingKeys.has(key1) && !existingKeys.has(key2)) {
-                        const today = new Date();
-                        const futureDate = new Date(today);
-                        futureDate.setDate(today.getDate() + newFixtures.length + 1);
-                        newFixtures.push({
-                            id: 'f' + Date.now() + newFixtures.length,
-                            date: futureDate.toISOString().split('T')[0],
-                            home_player_id: playerIds[i],
-                            away_player_id: playerIds[j],
-                            played: false
-                        });
-                    }
-                }
-            }
-            
-            if (newFixtures.length === 0) {
-                showToast('All possible fixtures already scheduled', 'info');
-                return;
-            }
-            
-            const allFixtures = [...existingFixtures, ...newFixtures];
-            localStorage.setItem('efl_fixtures', JSON.stringify(allFixtures));
-            showToast(`Generated ${newFixtures.length} new fixtures`, 'success');
-            if (currentPage === 'fixtures') renderFixturesPanel();
-            loadAllData();
-        }
-        
-        // ==================== EXPORT FUNCTIONS ====================
-        window.exportLeagueTableCSV = function() {
-            const players = JSON.parse(localStorage.getItem('efl_players') || '[]');
-            const results = JSON.parse(localStorage.getItem('efl_results') || '[]');
-            const stats = {};
-            players.forEach(p => { stats[p.id] = { name: p.name, team: p.team, played: 0, won: 0, drawn: 0, lost: 0, gf: 0, ga: 0, points: 0 }; });
-            results.forEach(r => {
-                const home = stats[r.home_player_id], away = stats[r.away_player_id];
-                if (home && away) {
-                    home.played++; away.played++;
-                    home.gf += r.home_score; home.ga += r.away_score;
-                    away.gf += r.away_score; away.ga += r.home_score;
-                    if (r.home_score > r.away_score) { home.won++; home.points += 3; away.lost++; }
-                    else if (r.away_score > r.home_score) { away.won++; away.points += 3; home.lost++; }
-                    else { home.drawn++; away.drawn++; home.points += 1; away.points += 1; }
-                }
-            });
-            const table = Object.values(stats).map(s => ({ ...s, gd: s.gf - s.ga })).sort((a,b) => b.points - a.points || b.gd - a.gd);
-            const headers = ['Name','Team','Played','Won','Drawn','Lost','GF','GA','GD','Points'];
-            const rows = table.map(s => [s.name, s.team, s.played, s.won, s.drawn, s.lost, s.gf, s.ga, s.gd, s.points]);
-            const csv = [headers, ...rows].map(row => row.join(',')).join('\n');
-            const blob = new Blob([csv], { type: 'text/csv' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a'); a.href = url; a.download = 'league_table.csv'; a.click();
-            URL.revokeObjectURL(url);
-            showToast('League table exported', 'success');
-        };
-        
-        // ==================== SYNC STATUS ====================
-        function updateSyncStatus() {
-            const statusEl = document.getElementById('syncStatus');
-            const timeEl = document.getElementById('lastSyncTime');
-            if (navigator.onLine) {
-                statusEl.className = 'badge bg-success';
-                statusEl.innerHTML = '<i class="fas fa-cloud-upload-alt me-1"></i> Online';
-            } else {
-                statusEl.className = 'badge bg-secondary';
-                statusEl.innerHTML = '<i class="fas fa-cloud-off-alt me-1"></i> Offline';
-            }
-            timeEl.textContent = `Last sync: ${lastSync.toLocaleTimeString()}`;
-        }
-        
-        window.manualSync = function() {
-            lastSync = new Date();
-            loadAllData();
-            updateSyncStatus();
-            showToast('Data synchronized', 'success');
-        };
-        
-        function loadAllData() {
-            updateCounts();
-            if (currentPage === 'dashboard') renderDashboard();
-            else if (currentPage === 'leaguetable') renderLeagueTable();
-            updateSyncStatus();
-        }
-        
-        function updateCounts() {
-            const players = JSON.parse(localStorage.getItem('efl_players') || '[]');
-            const fixtures = JSON.parse(localStorage.getItem('efl_fixtures') || '[]');
-            const results = JSON.parse(localStorage.getItem('efl_results') || '[]');
-            document.getElementById('players-count').textContent = players.length;
-            document.getElementById('fixtures-count').textContent = fixtures.length;
-            document.getElementById('results-count').textContent = results.length;
-        }
-        
-        // Panel renderers (simplified - preserve existing functionality)
-        function renderPlayersPanel() { document.getElementById('pageContent').innerHTML = `<div class="alert alert-info">Players management - Use the original form above</div><p class="text-muted">The original player management form is available in the main dashboard area.</p>`; }
-        function renderRegistrationsPanel() { document.getElementById('pageContent').innerHTML = `<div class="alert alert-info">Registrations management - Use the original registrations table above</div>`; }
-        function renderFixturesPanel() { document.getElementById('pageContent').innerHTML = `<div class="d-flex justify-content-between mb-3"><h4>Fixtures</h4><button class="btn btn-primary btn-sm" onclick="generateRoundRobinFixtures()"><i class="fas fa-magic me-1"></i>Generate Round Robin</button></div><div class="alert alert-info">Use the fixture management forms above to schedule matches.</div>`; }
-        function renderResultsPanel() { document.getElementById('pageContent').innerHTML = `<div class="alert alert-info">Results management - Use the results forms above</div>`; }
-        function renderTournamentsPanel() { document.getElementById('pageContent').innerHTML = `<div class="alert alert-info">Tournaments - Use the tournament management section above</div>`; }
-        function renderToolsPanel() { document.getElementById('pageContent').innerHTML = `<div class="alert alert-info">Tools panel - Export and management tools available above</div>`; }
-        function renderNotificationsPanel() { document.getElementById('pageContent').innerHTML = `<div class="alert alert-info">Notifications - Use the notification form above to send alerts</div>`; }
-        
-        // ==================== THEME ====================
+
+        // Theme toggle
         function toggleTheme() {
             const html = document.documentElement;
             const current = html.getAttribute('data-theme') || 'dark';
@@ -841,60 +956,739 @@
             html.setAttribute('data-theme', newTheme);
             localStorage.setItem('efl-theme', newTheme);
         }
-        
-        // ==================== EVENT LISTENERS ====================
-        document.getElementById('loginForm')?.addEventListener('submit', (e) => {
-            e.preventDefault();
-            const email = document.getElementById('admin-email').value;
-            const password = document.getElementById('admin-password').value;
-            handleLogin(email, password);
-        });
-        
-        document.getElementById('logoutBtn')?.addEventListener('click', handleLogout);
-        document.getElementById('forgot-password-link')?.addEventListener('click', (e) => {
-            e.preventDefault();
-            showToast('Contact support at support@kishtechsite.online to reset your password', 'info');
-        });
-        
-        document.getElementById('menuToggle')?.addEventListener('click', () => {
-            document.getElementById('sidebar').classList.add('open');
-            document.getElementById('sidebarOverlay').classList.add('show');
-        });
-        
-        document.getElementById('sidebarOverlay')?.addEventListener('click', () => {
-            document.getElementById('sidebar').classList.remove('open');
-            document.getElementById('sidebarOverlay').classList.remove('show');
-        });
-        
-        document.querySelectorAll('.sidebar-nav-item').forEach(item => {
-            item.addEventListener('click', (e) => {
-                const page = item.dataset.page;
-                if (page) loadPage(page);
-                if (window.innerWidth < 768) {
-                    document.getElementById('sidebar').classList.remove('open');
-                    document.getElementById('sidebarOverlay').classList.remove('open');
-                }
-            });
-        });
-        
-        window.generateRoundRobinFixtures = generateRoundRobinFixtures;
-        window.toggleTheme = toggleTheme;
-        
-        // Check for existing session
-        const savedSession = localStorage.getItem('admin_session');
-        if (savedSession) {
+
+        function manualSync() {
+            showToast('Refreshing data...', 'info');
+            location.reload();
+        }
+
+        // ==================== EXPORT FUNCTIONS ====================
+        async function exportPlayersCSV() {
             try {
-                const session = JSON.parse(savedSession);
-                if (session.token) {
-                    showDashboard();
+                const response = await fetch('/api/export/players?format=csv');
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `players_${new Date().toISOString()}.csv`;
+                a.click();
+                window.URL.revokeObjectURL(url);
+                showToast('Players exported successfully!', 'success');
+            } catch (error) {
+                showToast('Export failed: ' + error.message, 'error');
+            }
+        }
+
+        async function exportPlayersExcel() {
+            try {
+                const response = await fetch('/api/export/players?format=excel');
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `players_${new Date().toISOString()}.xlsx`;
+                a.click();
+                window.URL.revokeObjectURL(url);
+                showToast('Players exported successfully!', 'success');
+            } catch (error) {
+                showToast('Export failed: ' + error.message, 'error');
+            }
+        }
+
+        async function exportFixturesCSV() {
+            try {
+                const response = await fetch('/api/export/fixtures?format=csv');
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `fixtures_${new Date().toISOString()}.csv`;
+                a.click();
+                window.URL.revokeObjectURL(url);
+                showToast('Fixtures exported successfully!', 'success');
+            } catch (error) {
+                showToast('Export failed: ' + error.message, 'error');
+            }
+        }
+
+        async function exportFixturesPDF() {
+            try {
+                const response = await fetch('/api/export/fixtures?format=pdf');
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `fixtures_${new Date().toISOString()}.pdf`;
+                a.click();
+                window.URL.revokeObjectURL(url);
+                showToast('Fixtures exported successfully!', 'success');
+            } catch (error) {
+                showToast('Export failed: ' + error.message, 'error');
+            }
+        }
+
+        async function exportResultsCSV() {
+            try {
+                const response = await fetch('/api/export/results?format=csv');
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `results_${new Date().toISOString()}.csv`;
+                a.click();
+                window.URL.revokeObjectURL(url);
+                showToast('Results exported successfully!', 'success');
+            } catch (error) {
+                showToast('Export failed: ' + error.message, 'error');
+            }
+        }
+
+        async function exportResultsExcel() {
+            try {
+                const response = await fetch('/api/export/results?format=excel');
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `results_${new Date().toISOString()}.xlsx`;
+                a.click();
+                window.URL.revokeObjectURL(url);
+                showToast('Results exported successfully!', 'success');
+            } catch (error) {
+                showToast('Export failed: ' + error.message, 'error');
+            }
+        }
+
+        function exportFullReport() {
+            showToast('Generating full report...', 'info');
+            window.open('/api/export/full-report', '_blank');
+        }
+
+        // ==================== SMART FIXTURE FUNCTIONS ====================
+        async function generateSmartFixtures(event) {
+            event.preventDefault();
+            
+            const tournamentId = document.getElementById('smart-tournament').value;
+            const startDate = document.getElementById('start-date').value;
+            const interval = document.getElementById('time-interval').value;
+            
+            if (!tournamentId || !startDate) {
+                showToast('Please select tournament and start date', 'error');
+                return;
+            }
+            
+            const btn = event.target.querySelector('button[type="submit"]');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Generating...';
+            btn.disabled = true;
+            
+            try {
+                const response = await fetch('/api/fixtures/generate-smart', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        tournament_id: tournamentId,
+                        start_date: startDate,
+                        time_interval_minutes: parseInt(interval)
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showToast(`Generated ${data.inserted_count} fixtures!`, 'success');
+                    if (data.conflicts && data.conflicts.length > 0) {
+                        displayConflicts(data.conflicts);
+                    }
+                    loadFixtures();
+                } else {
+                    showToast(data.message || 'Failed to generate fixtures', 'error');
                 }
-            } catch(e) {}
+            } catch (error) {
+                showToast('Error generating fixtures: ' + error.message, 'error');
+            } finally {
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            }
         }
         
-        // Initialize
-        initSupabase();
-        updateSyncStatus();
-        setInterval(updateSyncStatus, 30000);
+        function displayConflicts(conflicts) {
+            const container = document.getElementById('conflict-results');
+            const list = document.getElementById('conflict-list');
+            
+            list.innerHTML = conflicts.map(c => `
+                <div class="conflict-warning p-2 mb-2 rounded">
+                    <small class="text-warning">⚠️ ${c.reason || 'Potential conflict'}</small>
+                    <div class="small text-muted">Round ${c.round || 'N/A'}</div>
+                </div>
+            `).join('');
+            
+            container.style.display = 'block';
+        }
+        
+        async function checkFixtureConflicts() {
+            const tournamentId = document.getElementById('smart-tournament').value;
+            
+            if (!tournamentId) {
+                showToast('Please select a tournament', 'error');
+                return;
+            }
+            
+            showToast('Checking for conflicts...', 'info');
+            
+            try {
+                const response = await fetch('/api/fixtures/check-conflicts', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ tournament_id: tournamentId })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    if (data.has_conflicts) {
+                        displayConflicts(data.conflicts);
+                        showToast(`${data.conflicts.length} conflicts found!`, 'warning');
+                    } else {
+                        showToast('No conflicts found!', 'success');
+                        document.getElementById('conflict-results').style.display = 'none';
+                    }
+                }
+            } catch (error) {
+                showToast('Error checking conflicts', 'error');
+            }
+        }
+
+        // ==================== NOTIFICATION FUNCTIONS V2 ====================
+        document.getElementById('send-notification-form-v2')?.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const title = document.getElementById('notif-title').value;
+            const body = document.getElementById('notif-body').value;
+            const targetType = document.getElementById('notif-target').value;
+            const schedule = document.getElementById('notif-schedule').value;
+            const sendAt = schedule === 'later' ? document.getElementById('notif-send-at').value : null;
+            const url = document.getElementById('notif-url').value;
+            const playerId = document.getElementById('notif-player-id').value;
+            
+            if (!title || !body) {
+                showToast('Please fill in title and message', 'error');
+                return;
+            }
+            
+            const btn = document.getElementById('send-notif-btn');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Sending...';
+            btn.disabled = true;
+            
+            try {
+                const response = await fetch('/api/notifications/send', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        title,
+                        body,
+                        target: { 
+                            type: targetType,
+                            id: targetType === 'player' ? playerId : null
+                        },
+                        sendAt: sendAt,
+                        data: url ? { url } : {}
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showToast(data.message, 'success');
+                    e.target.reset();
+                    loadScheduledNotifications();
+                } else {
+                    showToast(data.message || 'Failed to send', 'error');
+                }
+            } catch (error) {
+                showToast('Error: ' + error.message, 'error');
+            } finally {
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            }
+        });
+        
+        document.getElementById('notif-target')?.addEventListener('change', function() {
+            const playerSelect = document.getElementById('player-select-container');
+            playerSelect.style.display = this.value === 'player' ? 'block' : 'none';
+        });
+        
+        document.getElementById('notif-schedule')?.addEventListener('change', function() {
+            const scheduleDiv = document.getElementById('schedule-datetime');
+            scheduleDiv.style.display = this.value === 'later' ? 'block' : 'none';
+        });
+        
+        async function loadScheduledNotifications() {
+            try {
+                const response = await fetch('/api/notifications/scheduled');
+                const data = await response.json();
+                
+                const container = document.getElementById('scheduled-notifications-list');
+                
+                if (!data.success || !data.notifications.length) {
+                    container.innerHTML = '<div class="text-center text-muted">No scheduled notifications</div>';
+                    return;
+                }
+                
+                container.innerHTML = data.notifications.map(n => `
+                    <div class="card mb-2 bg-secondary">
+                        <div class="card-body py-2">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <strong>${n.title}</strong>
+                                    <br>
+                                    <small>Send at: ${new Date(n.send_at).toLocaleString()}</small>
+                                </div>
+                                <button class="btn btn-sm btn-danger" onclick="cancelScheduledNotification(${n.id})">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+            } catch (error) {
+                console.error('Error loading scheduled notifications:', error);
+            }
+        }
+        
+        async function cancelScheduledNotification(id) {
+            if (!confirm('Cancel this scheduled notification?')) return;
+            
+            try {
+                const response = await fetch(`/api/notifications/scheduled/${id}`, {
+                    method: 'DELETE'
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showToast('Notification cancelled', 'success');
+                    loadScheduledNotifications();
+                }
+            } catch (error) {
+                showToast('Error cancelling notification', 'error');
+            }
+        }
+
+        // ==================== ERROR MONITORING ====================
+        async function loadErrors() {
+            try {
+                const response = await fetch('/api/errors?limit=100');
+                const data = await response.json();
+                
+                if (data.success) {
+                    allErrors = data.errors;
+                    document.getElementById('error-count-badge').textContent = data.total || 0;
+                    displayErrors(allErrors);
+                }
+            } catch (error) {
+                console.error('Error loading errors:', error);
+            }
+        }
+        
+        function displayErrors(errors) {
+            const container = document.getElementById('errors-list');
+            const filter = document.getElementById('error-filter')?.value || 'all';
+            
+            let filtered = errors;
+            if (filter === '4xx') {
+                filtered = errors.filter(e => e.status_code >= 400 && e.status_code < 500);
+            } else if (filter === '5xx') {
+                filtered = errors.filter(e => e.status_code >= 500);
+            }
+            
+            if (!filtered || filtered.length === 0) {
+                container.innerHTML = '<div class="text-center text-muted">No errors found</div>';
+                return;
+            }
+            
+            container.innerHTML = filtered.map(err => `
+                <div class="error-item rounded">
+                    <div class="d-flex justify-content-between">
+                        <strong class="text-danger">${err.status_code || 'N/A'}</strong>
+                        <small class="text-muted">${new Date(err.timestamp).toLocaleString()}</small>
+                    </div>
+                    <div class="mt-1">${err.message}</div>
+                    <div class="small text-muted mt-1">
+                        <i class="fas fa-link"></i> ${err.method || 'GET'} ${err.endpoint || 'Unknown'}
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        function filterErrors() {
+            displayErrors(allErrors);
+        }
+        
+        async function clearErrors() {
+            if (!confirm('Clear all error logs? This cannot be undone.')) return;
+            
+            try {
+                const response = await fetch('/api/errors/clear', { method: 'DELETE' });
+                const data = await response.json();
+                
+                if (data.success) {
+                    showToast('All errors cleared', 'success');
+                    loadErrors();
+                }
+            } catch (error) {
+                showToast('Error clearing logs', 'error');
+            }
+        }
+
+        // ==================== TOURNAMENT FUNCTIONS ====================
+        async function loadTournaments() {
+            try {
+                const response = await fetch('/api/tournaments');
+                const data = await response.json();
+                
+                const container = document.getElementById('tournaments-list');
+                const smartSelect = document.getElementById('smart-tournament');
+                const exportSelect = document.getElementById('export-tournament-select');
+                
+                if (!data.success || !data.tournaments?.length) {
+                    container.innerHTML = '<div class="text-center text-muted">No tournaments yet</div>';
+                    return;
+                }
+                
+                container.innerHTML = data.tournaments.map(t => `
+                    <div class="card mb-2 bg-secondary">
+                        <div class="card-body py-2">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <strong>${t.name}</strong>
+                                    <br>
+                                    <small>${t.format} • ${t.entry_fee} KES entry • ${t.status || 'upcoming'}</small>
+                                </div>
+                                <button class="btn btn-sm btn-info" onclick="viewTournament(${t.id})">
+                                    <i class="fas fa-eye"></i> View
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+                
+                // Populate selects
+                const options = '<option value="">Select tournament...</option>' + 
+                    data.tournaments.map(t => `<option value="${t.id}">${t.name}</option>`).join('');
+                
+                if (smartSelect) smartSelect.innerHTML = options;
+                if (exportSelect) exportSelect.innerHTML = '<option value="">All Tournaments</option>' + 
+                    data.tournaments.map(t => `<option value="${t.id}">${t.name}</option>`).join('');
+                    
+            } catch (error) {
+                console.error('Error loading tournaments:', error);
+            }
+        }
+        
+        async function viewTournament(id) {
+            currentTournamentId = id;
+            
+            try {
+                const response = await fetch(`/api/tournaments/${id}`);
+                const data = await response.json();
+                
+                if (!data.success) {
+                    showToast('Failed to load tournament', 'error');
+                    return;
+                }
+                
+                document.getElementById('modal-tournament-name').textContent = data.tournament.name;
+                
+                // Participants
+                const participantsHtml = data.participants?.length ? 
+                    `<table class="table table-dark table-sm">
+                        <thead><tr><th>Player</th><th>Team</th></tr></thead>
+                        <tbody>
+                            ${data.participants.map(p => `
+                                <tr>
+                                    <td>${p.player?.name || 'Unknown'}</td>
+                                    <td>${p.player?.team || '-'}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>` :
+                    '<p class="text-muted">No participants yet</p>';
+                document.getElementById('tournament-participants').innerHTML = participantsHtml;
+                
+                // Fixtures
+                const fixturesHtml = data.fixtures?.length ?
+                    `<table class="table table-dark table-sm">
+                        <thead><tr><th>Round</th><th>Home</th><th>Away</th><th>Score</th></tr></thead>
+                        <tbody>
+                            ${data.fixtures.map(f => `
+                                <tr>
+                                    <td>${f.round}</td>
+                                    <td>${f.home_player?.name || 'TBD'}</td>
+                                    <td>${f.away_player?.name || 'TBD'}</td>
+                                    <td>${f.played ? `${f.home_score} - ${f.away_score}` : 'Not played'}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>` :
+                    '<p class="text-muted">No fixtures yet</p>';
+                document.getElementById('tournament-fixtures').innerHTML = fixturesHtml;
+                
+                // Standings
+                const standingsHtml = data.standings?.length ?
+                    `<table class="table table-dark table-sm">
+                        <thead><tr><th>#</th><th>Player</th><th>P</th><th>W</th><th>D</th><th>L</th><th>Pts</th></tr></thead>
+                        <tbody>
+                            ${data.standings.map((s, i) => `
+                                <tr>
+                                    <td>${i + 1}</td>
+                                    <td>${s.player?.name || 'Unknown'}</td>
+                                    <td>${s.played}</td>
+                                    <td>${s.wins}</td>
+                                    <td>${s.draws}</td>
+                                    <td>${s.losses}</td>
+                                    <td><strong>${s.points}</strong></td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>` :
+                    '<p class="text-muted">No standings yet</p>';
+                document.getElementById('tournament-standings').innerHTML = standingsHtml;
+                
+                new bootstrap.Modal(document.getElementById('tournamentModal')).show();
+            } catch (error) {
+                showToast('Error loading tournament', 'error');
+            }
+        }
+        
+        async function generateTournamentFixtures() {
+            if (!currentTournamentId) return;
+            
+            if (!confirm('Generate fixtures? This will close registration.')) return;
+            
+            try {
+                const response = await fetch(`/api/tournaments/${currentTournamentId}/generate-fixtures`, {
+                    method: 'POST'
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showToast(`Generated ${data.fixtures_count} fixtures!`, 'success');
+                    viewTournament(currentTournamentId);
+                } else {
+                    showToast(data.message || 'Failed to generate fixtures', 'error');
+                }
+            } catch (error) {
+                showToast('Error generating fixtures', 'error');
+            }
+        }
+        
+        async function deleteTournament() {
+            if (!currentTournamentId) return;
+            if (!confirm('Delete this tournament? Cannot be undone.')) return;
+            
+            try {
+                const response = await fetch(`/api/tournaments/${currentTournamentId}`, {
+                    method: 'DELETE'
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showToast('Tournament deleted', 'success');
+                    bootstrap.Modal.getInstance(document.getElementById('tournamentModal')).hide();
+                    loadTournaments();
+                }
+            } catch (error) {
+                showToast('Error deleting tournament', 'error');
+            }
+        }
+        
+        // ==================== LOAD FUNCTIONS ====================
+        async function loadFixtures() {
+            try {
+                const response = await fetch('/api/fixtures');
+                const data = await response.json();
+                
+                const tbody = document.querySelector('#admin-fixtures-table tbody');
+                if (!tbody) return;
+                
+                if (!data.success || !data.fixtures?.length) {
+                    tbody.innerHTML = '<tr><td colspan="7" class="text-center">No fixtures</td></tr>';
+                    document.getElementById('fixtures-badge-count').textContent = '0';
+                    return;
+                }
+                
+                tbody.innerHTML = data.fixtures.map(f => `
+                    <tr>
+                        <td>${new Date(f.match_date).toLocaleDateString()}</td>
+                        <td>${f.match_time || '15:00'}</td>
+                        <td>${f.home_player?.name || 'Unknown'}</td>
+                        <td>${f.away_player?.name || 'Unknown'}</td>
+                        <td>${f.venue || 'Virtual Stadium'}</td>
+                        <td>
+                            <span class="badge bg-${f.played ? 'success' : (f.is_live ? 'danger' : 'secondary')}">
+                                ${f.played ? 'Played' : (f.is_live ? 'Live' : 'Scheduled')}
+                            </span>
+                        </td>
+                        <td>
+                            <button class="btn btn-sm btn-danger" onclick="deleteFixture(${f.id})">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `).join('');
+                
+                document.getElementById('fixtures-badge-count').textContent = data.fixtures.length;
+            } catch (error) {
+                console.error('Error loading fixtures:', error);
+            }
+        }
+        
+        async function loadRegistrations() {
+            const tbody = document.getElementById('registrations-tbody');
+            if (!tbody) return;
+            
+            tbody.innerHTML = '<tr><td colspan="8" class="text-center">Loading...</td></tr>';
+            
+            try {
+                const response = await fetch('/api/players/registered');
+                const data = await response.json();
+                
+                if (!data.success || !data.players?.length) {
+                    tbody.innerHTML = '<tr><td colspan="8" class="text-center">No registrations</td></tr>';
+                    document.getElementById('pending-registrations-badge').textContent = '0';
+                    return;
+                }
+                
+                const pending = data.players.filter(p => p.payment_status === 'pending').length;
+                document.getElementById('pending-registrations-badge').textContent = pending;
+                
+                tbody.innerHTML = data.players.map(p => `
+                    <tr>
+                        <td>${p.name}</td>
+                        <td>${p.email}</td>
+                        <td>${p.phone || '-'}</td>
+                        <td>${p.preferred_team || '-'}</td>
+                        <td>
+                            <span class="badge bg-${p.payment_status === 'completed' ? 'success' : 'warning'}">
+                                ${p.payment_status === 'completed' ? 'Paid' : 'Pending'}
+                            </span>
+                        </td>
+                        <td>
+                            <span class="badge bg-${p.status === 'active' ? 'success' : 'secondary'}">
+                                ${p.status || 'Pending'}
+                            </span>
+                        </td>
+                        <td>${new Date(p.registration_date).toLocaleDateString()}</td>
+                        <td>
+                            ${p.payment_status === 'completed' ? 
+                                `<button class="btn btn-sm btn-success" onclick="approvePlayer(${p.id})">Approve</button>` : 
+                                '<span class="text-muted">Awaiting payment</span>'}
+                        </td>
+                    </tr>
+                `).join('');
+            } catch (error) {
+                tbody.innerHTML = '<tr><td colspan="8" class="text-center text-danger">Error loading</td></tr>';
+            }
+        }
+        
+        async function approvePlayer(accountId) {
+            if (!confirm('Add this player to the league?')) return;
+            
+            try {
+                const response = await fetch(`/api/player/${accountId}`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    showToast('Player approved!', 'success');
+                    loadRegistrations();
+                }
+            } catch (error) {
+                showToast('Error approving player', 'error');
+            }
+        }
+        
+        async function deleteFixture(id) {
+            if (!confirm('Delete this fixture?')) return;
+            
+            try {
+                const response = await fetch(`/api/fixtures/${id}`, { method: 'DELETE' });
+                const data = await response.json();
+                
+                if (data.success) {
+                    showToast('Fixture deleted', 'success');
+                    loadFixtures();
+                }
+            } catch (error) {
+                showToast('Error deleting fixture', 'error');
+            }
+        }
+        
+        async function clearAllResults() {
+            if (!confirm('Clear ALL match results? This cannot be undone.')) return;
+            
+            try {
+                const response = await fetch('/api/results/clear-all', { method: 'DELETE' });
+                const data = await response.json();
+                
+                if (data.success) {
+                    showToast('All results cleared', 'success');
+                    location.reload();
+                }
+            } catch (error) {
+                showToast('Error clearing results', 'error');
+            }
+        }
+        
+        async function resetTournament() {
+            if (!confirm('WARNING: This will delete ALL tournament data! Type "RESET" to confirm.')) return;
+            
+            const confirmation = prompt('Type "RESET" to confirm:');
+            if (confirmation !== 'RESET') return;
+            
+            try {
+                const response = await fetch('/api/tournaments/reset-all', { method: 'DELETE' });
+                const data = await response.json();
+                
+                if (data.success) {
+                    showToast('Tournament reset complete', 'success');
+                    location.reload();
+                }
+            } catch (error) {
+                showToast('Error resetting tournament', 'error');
+            }
+        }
+        
+        // Event Listeners
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('smart-fixture-form')?.addEventListener('submit', generateSmartFixtures);
+            document.getElementById('create-tournament-form')?.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                // Add tournament creation logic here
+                showToast('Tournament creation feature - implement via API', 'info');
+            });
+            
+            // Load initial data
+            setTimeout(() => {
+                loadTournaments();
+                loadFixtures();
+                loadRegistrations();
+                loadErrors();
+                loadScheduledNotifications();
+                
+                document.getElementById('last-sync-time').textContent = new Date().toLocaleString();
+            }, 1000);
+        });
+        
+        // Tab change handlers
+        document.getElementById('errors-tab')?.addEventListener('shown.bs.tab', loadErrors);
+        document.getElementById('notifications-tab')?.addEventListener('shown.bs.tab', loadScheduledNotifications);
+        document.getElementById('fixtures-tab')?.addEventListener('shown.bs.tab', loadFixtures);
+        document.getElementById('registrations-tab')?.addEventListener('shown.bs.tab', loadRegistrations);
+        document.getElementById('tournaments-tab')?.addEventListener('shown.bs.tab', loadTournaments);
     </script>
 </body>
 </html>
