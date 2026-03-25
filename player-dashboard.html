@@ -279,6 +279,41 @@
     <script type="text/babel">
         const { useState, useEffect } = React;
 
+        // ========== API CONFIGURATION ==========
+        // Global API Base URL - routes all API calls to backend
+        const API_BASE = window.location.hostname.includes("kishtech.co.ke") || window.location.hostname.includes("localhost")
+            ? "https://backend-w2cx.onrender.com"
+            : "http://localhost:3000";
+        
+        console.log(`🌐 API Base URL: ${API_BASE}`);
+
+        // API Helper Function with error handling
+        async function apiFetch(path, options = {}) {
+            const url = `${API_BASE}${path}`;
+            console.log(`🚀 API Request: ${options.method || 'GET'} ${url}`);
+            
+            try {
+                const response = await fetch(url, {
+                    ...options,
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...options.headers,
+                    },
+                });
+                
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({}));
+                    throw new Error(errorData.message || `HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                return response;
+            } catch (error) {
+                console.error(`❌ API Error (${path}):`, error);
+                throw error;
+            }
+        }
+        // ========== END API CONFIGURATION ==========
+
         let supabaseInstance = null;
         
         function getSupabaseInstance() {
@@ -303,7 +338,7 @@
                 return;
             }
             console.log("Downloading receipt for payment ID:", paymentId);
-            const receiptUrl = `/api/receipt/${paymentId}`;
+            const receiptUrl = `${API_BASE}/api/receipt/${paymentId}`;
             window.open(receiptUrl, '_blank');
         };
 
@@ -438,7 +473,7 @@
                     console.log("Account loaded:", account);
 
                     try {
-                        const tournamentsRes = await fetch('/api/tournaments');
+                        const tournamentsRes = await apiFetch('/api/tournaments');
                         const tournamentsData = await tournamentsRes.json();
                         if (tournamentsData.success) {
                             setAvailableTournaments((tournamentsData.tournaments || []).map(t => ({ ...t, alreadyJoined: false, canJoin: t.status === 'registration_open' })));
@@ -483,7 +518,6 @@
                     const strength = calculateTeamStrength(calcStats);
                     setTeamStrength(strength);
                     
-                    // FIX: Proper error handling for update
                     if (account?.id) {
                         try {
                             await supabase.from('player_accounts').update({ team_strength: strength }).eq('id', account.id);
@@ -538,7 +572,6 @@
                     });
                     setResults(recentResults);
 
-                    // Load payments - only completed payments
                     const { data: paymentsData } = await supabase
                         .from('payments')
                         .select('*')
@@ -559,7 +592,7 @@
                     })));
 
                     try {
-                        const tournamentsRes = await fetch('/api/tournaments');
+                        const tournamentsRes = await apiFetch('/api/tournaments');
                         const tournamentsData = await tournamentsRes.json();
                         const { data: participantData } = await supabase
                             .from('tournament_participants')
@@ -567,7 +600,6 @@
                             .or(`player_id.eq.${account.player_id},player_account_id.eq.${account.id}`);
                         
                         if (tournamentsData.success) {
-                            // Normalize tournament IDs
                             const latestPayments = Object.values(
                                 (paymentsData || []).reduce((acc, p) => {
                                     if (!p.tournament_id) return acc;
@@ -647,9 +679,8 @@
                 setPaymentStatus('sending');
                 setPaymentMessage('Sending M-Pesa request...');
                 try {
-                    const payRes = await fetch('/api/payflow/stk-push', {
+                    const payRes = await apiFetch('/api/payflow/stk-push', {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ phone: phoneNumber, amount: tournament.entry_fee, reference: `TOURN${tournament.id}_${session?.account_id || session?.id}`, description: `Tournament: ${tournament.name}`, account_id: session?.account_id || session?.id, tournament_id: tournament.id })
                     });
                     const payData = await payRes.json();
@@ -661,16 +692,15 @@
                             attempts++;
                             setPaymentMessage(`Waiting for payment... (${attempts}/24)`);
                             try {
-                                const statusRes = await fetch('/api/payflow/status', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ checkout_request_id: payData.checkout_request_id }) });
+                                const statusRes = await apiFetch('/api/payflow/status', { method: 'POST', body: JSON.stringify({ checkout_request_id: payData.checkout_request_id }) });
                                 const statusData = await statusRes.json();
                                 if (statusData.status === 'completed') {
                                     clearInterval(checkPayment);
                                     setPaymentStatus('success');
                                     setPaymentMessage('Payment received! Adding you to tournament...');
                                     
-                                    const joinRes = await fetch('/api/tournaments/join', { 
+                                    const joinRes = await apiFetch('/api/tournaments/join', { 
                                         method: 'POST', 
-                                        headers: { 'Content-Type': 'application/json' }, 
                                         body: JSON.stringify({ 
                                             tournament_id: tournament.id, 
                                             player_account_id: session?.account_id || session?.id, 
@@ -742,7 +772,7 @@
                 if (newPassword !== confirmNewPassword) { setPasswordError('Passwords do not match'); return; }
                 setSavingPassword(true);
                 try {
-                    const res = await fetch('/api/player/change-password', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ account_id: session?.account_id || session?.id, new_password: newPassword }) });
+                    const res = await apiFetch('/api/player/change-password', { method: 'POST', body: JSON.stringify({ account_id: session?.account_id || session?.id, new_password: newPassword }) });
                     const data = await res.json();
                     if (data.success) {
                         const updatedSession = { ...session, must_change_password: false };
@@ -784,7 +814,7 @@
                 if (profileData.username && !/^[a-zA-Z0-9_]{3,}$/.test(profileData.username)) { setProfileError('Username must be at least 3 characters (letters, numbers, underscore only)'); return; }
                 setSavingProfile(true);
                 try {
-                    const res = await fetch('/api/player/update-profile', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ account_id: session?.account_id || session?.id, name: profileData.name, username: profileData.username || null, email: profileData.email || null, phone: formattedPhone || null, preferred_team: profileData.preferred_team || null, bio: profileData.bio || null, team_strength: teamStrength }) });
+                    const res = await apiFetch('/api/player/update-profile', { method: 'POST', body: JSON.stringify({ account_id: session?.account_id || session?.id, name: profileData.name, username: profileData.username || null, email: profileData.email || null, phone: formattedPhone || null, preferred_team: profileData.preferred_team || null, bio: profileData.bio || null, team_strength: teamStrength }) });
                     const data = await res.json();
                     if (data.success) {
                         const updatedSession = { ...session, name: profileData.name, username: profileData.username, email: profileData.email, phone: formattedPhone, preferred_team: profileData.preferred_team, team: profileData.preferred_team, bio: profileData.bio, team_strength: teamStrength, must_complete_profile: false };
