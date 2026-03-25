@@ -259,15 +259,18 @@
             100% { transform: rotate(360deg); }
         }
         
-        .tournament-card {
-            transition: all 0.3s ease;
+        .strength-input {
+            width: 100%;
+            padding: 0.7rem;
+            border-radius: var(--radius-md);
+            border: 1px solid var(--border-color);
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            font-weight: bold;
         }
-        .tournament-card:hover {
-            transform: translateY(-2px);
-        }
-        .prize-pool {
-            background: linear-gradient(135deg, rgba(255, 215, 0, 0.1), rgba(255, 165, 0, 0.1));
-            border-left: 3px solid #FFD700;
+        .strength-input:focus {
+            outline: none;
+            border-color: var(--primary-500);
         }
     </style>
 </head>
@@ -291,14 +294,12 @@
         const { useState, useEffect } = React;
 
         // ========== API CONFIGURATION ==========
-        // Global API Base URL - routes all API calls to backend
         const API_BASE = window.location.hostname.includes("kishtech.co.ke") || window.location.hostname.includes("localhost")
             ? "https://backend-w2cx.onrender.com"
             : "http://localhost:3000";
         
         console.log(`🌐 API Base URL: ${API_BASE}`);
 
-        // API Helper Function with error handling
         async function apiFetch(path, options = {}) {
             const url = `${API_BASE}${path}`;
             console.log(`🚀 API Request: ${options.method || 'GET'} ${url}`);
@@ -408,6 +409,7 @@
             const [stats, setStats] = useState({ played: 0, wins: 0, draws: 0, losses: 0, points: 0, gf: 0, ga: 0 });
             const [position, setPosition] = useState('-');
             const [teamStrength, setTeamStrength] = useState(2000);
+            const [editableStrength, setEditableStrength] = useState(2000);
             const [showPasswordModal, setShowPasswordModal] = useState(false);
             const [newPassword, setNewPassword] = useState('');
             const [confirmNewPassword, setConfirmNewPassword] = useState('');
@@ -434,7 +436,6 @@
             const [paymentPhone, setPaymentPhone] = useState('');
             const [paymentStatus, setPaymentStatus] = useState('');
             const [paymentMessage, setPaymentMessage] = useState('');
-            const [myTournaments, setMyTournaments] = useState([]);
 
             useEffect(() => {
                 const sess = localStorage.getItem('player_session') || sessionStorage.getItem('player_session');
@@ -484,8 +485,20 @@
                     
                     console.log("Account loaded:", account);
 
+                    try {
+                        const tournamentsRes = await apiFetch('/api/tournaments');
+                        const tournamentsData = await tournamentsRes.json();
+                        if (tournamentsData.success) {
+                            setAvailableTournaments((tournamentsData.tournaments || []).map(t => ({ ...t, alreadyJoined: false, canJoin: t.status === 'registration_open' })));
+                        }
+                    } catch (e) { console.error('Error loading tournaments:', e); }
+
                     if (!account?.player_id) {
                         setPlayer({ ...account, photo: account.photo_url || null, team: account.preferred_team || null });
+                        if (account.team_strength) {
+                            setTeamStrength(account.team_strength);
+                            setEditableStrength(account.team_strength);
+                        }
                         setLoading(false);
                         return;
                     }
@@ -519,10 +532,13 @@
                     });
 
                     setStats(calcStats);
-                    const strength = calculateTeamStrength(calcStats);
-                    setTeamStrength(strength);
                     
-                    if (account?.id) {
+                    // Use existing team strength if available, otherwise calculate
+                    let strength = account.team_strength || calculateTeamStrength(calcStats);
+                    setTeamStrength(strength);
+                    setEditableStrength(strength);
+                    
+                    if (account?.id && !account.team_strength) {
                         try {
                             await supabase.from('player_accounts').update({ team_strength: strength }).eq('id', account.id);
                         } catch (updateErr) {
@@ -576,7 +592,6 @@
                     });
                     setResults(recentResults);
 
-                    // Load payments - only completed payments
                     const { data: paymentsData } = await supabase
                         .from('payments')
                         .select('*')
@@ -596,19 +611,15 @@
                         transactionCode: p.transaction_code 
                     })));
 
-                    // Load tournaments from backend API
                     try {
                         const tournamentsRes = await apiFetch('/api/tournaments');
                         const tournamentsData = await tournamentsRes.json();
-                        
-                        // Load tournament participants from Supabase
                         const { data: participantData } = await supabase
                             .from('tournament_participants')
                             .select('tournament_id, tournaments(id, name)')
                             .or(`player_id.eq.${account.player_id},player_account_id.eq.${account.id}`);
                         
                         if (tournamentsData.success) {
-                            // Get unique tournament IDs from payments
                             const latestPayments = Object.values(
                                 (paymentsData || []).reduce((acc, p) => {
                                     if (!p.tournament_id) return acc;
@@ -631,33 +642,51 @@
                             
                             console.log("Joined tournament IDs:", joinedIds);
                             
-                            // Set my tournaments
-                            const myTournamentsList = (participantData || [])
+                            const myTournaments = (participantData || [])
                                 .filter(p => p.tournaments)
                                 .map(p => ({ 
                                     id: p.tournament_id, 
                                     name: p.tournaments?.name || 'Tournament', 
                                     type: 'participant', 
                                     amount: 0, 
-                                    paidAt: null,
-                                    status: 'active'
+                                    paidAt: null 
                                 }));
                             
-                            setMyTournaments(myTournamentsList);
+                            if (myTournaments.length > 0) {
+                                setPaidTournaments(prev => [...prev, ...myTournaments.filter(t => !prev.some(p => p.id === t.id))]);
+                            }
                             
-                            // Set available tournaments with join status
                             setAvailableTournaments((tournamentsData.tournaments || []).map(t => ({ 
                                 ...t, 
                                 alreadyJoined: joinedIds.includes(Number(t.id)),
                                 canJoin: t.status === 'registration_open' && !joinedIds.includes(Number(t.id))
                             })));
                         }
-                    } catch (e) { 
-                        console.error('Error loading tournaments:', e); 
-                    }
+                    } catch (e) { console.error('Error loading tournaments:', e); }
                 } catch (err) { 
                     console.error('Error loading dashboard:', err);
                 } finally { setLoading(false); }
+            };
+
+            const updateTeamStrength = async () => {
+                const strengthValue = Math.min(4500, Math.max(1500, parseInt(editableStrength) || 2000));
+                setEditableStrength(strengthValue);
+                setTeamStrength(strengthValue);
+                
+                const accountId = session?.account_id || session?.id;
+                if (accountId) {
+                    try {
+                        await supabase.from('player_accounts').update({ team_strength: strengthValue }).eq('id', accountId);
+                        const updatedSession = { ...session, team_strength: strengthValue };
+                        localStorage.setItem('player_session', JSON.stringify(updatedSession));
+                        sessionStorage.setItem('player_session', JSON.stringify(updatedSession));
+                        setSession(updatedSession);
+                        console.log("Team strength updated to:", strengthValue);
+                    } catch (err) {
+                        console.error("Error updating team strength:", err);
+                        alert("Failed to update team strength");
+                    }
+                }
             };
 
             const logout = () => {
@@ -693,14 +722,7 @@
                 try {
                     const payRes = await apiFetch('/api/payflow/stk-push', {
                         method: 'POST',
-                        body: JSON.stringify({ 
-                            phone: phoneNumber, 
-                            amount: tournament.entry_fee, 
-                            reference: `TOURN${tournament.id}_${session?.account_id || session?.id}`, 
-                            description: `Tournament: ${tournament.name}`, 
-                            account_id: session?.account_id || session?.id, 
-                            tournament_id: tournament.id 
-                        })
+                        body: JSON.stringify({ phone: phoneNumber, amount: tournament.entry_fee, reference: `TOURN${tournament.id}_${session?.account_id || session?.id}`, description: `Tournament: ${tournament.name}`, account_id: session?.account_id || session?.id, tournament_id: tournament.id })
                     });
                     const payData = await payRes.json();
                     if (payData.success) {
@@ -711,10 +733,7 @@
                             attempts++;
                             setPaymentMessage(`Waiting for payment... (${attempts}/24)`);
                             try {
-                                const statusRes = await apiFetch('/api/payflow/status', { 
-                                    method: 'POST', 
-                                    body: JSON.stringify({ checkout_request_id: payData.checkout_request_id }) 
-                                });
+                                const statusRes = await apiFetch('/api/payflow/status', { method: 'POST', body: JSON.stringify({ checkout_request_id: payData.checkout_request_id }) });
                                 const statusData = await statusRes.json();
                                 if (statusData.status === 'completed') {
                                     clearInterval(checkPayment);
@@ -753,14 +772,8 @@
                                 }
                             } catch (e) { console.error('Status check error:', e); }
                         }, 5000);
-                    } else { 
-                        setPaymentStatus('error'); 
-                        setPaymentMessage(payData.message || 'Failed to send payment request'); 
-                    }
-                } catch (err) { 
-                    setPaymentStatus('error'); 
-                    setPaymentMessage('Connection error. Please try again.'); 
-                }
+                    } else { setPaymentStatus('error'); setPaymentMessage(payData.message || 'Failed to send payment request'); }
+                } catch (err) { setPaymentStatus('error'); setPaymentMessage('Connection error. Please try again.'); }
             };
 
             const openPhotoModal = () => { setPhotoUrl(player?.photo || ''); setShowPhotoModal(true); };
@@ -800,13 +813,7 @@
                 if (newPassword !== confirmNewPassword) { setPasswordError('Passwords do not match'); return; }
                 setSavingPassword(true);
                 try {
-                    const res = await apiFetch('/api/player/change-password', { 
-                        method: 'POST', 
-                        body: JSON.stringify({ 
-                            account_id: session?.account_id || session?.id, 
-                            new_password: newPassword 
-                        }) 
-                    });
+                    const res = await apiFetch('/api/player/change-password', { method: 'POST', body: JSON.stringify({ account_id: session?.account_id || session?.id, new_password: newPassword }) });
                     const data = await res.json();
                     if (data.success) {
                         const updatedSession = { ...session, must_change_password: false };
@@ -824,14 +831,7 @@
             };
 
             const openProfileModal = () => {
-                setProfileData({ 
-                    name: session?.name || '', 
-                    username: session?.username || '', 
-                    email: session?.email || '', 
-                    phone: session?.phone || '', 
-                    preferred_team: session?.preferred_team || session?.team || '', 
-                    bio: session?.bio || '' 
-                });
+                setProfileData({ name: session?.name || '', username: session?.username || '', email: session?.email || '', phone: session?.phone || '', preferred_team: session?.preferred_team || session?.team || '', bio: session?.bio || '' });
                 setProfileError('');
                 setProfileSuccess('');
                 setShowProfileModal(true);
@@ -855,33 +855,10 @@
                 if (profileData.username && !/^[a-zA-Z0-9_]{3,}$/.test(profileData.username)) { setProfileError('Username must be at least 3 characters (letters, numbers, underscore only)'); return; }
                 setSavingProfile(true);
                 try {
-                    const res = await apiFetch('/api/player/update-profile', { 
-                        method: 'POST', 
-                        body: JSON.stringify({ 
-                            account_id: session?.account_id || session?.id, 
-                            name: profileData.name, 
-                            username: profileData.username || null, 
-                            email: profileData.email || null, 
-                            phone: formattedPhone || null, 
-                            preferred_team: profileData.preferred_team || null, 
-                            bio: profileData.bio || null, 
-                            team_strength: teamStrength 
-                        }) 
-                    });
+                    const res = await apiFetch('/api/player/update-profile', { method: 'POST', body: JSON.stringify({ account_id: session?.account_id || session?.id, name: profileData.name, username: profileData.username || null, email: profileData.email || null, phone: formattedPhone || null, preferred_team: profileData.preferred_team || null, bio: profileData.bio || null, team_strength: teamStrength }) });
                     const data = await res.json();
                     if (data.success) {
-                        const updatedSession = { 
-                            ...session, 
-                            name: profileData.name, 
-                            username: profileData.username, 
-                            email: profileData.email, 
-                            phone: formattedPhone, 
-                            preferred_team: profileData.preferred_team, 
-                            team: profileData.preferred_team, 
-                            bio: profileData.bio, 
-                            team_strength: teamStrength, 
-                            must_complete_profile: false 
-                        };
+                        const updatedSession = { ...session, name: profileData.name, username: profileData.username, email: profileData.email, phone: formattedPhone, preferred_team: profileData.preferred_team, team: profileData.preferred_team, bio: profileData.bio, team_strength: teamStrength, must_complete_profile: false };
                         localStorage.setItem('player_session', JSON.stringify(updatedSession));
                         sessionStorage.setItem('player_session', JSON.stringify(updatedSession));
                         setSession(updatedSession);
@@ -948,41 +925,9 @@
                                 <Card title="📊 Win Rate"><div style={{ textAlign: 'center', padding: '1rem 0' }}><div style={{ fontSize: '3rem', fontWeight: 800, fontFamily: "'Orbitron', sans-serif", background: 'var(--gradient-primary)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>{stats.played > 0 ? Math.round((stats.wins / stats.played) * 100) : 0}%</div><div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '0.5rem' }}>{stats.wins} wins from {stats.played} matches</div></div><div style={{ background: 'var(--bg-tertiary)', borderRadius: '10px', height: '10px', overflow: 'hidden', marginTop: '0.5rem' }}><div style={{ width: `${stats.played > 0 ? (stats.wins / stats.played) * 100 : 0}%`, height: '100%', background: 'var(--gradient-primary)', borderRadius: '10px' }}></div></div></Card>
                                 <Card title="🏆 League Position 2026"><div style={{ textAlign: 'center', padding: '1rem 0' }}><div style={{ fontSize: '3.5rem', fontWeight: 800, fontFamily: "'Orbitron', sans-serif", background: typeof position === 'number' && position <= 3 ? 'linear-gradient(135deg, #FFD700, #FFA500)' : 'var(--gradient-primary)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>{typeof position === 'number' ? `#${position}` : '-'}</div><div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '0.5rem' }}>{typeof position === 'number' && position === 1 ? '🥇 Leader!' : typeof position === 'number' && position === 2 ? '🥈 2nd Place' : typeof position === 'number' && position === 3 ? '🥉 3rd Place' : 'Current Standing'}</div><div style={{ display: 'flex', justifyContent: 'center', gap: '1.5rem', marginTop: '1rem', padding: '0.75rem', background: 'var(--bg-tertiary)', borderRadius: 'var(--radius-md)' }}><div><div style={{ fontWeight: 700, color: 'var(--success)' }}>{stats.points}</div><div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>PTS</div></div><div><div style={{ fontWeight: 700 }}>{stats.played}</div><div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>P</div></div><div><div style={{ fontWeight: 700, color: 'var(--success)' }}>{stats.wins}</div><div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>W</div></div><div><div style={{ fontWeight: 700, color: 'var(--warning)' }}>{stats.draws}</div><div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>D</div></div><div><div style={{ fontWeight: 700, color: 'var(--error)' }}>{stats.losses}</div><div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>L</div></div></div></div></Card>
                                 
-                                <Card title="📋 Profile Settings"><div style={{ fontSize: '0.9rem' }}>{(!session?.email || !session?.phone || session?.email === 'Not set') && (<div style={{ background: 'rgba(249, 115, 22, 0.15)', border: '1px solid rgba(249, 115, 22, 0.3)', borderRadius: 'var(--radius-md)', padding: '0.75rem', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}><span>⚠️</span><span style={{ color: 'var(--warning)', fontSize: '0.8rem' }}>Complete your profile to access all features</span></div>)}<div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.6rem 0.75rem', background: 'var(--bg-tertiary)', borderRadius: 'var(--radius-md)', marginBottom: '0.4rem' }}><span>👤</span><span style={{ color: 'var(--text-muted)', fontSize: '0.8rem', minWidth: '50px' }}>Name</span><span style={{ color: session?.name ? 'var(--text-secondary)' : 'var(--error)', flex: 1 }}>{session?.name || 'Not set'}</span></div><div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.6rem 0.75rem', background: 'var(--bg-tertiary)', borderRadius: 'var(--radius-md)', marginBottom: '0.4rem' }}><span>✉️</span><span style={{ color: 'var(--text-muted)', fontSize: '0.8rem', minWidth: '50px' }}>Email</span><span style={{ color: session?.email ? 'var(--text-secondary)' : 'var(--error)', wordBreak: 'break-all', flex: 1 }}>{session?.email || 'Not set'}</span></div><div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.6rem 0.75rem', background: 'var(--bg-tertiary)', borderRadius: 'var(--radius-md)', marginBottom: '0.4rem' }}><span>📱</span><span style={{ color: 'var(--text-muted)', fontSize: '0.8rem', minWidth: '50px' }}>Phone</span><span style={{ color: session?.phone ? 'var(--text-secondary)' : 'var(--error)', flex: 1 }}>{session?.phone || 'Not set'}</span></div><div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.6rem 0.75rem', background: 'var(--bg-tertiary)', borderRadius: 'var(--radius-md)', marginBottom: '0.4rem' }}><span>⚽</span><span style={{ color: 'var(--text-muted)', fontSize: '0.8rem', minWidth: '50px' }}>Team</span><span style={{ color: (session?.preferred_team || session?.team) ? 'var(--text-secondary)' : 'var(--text-muted)', flex: 1 }}>{session?.preferred_team || session?.team || 'Not set'}</span></div><div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.6rem 0.75rem', background: 'var(--bg-tertiary)', borderRadius: 'var(--radius-md)', marginBottom: '0.75rem' }}><span>🏋️</span><span style={{ color: 'var(--text-muted)', fontSize: '0.8rem', minWidth: '50px' }}>Team Strength</span><span style={{ color: 'var(--primary-400)', fontWeight: 700, flex: 1 }}>{teamStrength}</span></div><button onClick={openProfileModal} className="btn btn-primary" style={{ width: '100%', padding: '0.75rem' }}><i className="fas fa-user-edit" style={{ marginRight: '0.5rem' }}></i>Edit Profile</button></div></Card>
+                                <Card title="📋 Profile Settings"><div style={{ fontSize: '0.9rem' }}>{(!session?.email || !session?.phone || session?.email === 'Not set') && (<div style={{ background: 'rgba(249, 115, 22, 0.15)', border: '1px solid rgba(249, 115, 22, 0.3)', borderRadius: 'var(--radius-md)', padding: '0.75rem', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}><span>⚠️</span><span style={{ color: 'var(--warning)', fontSize: '0.8rem' }}>Complete your profile to access all features</span></div>)}<div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.6rem 0.75rem', background: 'var(--bg-tertiary)', borderRadius: 'var(--radius-md)', marginBottom: '0.4rem' }}><span>👤</span><span style={{ color: 'var(--text-muted)', fontSize: '0.8rem', minWidth: '50px' }}>Name</span><span style={{ color: session?.name ? 'var(--text-secondary)' : 'var(--error)', flex: 1 }}>{session?.name || 'Not set'}</span></div><div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.6rem 0.75rem', background: 'var(--bg-tertiary)', borderRadius: 'var(--radius-md)', marginBottom: '0.4rem' }}><span>✉️</span><span style={{ color: 'var(--text-muted)', fontSize: '0.8rem', minWidth: '50px' }}>Email</span><span style={{ color: session?.email ? 'var(--text-secondary)' : 'var(--error)', wordBreak: 'break-all', flex: 1 }}>{session?.email || 'Not set'}</span></div><div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.6rem 0.75rem', background: 'var(--bg-tertiary)', borderRadius: 'var(--radius-md)', marginBottom: '0.4rem' }}><span>📱</span><span style={{ color: 'var(--text-muted)', fontSize: '0.8rem', minWidth: '50px' }}>Phone</span><span style={{ color: session?.phone ? 'var(--text-secondary)' : 'var(--error)', flex: 1 }}>{session?.phone || 'Not set'}</span></div><div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.6rem 0.75rem', background: 'var(--bg-tertiary)', borderRadius: 'var(--radius-md)', marginBottom: '0.4rem' }}><span>⚽</span><span style={{ color: 'var(--text-muted)', fontSize: '0.8rem', minWidth: '50px' }}>Team</span><span style={{ color: (session?.preferred_team || session?.team) ? 'var(--text-secondary)' : 'var(--text-muted)', flex: 1 }}>{session?.preferred_team || session?.team || 'Not set'}</span></div><div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.6rem 0.75rem', background: 'var(--bg-tertiary)', borderRadius: 'var(--radius-md)', marginBottom: '0.75rem' }}><span>🏋️</span><span style={{ color: 'var(--text-muted)', fontSize: '0.8rem', minWidth: '50px' }}>Team Strength</span><div style={{ flex: 1, display: 'flex', gap: '0.5rem', alignItems: 'center' }}><input type="number" value={editableStrength} onChange={(e) => setEditableStrength(e.target.value)} min="1500" max="4500" step="10" className="strength-input" style={{ width: '120px' }} /><button onClick={updateTeamStrength} className="btn btn-sm" style={{ background: 'var(--primary-500)', color: 'white', border: 'none', padding: '0.3rem 0.8rem', borderRadius: 'var(--radius-sm)', cursor: 'pointer' }}>Update</button></div></div><button onClick={openProfileModal} className="btn btn-primary" style={{ width: '100%', padding: '0.75rem' }}><i className="fas fa-user-edit" style={{ marginRight: '0.5rem' }}></i>Edit Profile</button></div></Card>
                                 
-                                {/* MY TOURNAMENTS SECTION */}
-                                {myTournaments.length > 0 && (
-                                    <Card title="🏆 My Tournaments">
-                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                                            {myTournaments.map((t) => (
-                                                <div key={t.id} style={{ 
-                                                    background: 'linear-gradient(135deg, rgba(6, 182, 212, 0.15) 0%, rgba(59, 130, 246, 0.15) 100%)', 
-                                                    border: '1px solid rgba(6, 182, 212, 0.3)', 
-                                                    borderRadius: 'var(--radius-md)', 
-                                                    padding: '1rem',
-                                                    position: 'relative',
-                                                    overflow: 'hidden'
-                                                }}>
-                                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-                                                        <div>
-                                                            <span style={{ fontWeight: 700, fontSize: '1rem' }}>{t.name}</span>
-                                                            <span style={{ marginLeft: '0.5rem', background: 'var(--success)', color: 'white', padding: '0.15rem 0.5rem', borderRadius: '12px', fontSize: '0.7rem' }}>
-                                                                ACTIVE
-                                                            </span>
-                                                        </div>
-                                                        <i className="fas fa-trophy" style={{ color: 'var(--primary-400)', fontSize: '1.2rem' }}></i>
-                                                    </div>
-                                                    <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                                                        <i className="fas fa-calendar-alt"></i> You're registered and ready to play!
-                                                    </div>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </Card>
-                                )}
-
-                                {/* AVAILABLE TOURNAMENTS SECTION */}
-                                <Card title="🏆 Available Tournaments 2026">
+                                <Card title="🏆 Tournaments 2026">
                                     {availableTournaments.length > 0 ? (
                                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                                             {availableTournaments.map((t) => {
@@ -996,7 +941,7 @@
                                                 const statusInfo = statusColors[t.status] || { bg: 'var(--text-muted)', text: t.status };
                                                 
                                                 return (
-                                                    <div key={t.id} className="tournament-card" style={{ 
+                                                    <div key={t.id} style={{ 
                                                         background: t.alreadyJoined ? 'linear-gradient(135deg, rgba(6, 182, 212, 0.15) 0%, rgba(59, 130, 246, 0.15) 100%)' : 
                                                                   t.canJoin ? 'linear-gradient(135deg, rgba(249, 115, 22, 0.1) 0%, rgba(239, 68, 68, 0.1) 100%)' : 
                                                                   'var(--bg-tertiary)', 
@@ -1004,79 +949,56 @@
                                                                 t.canJoin ? '1px solid rgba(249, 115, 22, 0.3)' : 
                                                                 '1px solid var(--border-color)', 
                                                         borderRadius: 'var(--radius-md)', 
-                                                        padding: '1rem',
-                                                        transition: 'all 0.3s ease'
+                                                        padding: '1rem' 
                                                     }}>
                                                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.5rem' }}>
-                                                            <div style={{ flex: 1 }}>
-                                                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem', flexWrap: 'wrap' }}>
-                                                                    <span style={{ fontWeight: 700, fontSize: '1rem' }}>{t.name}</span>
+                                                            <div>
+                                                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
+                                                                    <span style={{ fontWeight: 600 }}>{t.name}</span>
                                                                     {t.alreadyJoined && (
-                                                                        <span style={{ background: 'var(--primary-500)', color: 'white', padding: '0.2rem 0.6rem', borderRadius: '20px', fontSize: '0.7rem', fontWeight: 600 }}>
+                                                                        <span style={{ background: 'var(--primary-500)', color: 'white', padding: '0.15rem 0.4rem', borderRadius: '10px', fontSize: '0.65rem' }}>
                                                                             ✓ JOINED
                                                                         </span>
                                                                     )}
                                                                 </div>
-                                                                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
-                                                                    <span>{t.format === 'league' ? '🏟️ League' : '⚔️ Knockout'}</span>
-                                                                    <span>👥 Max {t.max_players} players</span>
+                                                                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                                                                    {t.format === 'league' ? '🏟️ League' : '⚔️ Knockout'} • Max {t.max_players} players
                                                                 </div>
                                                             </div>
                                                             <div style={{ textAlign: 'right' }}>
-                                                                <span style={{ background: statusInfo.bg, color: 'white', padding: '0.2rem 0.6rem', borderRadius: 'var(--radius-sm)', fontSize: '0.7rem', display: 'inline-block', marginBottom: '0.25rem' }}>
+                                                                <span style={{ background: statusInfo.bg, color: 'white', padding: '0.2rem 0.5rem', borderRadius: 'var(--radius-sm)', fontSize: '0.7rem', display: 'block', marginBottom: '0.25rem' }}>
                                                                     {statusInfo.text}
                                                                 </span>
                                                                 {t.entry_fee > 0 ? 
-                                                                    <div style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--warning)', marginTop: '0.25rem' }}>KES {t.entry_fee.toLocaleString()}</div> : 
-                                                                    <div style={{ fontSize: '0.8rem', color: 'var(--success)', marginTop: '0.25rem' }}>🎮 FREE</div>
+                                                                    <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--warning)' }}>KES {t.entry_fee}</span> : 
+                                                                    <span style={{ fontSize: '0.75rem', color: 'var(--success)' }}>FREE</span>
                                                                 }
                                                             </div>
                                                         </div>
                                                         
-                                                        {t.description && (
-                                                            <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', margin: '0.5rem 0', lineHeight: '1.4' }}>
-                                                                {t.description}
-                                                            </p>
-                                                        )}
-                                                        
-                                                        <div style={{ display: 'flex', gap: '1rem', marginBottom: '0.75rem', flexWrap: 'wrap' }}>
-                                                            {t.prize_pool > 0 && (
-                                                                <div className="prize-pool" style={{ fontSize: '0.75rem', color: '#FFD700', padding: '0.25rem 0.5rem', borderRadius: 'var(--radius-sm)', background: 'rgba(255, 215, 0, 0.1)' }}>
-                                                                    🏆 Prize Pool: KES {t.prize_pool.toLocaleString()}
-                                                                </div>
-                                                            )}
-                                                            {t.start_date && (
-                                                                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                                                                    📅 Starts: {new Date(t.start_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
-                                                                </div>
-                                                            )}
-                                                            {t.end_date && (
-                                                                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                                                                    🏁 Ends: {new Date(t.end_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
-                                                                </div>
-                                                            )}
-                                                        </div>
+                                                        {t.description && <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', margin: '0.5rem 0' }}>{t.description}</p>}
+                                                        {t.prize_pool > 0 && <div style={{ fontSize: '0.75rem', color: 'var(--success)', marginBottom: '0.5rem' }}>🏆 Prize Pool: KES {t.prize_pool}</div>}
+                                                        {t.start_date && <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>📅 {new Date(t.start_date).toLocaleDateString()}</div>}
                                                         
                                                         {t.alreadyJoined ? (
                                                             <div style={{ 
                                                                 width: '100%', 
-                                                                padding: '0.6rem', 
+                                                                padding: '0.5rem', 
                                                                 background: 'rgba(6, 182, 212, 0.2)', 
                                                                 border: '1px solid var(--primary-500)', 
                                                                 borderRadius: 'var(--radius-sm)', 
                                                                 color: 'var(--primary-400)', 
                                                                 textAlign: 'center',
-                                                                fontWeight: 600,
-                                                                fontSize: '0.85rem'
+                                                                fontWeight: 600
                                                             }}>
-                                                                <i className="fas fa-check-circle"></i> You're registered for this tournament!
+                                                                ✓ You're In!
                                                             </div>
                                                         ) : t.canJoin ? (
                                                             <button 
                                                                 onClick={() => openPaymentModal(t)} 
                                                                 style={{ 
                                                                     width: '100%', 
-                                                                    padding: '0.6rem', 
+                                                                    padding: '0.5rem', 
                                                                     background: 'var(--gradient-secondary)', 
                                                                     border: 'none', 
                                                                     borderRadius: 'var(--radius-sm)', 
@@ -1084,39 +1006,24 @@
                                                                     fontWeight: 600, 
                                                                     cursor: 'pointer', 
                                                                     fontSize: '0.85rem',
-                                                                    transition: 'transform 0.2s',
-                                                                    display: 'flex',
-                                                                    alignItems: 'center',
-                                                                    justifyContent: 'center',
-                                                                    gap: '0.5rem'
+                                                                    transition: 'transform 0.2s'
                                                                 }}
                                                                 onMouseOver={(e) => e.target.style.transform = 'scale(1.02)'}
                                                                 onMouseOut={(e) => e.target.style.transform = 'scale(1)'}
                                                             >
-                                                                {t.entry_fee > 0 ? (
-                                                                    <>
-                                                                        <i className="fas fa-money-bill-wave"></i>
-                                                                        Pay KES {t.entry_fee.toLocaleString()} & Join Tournament
-                                                                    </>
-                                                                ) : (
-                                                                    <>
-                                                                        <i className="fas fa-gamepad"></i>
-                                                                        Join Tournament (Free)
-                                                                    </>
-                                                                )}
+                                                                {t.entry_fee > 0 ? `💰 Pay KES ${t.entry_fee} & Join` : '🎮 Join Free'}
                                                             </button>
                                                         ) : (
                                                             <div style={{ 
                                                                 width: '100%', 
-                                                                padding: '0.6rem', 
+                                                                padding: '0.5rem', 
                                                                 background: 'var(--bg-card)', 
                                                                 borderRadius: 'var(--radius-sm)', 
                                                                 color: 'var(--text-muted)', 
-                                                                textAlign: 'center',
-                                                                fontSize: '0.85rem'
+                                                                textAlign: 'center' 
                                                             }}>
-                                                                {t.status === 'in_progress' ? '⏳ Tournament in progress - Registration closed' : 
-                                                                 t.status === 'completed' ? '🏁 Tournament completed' : 
+                                                                {t.status === 'in_progress' ? '⏳ Tournament in progress' : 
+                                                                 t.status === 'completed' ? '🏁 Tournament ended' : 
                                                                  '🔒 Registration closed'}
                                                             </div>
                                                         )}
@@ -1125,10 +1032,8 @@
                                             })}
                                         </div>
                                     ) : (
-                                        <div style={{ textAlign: 'center', padding: '2rem' }}>
-                                            <i className="fas fa-trophy" style={{ fontSize: '3rem', color: 'var(--text-muted)', marginBottom: '1rem', display: 'block' }}></i>
-                                            <p style={{ color: 'var(--text-muted)' }}>No tournaments available at the moment</p>
-                                            <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Check back soon for new competitions!</p>
+                                        <div style={{ textAlign: 'center', padding: '1rem' }}>
+                                            🏆 No tournaments available
                                         </div>
                                     )}
                                 </Card>
@@ -1141,22 +1046,20 @@
                                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.5rem' }}>
                                                         <div>
                                                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                                                <span style={{ fontWeight: 700, fontSize: '1.1rem', color: 'var(--success)' }}>KES {r.amount.toLocaleString()}</span>
+                                                                <span style={{ fontWeight: 600, color: 'var(--success)' }}>KES {r.amount}</span>
                                                                 <span style={{ background: '#3B82F6', color: 'white', borderRadius: '50%', width: '20px', height: '20px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem' }}>✓</span>
                                                             </div>
-                                                            <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
-                                                                {r.payment_type === 'registration' ? 'Tournament Registration' : 'M-Pesa Payment'}
-                                                            </div>
+                                                            <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>M-Pesa Payment</div>
                                                         </div>
-                                                        <span style={{ background: 'rgba(16, 185, 129, 0.2)', color: 'var(--success)', padding: '0.25rem 0.6rem', borderRadius: 'var(--radius-sm)', fontSize: '0.7rem', fontWeight: 600 }}>COMPLETED</span>
+                                                        <span style={{ background: 'rgba(16, 185, 129, 0.2)', color: 'var(--success)', padding: '0.25rem 0.5rem', borderRadius: 'var(--radius-sm)', fontSize: '0.7rem' }}>Paid</span>
                                                     </div>
                                                     <div style={{ background: 'var(--bg-card)', borderRadius: 'var(--radius-sm)', padding: '0.5rem 0.75rem', marginTop: '0.5rem' }}>
-                                                        <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginBottom: '0.2rem' }}>Transaction Code</div>
-                                                        <div style={{ fontFamily: 'monospace', fontWeight: 600, color: 'var(--primary-400)', fontSize: '0.8rem' }}>{r.transaction_code || 'MPESA-' + r.id.slice(-8)}</div>
+                                                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Transaction Code</div>
+                                                        <div style={{ fontFamily: 'monospace', fontWeight: 600, color: 'var(--primary-400)' }}>{r.transaction_code || 'N/A'}</div>
                                                     </div>
-                                                    <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '0.75rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
-                                                        <span><i className="fas fa-phone"></i> {r.phone || session?.phone || 'N/A'}</span>
-                                                        <span><i className="far fa-calendar-alt"></i> {new Date(r.completed_at || r.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+                                                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                        <span>{r.phone}</span>
+                                                        <span>{new Date(r.completed_at || r.created_at).toLocaleDateString()}</span>
                                                         <button onClick={() => downloadReceipt(r.id)} className="receipt-btn">
                                                             <i className="fas fa-download"></i> Receipt
                                                         </button>
@@ -1165,11 +1068,7 @@
                                             ))}
                                         </div>
                                     ) : (
-                                        <div style={{ textAlign: 'center', padding: '2rem' }}>
-                                            <i className="fas fa-receipt" style={{ fontSize: '3rem', color: 'var(--text-muted)', marginBottom: '1rem', display: 'block' }}></i>
-                                            <p className="text-center text-muted">No payment receipts yet</p>
-                                            <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Payments for tournaments will appear here</p>
-                                        </div>
+                                        <p className="text-center text-muted">No payment receipts</p>
                                     )}
                                 </Card>
                             </div>
@@ -1214,9 +1113,9 @@
                                 <div style={{ marginBottom: '0.9rem' }}><label>👤 Full Name *</label><input type="text" value={profileData.name} onChange={(e) => setProfileData({...profileData, name: e.target.value})} style={{ width: '100%', padding: '0.7rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)', background: 'var(--bg-tertiary)' }} /></div>
                                 <div style={{ marginBottom: '0.9rem' }}><label>🎮 Username</label><input type="text" value={profileData.username} onChange={(e) => setProfileData({...profileData, username: e.target.value.replace(/\s/g, '')})} placeholder="e.g. ProGamer_254" style={{ width: '100%', padding: '0.7rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)', background: 'var(--bg-tertiary)' }} /></div>
                                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '0.9rem' }}><div><label>✉️ Email</label><input type="email" value={profileData.email} onChange={(e) => setProfileData({...profileData, email: e.target.value})} style={{ width: '100%', padding: '0.7rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)', background: 'var(--bg-tertiary)' }} /></div><div><label>📱 Phone (M-Pesa)</label><input type="tel" value={profileData.phone} onChange={(e) => setProfileData({...profileData, phone: e.target.value})} placeholder="0712345678" style={{ width: '100%', padding: '0.7rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)', background: 'var(--bg-tertiary)' }} /></div></div>
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '0.9rem' }}><div><label>⚽ Preferred Team</label><input type="text" value={profileData.preferred_team} onChange={(e) => setProfileData({...profileData, preferred_team: e.target.value})} placeholder="Enter your team name..." style={{ width: '100%', padding: '0.7rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)', background: 'var(--bg-tertiary)' }} /></div><div><label>🏋️ Team Strength</label><input type="number" value={teamStrength} disabled style={{ width: '100%', padding: '0.7rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)', background: 'var(--bg-tertiary)', color: 'var(--primary-400)', fontWeight: 'bold' }} /></div></div>
-                                <div style={{ marginBottom: '1.25rem' }}><label>📝 Bio</label><textarea value={profileData.bio} onChange={(e) => setProfileData({...profileData, bio: e.target.value})} rows={3} style={{ width: '100%', padding: '0.7rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)', background: 'var(--bg-tertiary)', resize: 'vertical' }} placeholder="Tell us about your gaming style, favorite team, etc." /></div>
-                                <div style={{ display: 'flex', gap: '0.75rem' }}><button onClick={() => { setShowProfileModal(false); setProfileError(''); setProfileSuccess(''); }} className="btn btn-secondary" style={{ flex: 1 }}>Cancel</button><button onClick={saveProfile} className="btn btn-primary" style={{ flex: 1 }} disabled={savingProfile}>{savingProfile ? <><Spinner size={16} /> Saving...</> : 'Save Profile'}</button></div>
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '0.9rem' }}><div><label>⚽ Preferred Team</label><input type="text" value={profileData.preferred_team} onChange={(e) => setProfileData({...profileData, preferred_team: e.target.value})} placeholder="Enter your team name..." style={{ width: '100%', padding: '0.7rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)', background: 'var(--bg-tertiary)' }} /></div><div><label>🏋️ Team Strength</label><input type="number" value={editableStrength} onChange={(e) => setEditableStrength(e.target.value)} min="1500" max="4500" step="10" style={{ width: '100%', padding: '0.7rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)', background: 'var(--bg-tertiary)', color: 'var(--text-primary)', fontWeight: 'bold' }} /></div></div>
+                                <div style={{ marginBottom: '1.25rem' }}><label>📝 Bio</label><textarea value={profileData.bio} onChange={(e) => setProfileData({...profileData, bio: e.target.value})} rows={3} style={{ width: '100%', padding: '0.7rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)', background: 'var(--bg-tertiary)', resize: 'vertical' }} /></div>
+                                <div style={{ display: 'flex', gap: '0.75rem' }}><button onClick={() => { setShowProfileModal(false); setProfileError(''); setProfileSuccess(''); }} className="btn btn-secondary" style={{ flex: 1 }}>Cancel</button><button onClick={async () => { await updateTeamStrength(); await saveProfile(); }} className="btn btn-primary" style={{ flex: 1 }} disabled={savingProfile}>{savingProfile ? <><Spinner size={16} /> Saving...</> : 'Save Profile'}</button></div>
                             </div>
                         </div>
                     )}
@@ -1225,35 +1124,9 @@
                     {showPaymentModal && paymentTournament && (
                         <div className="modal-overlay">
                             <div className="modal-content">
-                                <div style={{ textAlign: 'center', marginBottom: '1rem' }}>
-                                    <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/1/15/M-PESA_LOGO-01.svg/200px-M-PESA_LOGO-01.svg.png" alt="M-Pesa" style={{ height: 40, marginBottom: '0.5rem' }} />
-                                    <h3>Pay to Join Tournament</h3>
-                                    <p style={{ color: 'var(--primary-400)', fontWeight: 600 }}>{paymentTournament.name}</p>
-                                </div>
-                                <div style={{ background: 'linear-gradient(135deg, rgba(67, 160, 71, 0.2), rgba(102, 187, 106, 0.1))', border: '1px solid rgba(67, 160, 71, 0.3)', borderRadius: 'var(--radius-md)', padding: '1rem', textAlign: 'center', marginBottom: '1rem' }}>
-                                    <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Entry Fee</div>
-                                    <div style={{ fontSize: '2rem', fontWeight: 700, color: '#43A047' }}>KES {paymentTournament.entry_fee.toLocaleString()}</div>
-                                </div>
-                                {paymentStatus === '' && (
-                                    <>
-                                        <div style={{ marginBottom: '1rem' }}>
-                                            <label>M-Pesa Phone Number</label>
-                                            <input 
-                                                type="tel" 
-                                                value={paymentPhone} 
-                                                onChange={(e) => setPaymentPhone(e.target.value)} 
-                                                placeholder="0712345678" 
-                                                style={{ width: '100%', padding: '0.85rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)', background: 'var(--bg-tertiary)', fontSize: '1.1rem', textAlign: 'center' }} 
-                                            />
-                                            <small style={{ color: 'var(--text-muted)', display: 'block', marginTop: '0.25rem' }}>Formats: 0712..., 254712..., +254712...</small>
-                                        </div>
-                                        {paymentMessage && <div style={{ background: 'var(--error-light)', color: 'var(--error)', padding: '0.75rem', borderRadius: 'var(--radius-sm)', marginBottom: '1rem' }}>{paymentMessage}</div>}
-                                        <div style={{ display: 'flex', gap: '0.75rem' }}>
-                                            <button onClick={() => setShowPaymentModal(false)} className="btn btn-secondary" style={{ flex: 1 }}>Cancel</button>
-                                            <button onClick={processPayment} className="btn btn-success" style={{ flex: 1, background: '#43A047', color: 'white' }}>Pay Now</button>
-                                        </div>
-                                    </>
-                                )}
+                                <div style={{ textAlign: 'center', marginBottom: '1rem' }}><img src="https://upload.wikimedia.org/wikipedia/commons/thumb/1/15/M-PESA_LOGO-01.svg/200px-M-PESA_LOGO-01.svg.png" alt="M-Pesa" style={{ height: 40, marginBottom: '0.5rem' }} /><h3>Pay to Join Tournament</h3><p style={{ color: 'var(--text-muted)' }}>{paymentTournament.name}</p></div>
+                                <div style={{ background: 'linear-gradient(135deg, rgba(67, 160, 71, 0.2), rgba(102, 187, 106, 0.1))', border: '1px solid rgba(67, 160, 71, 0.3)', borderRadius: 'var(--radius-md)', padding: '1rem', textAlign: 'center', marginBottom: '1rem' }}><div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Entry Fee</div><div style={{ fontSize: '2rem', fontWeight: 700, color: '#43A047' }}>KES {paymentTournament.entry_fee}</div></div>
+                                {paymentStatus === '' && (<><div style={{ marginBottom: '1rem' }}><label>M-Pesa Phone Number</label><input type="tel" value={paymentPhone} onChange={(e) => setPaymentPhone(e.target.value)} placeholder="0712345678" style={{ width: '100%', padding: '0.85rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)', background: 'var(--bg-tertiary)', fontSize: '1.1rem', textAlign: 'center' }} /><small style={{ color: 'var(--text-muted)' }}>Formats: 0712..., 254712..., +254712...</small></div>{paymentMessage && <div style={{ background: 'var(--error-light)', color: 'var(--error)', padding: '0.75rem', borderRadius: 'var(--radius-sm)', marginBottom: '1rem' }}>{paymentMessage}</div>}<div style={{ display: 'flex', gap: '0.75rem' }}><button onClick={() => setShowPaymentModal(false)} className="btn btn-secondary" style={{ flex: 1 }}>Cancel</button><button onClick={processPayment} className="btn btn-success" style={{ flex: 1 }}>Pay Now</button></div></>)}
                                 {paymentStatus === 'sending' && <div style={{ textAlign: 'center', padding: '1rem' }}><Spinner size={40} /><p style={{ marginTop: '1rem' }}>{paymentMessage}</p></div>}
                                 {paymentStatus === 'waiting' && <div style={{ textAlign: 'center', padding: '1rem' }}><div style={{ fontSize: '3rem' }}>📱</div><p style={{ color: 'var(--warning)', fontWeight: 500 }}>Check your phone!</p><p style={{ color: 'var(--text-muted)' }}>{paymentMessage}</p><Spinner size={24} /></div>}
                                 {paymentStatus === 'success' && <div style={{ textAlign: 'center', padding: '1rem' }}><div style={{ fontSize: '3rem' }}>✅</div><p style={{ color: 'var(--success)' }}>{paymentMessage}</p></div>}
