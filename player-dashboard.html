@@ -297,7 +297,6 @@
             <div className="spinner" style={{ width: size, height: size, border: '2px solid var(--border-color)', borderTopColor: 'var(--primary-500)', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }}></div>
         );
 
-        // FIX: Ensure receipt button always works
         const downloadReceipt = (paymentId) => {
             if (!paymentId) {
                 console.error("No payment ID provided");
@@ -384,7 +383,6 @@
             const [paidTournaments, setPaidTournaments] = useState([]);
             const [paymentReceipts, setPaymentReceipts] = useState([]);
             const [availableTournaments, setAvailableTournaments] = useState([]);
-            const [joiningTournament, setJoiningTournament] = useState(null);
             const [showPaymentModal, setShowPaymentModal] = useState(false);
             const [paymentTournament, setPaymentTournament] = useState(null);
             const [paymentPhone, setPaymentPhone] = useState('');
@@ -420,18 +418,6 @@
                 }
             }, []);
 
-            // FIX: Auto refresh data every 10 seconds
-            useEffect(() => {
-                if (!session) return;
-                
-                const interval = setInterval(() => {
-                    console.log("Auto-refreshing dashboard data...");
-                    loadDashboardData(session);
-                }, 10000);
-
-                return () => clearInterval(interval);
-            }, [session]);
-
             const loadDashboardData = async (sess) => {
                 setLoading(true);
                 try {
@@ -445,6 +431,7 @@
                     
                     if (accountError) {
                         console.error("Error loading account:", accountError);
+                        setLoading(false);
                         return;
                     }
                     
@@ -496,8 +483,13 @@
                     const strength = calculateTeamStrength(calcStats);
                     setTeamStrength(strength);
                     
+                    // FIX: Proper error handling for update
                     if (account?.id) {
-                        supabase.from('player_accounts').update({ team_strength: strength }).eq('id', account.id).catch(console.warn);
+                        try {
+                            await supabase.from('player_accounts').update({ team_strength: strength }).eq('id', account.id);
+                        } catch (updateErr) {
+                            console.warn("Error updating team strength:", updateErr);
+                        }
                     }
 
                     const leagueTable = allPlayers.map(p => {
@@ -546,7 +538,7 @@
                     });
                     setResults(recentResults);
 
-                    // FIX: Always load receipts correctly
+                    // Load payments - only completed payments
                     const { data: paymentsData } = await supabase
                         .from('payments')
                         .select('*')
@@ -557,7 +549,6 @@
                     console.log("Payment receipts loaded:", paymentsData);
                     setPaymentReceipts(paymentsData || []);
                     
-                    // FIX: Update paid tournaments display
                     setPaidTournaments((paymentsData || []).filter(p => p.payment_type).map(p => ({ 
                         id: p.id, 
                         name: p.payment_type === 'registration' ? 'eFootball League 2026' : p.reference || 'Tournament', 
@@ -576,8 +567,7 @@
                             .or(`player_id.eq.${account.player_id},player_account_id.eq.${account.id}`);
                         
                         if (tournamentsData.success) {
-                            // FIX: Normalize tournament IDs and fix joined check
-                            // Handle multiple payments - take latest per tournament
+                            // Normalize tournament IDs
                             const latestPayments = Object.values(
                                 (paymentsData || []).reduce((acc, p) => {
                                     if (!p.tournament_id) return acc;
@@ -600,7 +590,6 @@
                             
                             console.log("Joined tournament IDs:", joinedIds);
                             
-                            // FIX: Update available tournaments with proper joined status
                             const myTournaments = (participantData || [])
                                 .filter(p => p.tournaments)
                                 .map(p => ({ 
@@ -624,7 +613,6 @@
                     } catch (e) { console.error('Error loading tournaments:', e); }
                 } catch (err) { 
                     console.error('Error loading dashboard:', err);
-                    alert("Failed to load dashboard data. Please refresh the page.");
                 } finally { setLoading(false); }
             };
 
@@ -680,7 +668,6 @@
                                     setPaymentStatus('success');
                                     setPaymentMessage('Payment received! Adding you to tournament...');
                                     
-                                    // FIX: Wait for join completion before refreshing
                                     const joinRes = await fetch('/api/tournaments/join', { 
                                         method: 'POST', 
                                         headers: { 'Content-Type': 'application/json' }, 
@@ -695,34 +682,27 @@
                                     if (joinData.success) {
                                         setPaymentMessage(`Success! You're now in ${tournament.name}!`);
                                         
-                                        // FIX: Force UI sync with hard refresh
                                         setTimeout(() => { 
                                             setShowPaymentModal(false);
                                             loadDashboardData(session);
-                                            setTimeout(() => {
-                                                window.location.reload();
-                                            }, 500);
-                                        }, 1500);
+                                        }, 2000);
                                     } else { 
                                         setPaymentStatus('error'); 
                                         setPaymentMessage(joinData.message || 'Failed to join tournament'); 
                                     }
-                                    setJoiningTournament(null);
                                 } else if (statusData.status === 'failed') {
                                     clearInterval(checkPayment);
                                     setPaymentStatus('error');
                                     setPaymentMessage('Payment failed or cancelled');
-                                    setJoiningTournament(null);
                                 } else if (attempts >= 24) {
                                     clearInterval(checkPayment);
                                     setPaymentStatus('error');
                                     setPaymentMessage('Payment verification timed out. Contact support if you paid.');
-                                    setJoiningTournament(null);
                                 }
                             } catch (e) { console.error('Status check error:', e); }
                         }, 5000);
-                    } else { setPaymentStatus('error'); setPaymentMessage(payData.message || 'Failed to send payment request'); setJoiningTournament(null); }
-                } catch (err) { setPaymentStatus('error'); setPaymentMessage('Connection error. Please try again.'); setJoiningTournament(null); }
+                    } else { setPaymentStatus('error'); setPaymentMessage(payData.message || 'Failed to send payment request'); }
+                } catch (err) { setPaymentStatus('error'); setPaymentMessage('Connection error. Please try again.'); }
             };
 
             const openPhotoModal = () => { setPhotoUrl(player?.photo || ''); setShowPhotoModal(true); };
@@ -929,7 +909,6 @@
                                                         {t.prize_pool > 0 && <div style={{ fontSize: '0.75rem', color: 'var(--success)', marginBottom: '0.5rem' }}>🏆 Prize Pool: KES {t.prize_pool}</div>}
                                                         {t.start_date && <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>📅 {new Date(t.start_date).toLocaleDateString()}</div>}
                                                         
-                                                        {/* FIX: Improved button logic */}
                                                         {t.alreadyJoined ? (
                                                             <div style={{ 
                                                                 width: '100%', 
