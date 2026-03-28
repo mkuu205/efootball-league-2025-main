@@ -22,12 +22,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     
     <style>
-        /* ============================================ */
-        /* REFACTORED CSS - CLEAN FLAT DARK DASHBOARD   */
-        /* Removed: glows, neon, glassmorphism          */
-        /* Kept: same layout, structure, primary color  */
-        /* ============================================ */
-
+        
         /* Base theme variables - flat dark only */
         :root {
             --primary: #0ea5e9;
@@ -1412,17 +1407,36 @@
         async function loadUpcomingMatches() {
             try {
                 const supabase = getSupabaseInstance();
-                const { data: fixtures, error } = await supabase
+                
+                // First try to get fixtures from the fixtures table
+                let { data: fixtures, error } = await supabase
                     .from('fixtures')
                     .select(`
                         *,
                         home_player:home_player_id(name, photo_url),
                         away_player:away_player_id(name, photo_url)
                     `)
-                    .is('home_score', null)
-                    .is('away_score', null)
-                    .order('match_date', { ascending: true })
+                    .eq('played', false)
+                    .order('date', { ascending: true })
                     .limit(5);
+
+                // If no fixtures found or error occurred, try alternative query
+                if (!fixtures || fixtures.length === 0) {
+                    // Try getting all fixtures and filter client-side
+                    const { data: allFixtures, error: allError } = await supabase
+                        .from('fixtures')
+                        .select(`
+                            *,
+                            home_player:home_player_id(name, photo_url),
+                            away_player:away_player_id(name, photo_url)
+                        `)
+                        .order('date', { ascending: true });
+                    
+                    if (allError) throw allError;
+                    
+                    // Filter out played matches
+                    fixtures = (allFixtures || []).filter(f => !f.played && !f.home_score && !f.away_score).slice(0, 5);
+                }
 
                 if (error) throw error;
 
@@ -1440,12 +1454,13 @@
                 }
 
                 container.innerHTML = fixtures.map(fixture => {
-                    const matchDate = new Date(fixture.match_date);
+                    // Handle both date formats
+                    const matchDate = fixture.match_date ? new Date(fixture.match_date) : new Date(fixture.date);
                     const dateStr = matchDate.toLocaleDateString('en-GB', { 
                         day: 'numeric', 
                         month: 'short' 
                     });
-                    const timeStr = matchDate.toLocaleTimeString('en-GB', { 
+                    const timeStr = fixture.time || matchDate.toLocaleTimeString('en-GB', { 
                         hour: '2-digit', 
                         minute: '2-digit' 
                     });
@@ -1453,7 +1468,7 @@
                     return `
                         <div class="match-card bg-dark rounded p-3 mb-3">
                             <div class="d-flex justify-content-between align-items-center mb-2">
-                                <small class="text-muted">${dateStr} at ${timeStr}</small>
+                                <small class="text-muted">${dateStr} ${timeStr ? 'at ' + timeStr : ''}</small>
                                 <span class="badge bg-info">Upcoming</span>
                             </div>
                             <div class="d-flex align-items-center justify-content-between">
