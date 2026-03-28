@@ -998,7 +998,7 @@
                                     <span><i class="fas fa-list me-2"></i>All Tournaments</span>
                                     <div>
                                         <button class="btn btn-sm btn-success me-1" onclick="initializeEFL2025()" title="Initialize EFL 2025 with existing players">
-                                            <i class="fas fa-magic"></i> Init EFL 2025
+                                            <i class="fas fa-magic"></i> Init EFL 2026
                                         </button>
                                         <button class="btn btn-sm btn-outline-light" onclick="loadTournaments()">
                                             <i class="fas fa-sync-alt"></i>
@@ -1610,10 +1610,10 @@
         }
         
         async function initializeEFL2025() {
-            if (!confirm('Initialize EFL 2025 Tournament with all existing players and fixtures? This will create the main tournament.')) return;
+            if (!confirm('Initialize EFL 2026 Tournament with all existing players and fixtures? This will create the main tournament.')) return;
             
             try {
-                showToast('Initializing EFL 2025 Tournament...', 'info');
+                showToast('Initializing EFL 2026 Tournament...', 'info');
                 
                 const res = await fetch('/api/tournaments/initialize-main', {
                     method: 'POST',
@@ -1624,9 +1624,9 @@
                 
                 if (data.success) {
                     if (data.already_exists) {
-                        showToast('EFL 2025 Tournament already exists!', 'warning');
+                        showToast('EFL 2026 Tournament already exists!', 'warning');
                     } else {
-                        showToast(`EFL 2025 Tournament created! ${data.players_added} players, ${data.fixtures_added} fixtures added.`, 'success');
+                        showToast(`EFL 2026 Tournament created! ${data.players_added} players, ${data.fixtures_added} fixtures added.`, 'success');
                     }
                     loadTournaments();
                 } else {
@@ -1947,18 +1947,18 @@
                 const data = await response.json();
                 
                 if (data.success) {
-                    showToast(`✅ Notification sent to ${data.successCount} users!`, 'success');
+                    showToast(`✅ Notification sent to ${data.sent || 0} users!`, 'success');
                     
-                    document.getElementById('last-sent-count').textContent = data.successCount || 0;
-                    document.getElementById('last-failed-count').textContent = data.failureCount || 0;
+                    document.getElementById('last-sent-count').textContent = data.sent || 0;
+                    document.getElementById('last-failed-count').textContent = data.failed || 0;
                     
                     const statusDiv = document.getElementById('notification-status');
                     const alertDiv = document.getElementById('notification-alert');
                     alertDiv.className = 'alert alert-success';
                     alertDiv.innerHTML = `
                         <i class="fas fa-check-circle me-2"></i>
-                        <strong>Success!</strong> Notification sent to ${data.successCount} users.
-                        ${data.failureCount > 0 ? `<br><small>${data.failureCount} failed to send.</small>` : ''}
+                        <strong>Success!</strong> Notification sent to ${data.sent} users.
+                        ${data.failed > 0 ? `<br><small>${data.failed} failed to send.</small>` : ''}
                     `;
                     statusDiv.style.display = 'block';
                     
