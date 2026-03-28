@@ -422,8 +422,6 @@
             const loadDashboardData = async (sess) => {
                 setLoading(true);
                 try {
-                    console.log("Loading dashboard data for user:", sess);
-                    
                     const { data: account, error: accountError } = await supabase
                         .from('player_accounts')
                         .select('*')
@@ -431,12 +429,9 @@
                         .single();
                     
                     if (accountError) {
-                        console.error("Error loading account:", accountError);
                         setLoading(false);
                         return;
                     }
-                    
-                    console.log("Account loaded:", account);
 
                     try {
                         const tournamentsRes = await fetch('/api/tournaments');
@@ -444,7 +439,7 @@
                         if (tournamentsData.success) {
                             setAvailableTournaments((tournamentsData.tournaments || []).map(t => ({ ...t, alreadyJoined: false, canJoin: t.status === 'registration_open' })));
                         }
-                    } catch (e) { console.error('Error loading tournaments:', e); }
+                    } catch (e) { /* silent */ }
 
                     if (!account?.player_id) {
                         setPlayer({ ...account, photo: account.photo_url || null, team: account.preferred_team || null });
@@ -483,15 +478,6 @@
                     setStats(calcStats);
                     const strength = calculateTeamStrength(calcStats);
                     setTeamStrength(strength);
-                    
-                    // FIX: Proper error handling for update
-                    if (account?.id) {
-                        try {
-                            await supabase.from('player_accounts').update({ team_strength: strength }).eq('id', account.id);
-                        } catch (updateErr) {
-                            console.warn("Error updating team strength:", updateErr);
-                        }
-                    }
 
                     const leagueTable = allPlayers.map(p => {
                         const pResults = allResults.filter(r => r.home_player_id === p.id || r.away_player_id === p.id);
@@ -547,7 +533,6 @@
                         .eq('status', 'completed')
                         .order('created_at', { ascending: false });
 
-                    console.log("Payment receipts loaded:", paymentsData);
                     setPaymentReceipts(paymentsData || []);
                     
                     setPaidTournaments((paymentsData || []).filter(p => p.payment_type).map(p => ({ 
@@ -589,8 +574,6 @@
                             
                             const joinedIds = [...new Set([...paidTournamentIds, ...participantTournamentIds])];
                             
-                            console.log("Joined tournament IDs:", joinedIds);
-                            
                             const myTournaments = (participantData || [])
                                 .filter(p => p.tournaments)
                                 .map(p => ({ 
@@ -611,9 +594,9 @@
                                 canJoin: t.status === 'registration_open' && !joinedIds.includes(Number(t.id))
                             })));
                         }
-                    } catch (e) { console.error('Error loading tournaments:', e); }
+                    } catch (e) { /* silent */ }
                 } catch (err) { 
-                    console.error('Error loading dashboard:', err);
+                    /* silent */
                 } finally { setLoading(false); }
             };
 
@@ -700,7 +683,7 @@
                                     setPaymentStatus('error');
                                     setPaymentMessage('Payment verification timed out. Contact support if you paid.');
                                 }
-                            } catch (e) { console.error('Status check error:', e); }
+                            } catch (e) { /* silent */ }
                         }, 5000);
                     } else { setPaymentStatus('error'); setPaymentMessage(payData.message || 'Failed to send payment request'); }
                 } catch (err) { setPaymentStatus('error'); setPaymentMessage('Connection error. Please try again.'); }
@@ -855,7 +838,7 @@
                                 <Card title="📊 Win Rate"><div style={{ textAlign: 'center', padding: '1rem 0' }}><div style={{ fontSize: '3rem', fontWeight: 800, fontFamily: "'Orbitron', sans-serif", background: 'var(--gradient-primary)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>{stats.played > 0 ? Math.round((stats.wins / stats.played) * 100) : 0}%</div><div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '0.5rem' }}>{stats.wins} wins from {stats.played} matches</div></div><div style={{ background: 'var(--bg-tertiary)', borderRadius: '10px', height: '10px', overflow: 'hidden', marginTop: '0.5rem' }}><div style={{ width: `${stats.played > 0 ? (stats.wins / stats.played) * 100 : 0}%`, height: '100%', background: 'var(--gradient-primary)', borderRadius: '10px' }}></div></div></Card>
                                 <Card title="🏆 League Position 2026"><div style={{ textAlign: 'center', padding: '1rem 0' }}><div style={{ fontSize: '3.5rem', fontWeight: 800, fontFamily: "'Orbitron', sans-serif", background: typeof position === 'number' && position <= 3 ? 'linear-gradient(135deg, #FFD700, #FFA500)' : 'var(--gradient-primary)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>{typeof position === 'number' ? `#${position}` : '-'}</div><div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '0.5rem' }}>{typeof position === 'number' && position === 1 ? '🥇 Leader!' : typeof position === 'number' && position === 2 ? '🥈 2nd Place' : typeof position === 'number' && position === 3 ? '🥉 3rd Place' : 'Current Standing'}</div><div style={{ display: 'flex', justifyContent: 'center', gap: '1.5rem', marginTop: '1rem', padding: '0.75rem', background: 'var(--bg-tertiary)', borderRadius: 'var(--radius-md)' }}><div><div style={{ fontWeight: 700, color: 'var(--success)' }}>{stats.points}</div><div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>PTS</div></div><div><div style={{ fontWeight: 700 }}>{stats.played}</div><div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>P</div></div><div><div style={{ fontWeight: 700, color: 'var(--success)' }}>{stats.wins}</div><div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>W</div></div><div><div style={{ fontWeight: 700, color: 'var(--warning)' }}>{stats.draws}</div><div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>D</div></div><div><div style={{ fontWeight: 700, color: 'var(--error)' }}>{stats.losses}</div><div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>L</div></div></div></div></Card>
                                 
-                                <Card title="📋 Profile Settings"><div style={{ fontSize: '0.9rem' }}>{(!session?.email || !session?.phone || session?.email === 'Not set') && (<div style={{ background: 'rgba(249, 115, 22, 0.15)', border: '1px solid rgba(249, 115, 22, 0.3)', borderRadius: 'var(--radius-md)', padding: '0.75rem', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}><span>⚠️</span><span style={{ color: 'var(--warning)', fontSize: '0.8rem' }}>Complete your profile to access all features</span></div>)}<div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.6rem 0.75rem', background: 'var(--bg-tertiary)', borderRadius: 'var(--radius-md)', marginBottom: '0.4rem' }}><span>👤</span><span style={{ color: 'var(--text-muted)', fontSize: '0.8rem', minWidth: '50px' }}>Name</span><span style={{ color: session?.name ? 'var(--text-secondary)' : 'var(--error)', flex: 1 }}>{session?.name || 'Not set'}</span></div><div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.6rem 0.75rem', background: 'var(--bg-tertiary)', borderRadius: 'var(--radius-md)', marginBottom: '0.4rem' }}><span>✉️</span><span style={{ color: 'var(--text-muted)', fontSize: '0.8rem', minWidth: '50px' }}>Email</span><span style={{ color: session?.email ? 'var(--text-secondary)' : 'var(--error)', wordBreak: 'break-all', flex: 1 }}>{session?.email || 'Not set'}</span></div><div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.6rem 0.75rem', background: 'var(--bg-tertiary)', borderRadius: 'var(--radius-md)', marginBottom: '0.4rem' }}><span>📱</span><span style={{ color: 'var(--text-muted)', fontSize: '0.8rem', minWidth: '50px' }}>Phone</span><span style={{ color: session?.phone ? 'var(--text-secondary)' : 'var(--error)', flex: 1 }}>{session?.phone || 'Not set'}</span></div><div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.6rem 0.75rem', background: 'var(--bg-tertiary)', borderRadius: 'var(--radius-md)', marginBottom: '0.4rem' }}><span>⚽</span><span style={{ color: 'var(--text-muted)', fontSize: '0.8rem', minWidth: '50px' }}>Team</span><span style={{ color: (session?.preferred_team || session?.team) ? 'var(--text-secondary)' : 'var(--text-muted)', flex: 1 }}>{session?.preferred_team || session?.team || 'Not set'}</span></div><div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.6rem 0.75rem', background: 'var(--bg-tertiary)', borderRadius: 'var(--radius-md)', marginBottom: '0.75rem' }}><span>🏋️</span><span style={{ color: 'var(--text-muted)', fontSize: '0.8rem', minWidth: '50px' }}>Team Strength</span><span style={{ color: 'var(--primary-400)', fontWeight: 700, flex: 1 }}>{teamStrength}</span></div><button onClick={openProfileModal} className="btn btn-primary" style={{ width: '100%', padding: '0.75rem' }}><i className="fas fa-user-edit" style={{ marginRight: '0.5rem' }}></i>Edit Profile</button></div></Card>
+                                <Card title="📋 Profile Settings"><div style={{ fontSize: '0.9rem' }}>{(!session?.email || !session?.phone || session?.email === 'Not set') && (<div style={{ background: 'rgba(249, 115, 22, 0.15)', border: '1px solid rgba(249, 115, 22, 0.3)', borderRadius: 'var(--radius-md)', padding: '0.75rem', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}><span>⚠️</span><span style={{ color: 'var(--warning)', fontSize: '0.8rem' }}>Complete your profile to access all features</span></div>)}<div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.6rem 0.75rem', background: 'var(--bg-tertiary)', borderRadius: 'var(--radius-md)', marginBottom: '0.4rem' }}><span>👤</span><span style={{ color: 'var(--text-muted)', fontSize: '0.8rem', minWidth: '50px' }}>Name</span><span style={{ color: session?.name ? 'var(--text-secondary)' : 'var(--error)', flex: 1 }}>{session?.name || 'Not set'}</span></div><div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.6rem 0.75rem', background: 'var(--bg-tertiary)', borderRadius: 'var(--radius-md)', marginBottom: '0.4rem' }}><span>✉️</span><span style={{ color: 'var(--text-muted)', fontSize: '0.8rem', minWidth: '50px' }}>Email</span><span style={{ color: session?.email ? 'var(--text-secondary)' : 'var(--error)', wordBreak: 'break-all', flex: 1 }}>{session?.email || 'Not set'}</span></div><div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.6rem 0.75rem', background: 'var(--bg-tertiary)', borderRadius: 'var(--radius-md)', marginBottom: '0.4rem' }}><span>📱</span><span style={{ color: 'var(--text-muted)', fontSize: '0.8rem', minWidth: '50px' }}>Phone</span><span style={{ color: session?.phone ? 'var(--text-secondary)' : 'var(--error)', flex: 1 }}>{session?.phone || 'Not set'}</span></div><div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.6rem 0.75rem', background: 'var(--bg-tertiary)', borderRadius: 'var(--radius-md)', marginBottom: '0.75rem' }}><span>⚽</span><span style={{ color: 'var(--text-muted)', fontSize: '0.8rem', minWidth: '50px' }}>Team</span><span style={{ color: session?.preferred_team || session?.team ? 'var(--text-secondary)' : 'var(--error)', flex: 1 }}>{session?.preferred_team || session?.team || 'Not set'}</span></div><button onClick={openProfileModal} className="btn btn-primary" style={{ width: '100%', marginBottom: '0.5rem' }}><i className="fas fa-edit" style={{ marginRight: '0.5rem' }}></i>Edit Profile</button><button onClick={() => setShowPasswordModal(true)} className="btn btn-secondary" style={{ width: '100%' }}><i className="fas fa-key" style={{ marginRight: '0.5rem' }}></i>Change Password</button></div></Card>
                                 
                                 <Card title="🏆 Tournaments 2026">
                                     {availableTournaments.length > 0 ? (
@@ -1043,7 +1026,7 @@
                                 <div style={{ marginBottom: '0.9rem' }}><label>👤 Full Name *</label><input type="text" value={profileData.name} onChange={(e) => setProfileData({...profileData, name: e.target.value})} style={{ width: '100%', padding: '0.7rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)', background: 'var(--bg-tertiary)' }} /></div>
                                 <div style={{ marginBottom: '0.9rem' }}><label>🎮 Username</label><input type="text" value={profileData.username} onChange={(e) => setProfileData({...profileData, username: e.target.value.replace(/\s/g, '')})} placeholder="e.g. ProGamer_254" style={{ width: '100%', padding: '0.7rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)', background: 'var(--bg-tertiary)' }} /></div>
                                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '0.9rem' }}><div><label>✉️ Email</label><input type="email" value={profileData.email} onChange={(e) => setProfileData({...profileData, email: e.target.value})} style={{ width: '100%', padding: '0.7rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)', background: 'var(--bg-tertiary)' }} /></div><div><label>📱 Phone (M-Pesa)</label><input type="tel" value={profileData.phone} onChange={(e) => setProfileData({...profileData, phone: e.target.value})} placeholder="0712345678" style={{ width: '100%', padding: '0.7rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)', background: 'var(--bg-tertiary)' }} /></div></div>
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '0.9rem' }}><div><label>⚽ Preferred Team</label><input type="text" value={profileData.preferred_team} onChange={(e) => setProfileData({...profileData, preferred_team: e.target.value})} placeholder="Enter your team name..." style={{ width: '100%', padding: '0.7rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)', background: 'var(--bg-tertiary)' }} /></div><div><label>🏋️ Team Strength</label><input type="number" value={teamStrength} disabled style={{ width: '100%', padding: '0.7rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)', background: 'var(--bg-tertiary)', color: 'var(--primary-400)', fontWeight: 'bold' }} /></div></div>
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '0.9rem' }}><div><label>⚽ Preferred Team</label><input type="text" value={profileData.preferred_team} onChange={(e) => setProfileData({...profileData, preferred_team: e.target.value})} placeholder="Enter your team name..." style={{ width: '100%', padding: '0.7rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)', background: 'var(--bg-tertiary)' }} /></div><div><label>🏋️ Team Strength</label><input type="number" value={teamStrength} onChange={(e) => setTeamStrength(Number(e.target.value))} min="1" style={{ width: '100%', padding: '0.7rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)', background: 'var(--bg-tertiary)', color: 'var(--primary-400)', fontWeight: 'bold' }} /></div></div>
                                 <div style={{ marginBottom: '1.25rem' }}><label>📝 Bio</label><textarea value={profileData.bio} onChange={(e) => setProfileData({...profileData, bio: e.target.value})} rows={3} style={{ width: '100%', padding: '0.7rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)', background: 'var(--bg-tertiary)', resize: 'vertical' }} /></div>
                                 <div style={{ display: 'flex', gap: '0.75rem' }}><button onClick={() => { setShowProfileModal(false); setProfileError(''); setProfileSuccess(''); }} className="btn btn-secondary" style={{ flex: 1 }}>Cancel</button><button onClick={saveProfile} className="btn btn-primary" style={{ flex: 1 }} disabled={savingProfile}>{savingProfile ? <><Spinner size={16} /> Saving...</> : 'Save Profile'}</button></div>
                             </div>
@@ -1071,6 +1054,8 @@
         const root = ReactDOM.createRoot(document.getElementById('root'));
         root.render(<Dashboard />);
     </script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-messaging-compat.js"></script>
     <script src="/js/notifications.js"></script>
 </body>
 </html>
