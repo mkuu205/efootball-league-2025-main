@@ -227,7 +227,7 @@ async function deleteTournament(req, res) {
     }
 }
 
-// Join tournament (Player) - after payment
+// Join tournament (Player) - after payment or for free tournaments
 async function joinTournament(req, res) {
     try {
         const { tournament_id, player_account_id, payment_id } = req.body;
@@ -309,6 +309,11 @@ async function joinTournament(req, res) {
             return res.status(400).json({ success: false, message: 'Already registered for this tournament' });
         }
         
+        // For paid tournaments, verify payment
+        if (tournament.entry_fee > 0 && !payment_id) {
+            return res.status(400).json({ success: false, message: 'Payment required for this tournament' });
+        }
+        
         // Add participant
         const { data, error } = await supabase
             .from('tournament_participants')
@@ -316,7 +321,7 @@ async function joinTournament(req, res) {
                 tournament_id,
                 player_account_id,
                 player_id: playerId,
-                payment_id,
+                payment_id: payment_id || null, // null for free tournaments
                 status: 'confirmed'
             })
             .select()
