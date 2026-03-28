@@ -616,12 +616,43 @@
             };
 
             const openPaymentModal = (tournament) => {
+                // If tournament is free, join directly without payment
+                if (!tournament.entry_fee || tournament.entry_fee === 0) {
+                    joinFreeTournament(tournament);
+                    return;
+                }
+                
                 const savedPhone = formatPhoneNumber(session?.phone);
                 setPaymentTournament(tournament);
                 setPaymentPhone(savedPhone ? '0' + savedPhone.substring(3) : '');
                 setPaymentStatus('');
                 setPaymentMessage('');
                 setShowPaymentModal(true);
+            };
+
+            const joinFreeTournament = async (tournament) => {
+                try {
+                    const joinRes = await fetch('/api/tournaments/join', { 
+                        method: 'POST', 
+                        headers: { 'Content-Type': 'application/json' }, 
+                        body: JSON.stringify({ 
+                            tournament_id: tournament.id, 
+                            player_account_id: session?.account_id || session?.id,
+                            payment_id: null // No payment required for free tournaments
+                        }) 
+                    });
+                    const joinData = await joinRes.json();
+                    
+                    if (joinData.success) {
+                        showToast(`✓ Successfully joined ${tournament.name}!`, 'success');
+                        loadDashboardData(session);
+                    } else { 
+                        showToast(joinData.message || 'Failed to join tournament', 'error');
+                    }
+                } catch (err) {
+                    console.error('Error joining free tournament:', err);
+                    showToast('Connection error. Please try again.', 'error');
+                }
             };
 
             const processPayment = async () => {
