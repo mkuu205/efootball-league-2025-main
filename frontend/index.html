@@ -1,0 +1,1848 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>eFootball League 2025</title>
+
+    <!-- Favicon & PWA icons -->
+    <link rel="icon" href="/icons/icon-192x192.png" sizes="192x192" type="image/png">
+    <!-- Bootstrap CSS (CDN) -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css">
+    <!-- Font Awesome (CDN) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
+    <style>
+        /* Base theme variables - flat dark only */
+        :root {
+            --primary: #0ea5e9;
+            --primary-dark: #0284c7;
+            --bg-dark: #0f172a;
+            --card-bg: #1e293b;
+            --card-border: rgba(255, 255, 255, 0.05);
+            --text-primary: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --border-subtle: rgba(255, 255, 255, 0.08);
+        }
+
+        * {
+            backdrop-filter: none !important;
+            -webkit-backdrop-filter: none !important;
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-primary);
+        }
+
+        /* Navbar */
+        .navbar {
+            background: #0a0f1c !important;
+            border-bottom: 1px solid var(--card-border);
+            padding: 0.5rem 0;
+        }
+
+        .navbar-brand {
+            font-weight: 700;
+            font-size: 1.1rem;
+            color: var(--text-primary) !important;
+        }
+
+        .navbar-nav .nav-link {
+            padding: 0.5rem 0.6rem;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            transition: color 0.2s ease;
+        }
+
+        .navbar-nav .nav-link:hover,
+        .navbar-nav .nav-link.active {
+            color: var(--primary);
+        }
+
+        /* Cards */
+        .card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 12px;
+            margin-bottom: 1.5rem;
+            box-shadow: none;
+        }
+
+        .card-header {
+            background: rgba(0, 0, 0, 0.2);
+            border-bottom: 1px solid var(--card-border);
+            padding: 1rem 1.25rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .card-body {
+            background: var(--card-bg);
+            color: var(--text-secondary);
+        }
+
+        /* Tables */
+        .table-dark {
+            background-color: transparent;
+            color: var(--text-secondary);
+        }
+
+        .table-dark th,
+        .table-dark td {
+            border-color: var(--card-border);
+            padding: 0.75rem;
+        }
+
+        .table-dark thead th {
+            background: rgba(0, 0, 0, 0.2);
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+
+        .table-hover tbody tr:hover {
+            background-color: rgba(14, 165, 233, 0.05);
+        }
+
+        /* Buttons */
+        .btn-primary {
+            background: var(--primary);
+            border: none;
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-dark);
+        }
+
+        /* Match Teams Display */
+        .match-teams {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 25px;
+            margin-bottom: 1.5rem;
+        }
+
+        .team-info {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 45%;
+        }
+
+        .team-logo-placeholder {
+            width: 90px;
+            height: 90px;
+            border-radius: 50%;
+            background: #334155 !important;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .vs-badge {
+            background: var(--primary);
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-weight: 700;
+        }
+
+        /* Notification Panel */
+        #notif-panel {
+            position: fixed;
+            top: 0;
+            right: 0;
+            height: 100vh;
+            width: 360px;
+            max-width: 95vw;
+            background: var(--bg-dark);
+            color: var(--text-primary);
+            transform: translateX(110%);
+            transition: transform 320ms ease;
+            z-index: 2000;
+            display: flex;
+            flex-direction: column;
+            border-left: 1px solid var(--card-border);
+        }
+
+        /* Live Toast */
+        #live-toast {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: var(--card-bg);
+            color: var(--text-primary);
+            padding: 14px 18px;
+            border-radius: 12px;
+            display: none;
+            z-index: 3000;
+            min-width: 260px;
+            border: 1px solid var(--card-border);
+        }
+
+        /* List Group */
+        .list-group-item {
+            background-color: transparent;
+            border-color: var(--card-border);
+            color: var(--text-secondary);
+        }
+
+        /* Forms */
+        input, select, textarea {
+            background: var(--bg-dark);
+            border: 1px solid var(--card-border);
+            color: var(--text-primary);
+        }
+
+        input:focus, select:focus, textarea:focus {
+            border-color: var(--primary);
+            outline: none;
+            box-shadow: none;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark sticky-top">
+        <div class="container">
+            <a class="navbar-brand" href="#">
+                <i class="fas fa-futbol me-2"></i>eFootball League 2025
+            </a>
+            <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link active" href="#" data-tab="home"><i class="fas fa-home me-1"></i>Home</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" data-tab="fixtures"><i class="fas fa-calendar me-1"></i>Fixtures</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" data-tab="results"><i class="fas fa-futbol me-1"></i>Results</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" data-tab="table"><i class="fas fa-table me-1"></i>Table</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" data-tab="players"><i class="fas fa-users me-1"></i>Players</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" data-tab="statistics"><i class="fas fa-chart-bar me-1"></i>Statistics</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" data-tab="contact"><i class="fas fa-envelope me-1"></i>Contact</a>
+                    </li>
+                </ul>
+                <ul class="navbar-nav">
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" id="nav-notifications-link">
+                            <i class="fas fa-bell"></i>
+                            <span id="notif-badge" class="badge bg-danger" style="display:none;">0</span>
+                        </a>
+                    </li>
+                    <li class="nav-item" id="auth-section">
+                        <a class="nav-link" href="/login.html"><i class="fas fa-sign-in-alt me-1"></i>Login</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="container mt-4">
+        <!-- Export Buttons -->
+        <div class="card mb-4">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                    <h5 class="mb-0"><i class="fas fa-download me-2"></i>Export Data</h5>
+                    <div class="d-flex gap-2">
+                        <button class="btn btn-primary btn-sm" onclick="window.imageExporter.exportLeagueTable()">
+                            <i class="fas fa-table me-1"></i>Export League Table
+                        </button>
+                        <button class="btn btn-primary btn-sm" onclick="window.imageExporter.exportFixtures()">
+                            <i class="fas fa-calendar me-1"></i>Export Fixtures
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="tab-content">
+            <!-- Home Tab -->
+            <div class="tab-pane fade show active" id="home" role="tabpanel">
+                <!-- Countdown & Prize -->
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-body text-center">
+                                <h5><i class="fas fa-clock me-2"></i>Next Match In</h5>
+                                <h2 id="countdown-timer" style="color: var(--primary); font-weight: 800;">--:--:--</h2>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-body text-center">
+                                <h5><i class="fas fa-trophy me-2"></i>Prize Pool</h5>
+                                <h2 style="color: #f97316; font-weight: 800;">1000 KES</h2>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-8">
+                        <!-- Tournament Overview -->
+                        <div class="card">
+                            <div class="card-header">
+                                <i class="fas fa-trophy me-2"></i> Tournament Overview
+                            </div>
+                            <div class="card-body">
+                                <p>Welcome to the eFootball League 2025! Compete in league or tournament mode.</p>
+                                <h5>Key Information:</h5>
+                                <ul>
+                                    <li>Round-robin format (home and away matches)</li>
+                                    <li>Points system: Win = 3, Draw = 1, Loss = 0</li>
+                                    <li>Smart matchmaking with ELO ratings</li>
+                                    <li>Prize: 1000 KES for the winner</li>
+                                </ul>
+                            </div>
+                        </div>
+
+                        <!-- Upcoming Matches -->
+                        <div class="card">
+                            <div class="card-header d-flex justify-content-between align-items-center">
+                                <span><i class="fas fa-calendar-alt me-2"></i> Upcoming Matches</span>
+                                <button class="btn btn-sm btn-outline-light" onclick="showTab('fixtures')">
+                                    <i class="fas fa-list me-1"></i> View All
+                                </button>
+                            </div>
+                            <div class="card-body">
+                                <div id="upcoming-matches-container">
+                                    <div class="text-center py-4">
+                                        <i class="fas fa-spinner fa-spin fa-2x"></i>
+                                        <p class="mt-2">Loading matches...</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-4">
+                        <!-- Top Scorers -->
+                        <div class="card">
+                            <div class="card-header">
+                                <i class="fas fa-star me-2"></i> Top Scorers
+                            </div>
+                            <div class="card-body" id="top-scorers">
+                                <div class="text-center">
+                                    <i class="fas fa-spinner fa-spin"></i> Loading...
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Quick Stats -->
+                        <div class="card">
+                            <div class="card-header">
+                                <i class="fas fa-chart-bar me-2"></i> Quick Stats
+                            </div>
+                            <div class="card-body" id="quick-stats">
+                                <div class="text-center">
+                                    <i class="fas fa-spinner fa-spin"></i> Loading...
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Fixtures Tab -->
+            <div class="tab-pane fade" id="fixtures" role="tabpanel">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <span><i class="fas fa-calendar me-2"></i> Fixtures</span>
+                        <div>
+                            <button class="btn btn-sm btn-primary me-2" id="show-upcoming">Upcoming</button>
+                            <button class="btn btn-sm btn-outline-light" id="show-all">All Fixtures</button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-dark table-hover" id="fixtures-table">
+                                <thead>
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Home Player</th>
+                                        <th>Away Player</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="fixtures-tbody">
+                                    <tr>
+                                        <td colspan="4" class="text-center">
+                                            <i class="fas fa-spinner fa-spin"></i> Loading fixtures...
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Results Tab -->
+            <div class="tab-pane fade" id="results" role="tabpanel">
+                <div class="card">
+                    <div class="card-header">
+                        <i class="fas fa-list-alt me-2"></i> Match Results
+                    </div>
+                    <div class="card-body" id="results-container">
+                        <div class="text-center">
+                            <i class="fas fa-spinner fa-spin"></i> Loading results...
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- League Table Tab -->
+            <div class="tab-pane fade" id="table" role="tabpanel">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <span><i class="fas fa-table me-2"></i> League Table</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-dark table-hover" id="league-table">
+                                <thead>
+                                    <tr>
+                                        <th>Pos</th>
+                                        <th>Player</th>
+                                        <th>Team</th>
+                                        <th>MP</th>
+                                        <th>W</th>
+                                        <th>D</th>
+                                        <th>L</th>
+                                        <th>GF</th>
+                                        <th>GA</th>
+                                        <th>GD</th>
+                                        <th>Pts</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="standings-tbody">
+                                    <tr>
+                                        <td colspan="11" class="text-center">
+                                            <i class="fas fa-spinner fa-spin"></i> Loading standings...
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Players Tab -->
+            <div class="tab-pane fade" id="players" role="tabpanel">
+                <div class="card">
+                    <div class="card-header">
+                        <i class="fas fa-users me-2"></i> All Players
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-dark table-hover" id="players-table">
+                                <thead>
+                                    <tr>
+                                        <th>Username</th>
+                                        <th>Team</th>
+                                        <th>Rating</th>
+                                        <th>W</th>
+                                        <th>L</th>
+                                        <th>D</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="players-tbody">
+                                    <tr>
+                                        <td colspan="7" class="text-center">
+                                            <i class="fas fa-spinner fa-spin"></i> Loading players...
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Advanced Statistics Tab -->
+            <div class="tab-pane fade" id="statistics" role="tabpanel">
+                <div class="row">
+                    <!-- Head-to-Head Player Comparison -->
+                    <div class="col-md-12 mb-4">
+                        <div class="card">
+                            <div class="card-header" style="background: linear-gradient(135deg, #0ea5e9, #8b5cf6);">
+                                <i class="fas fa-balance-scale me-2"></i> Player Performance Analysis (Head-to-Head)
+                            </div>
+                            <div class="card-body">
+                                <div class="row mb-3">
+                                    <div class="col-md-5">
+                                        <label class="form-label"><strong>Select Player 1</strong></label>
+                                        <select id="h2h-player1" class="form-select" style="background: rgba(15, 23, 42, 0.6); border: 1px solid var(--primary);">
+                                            <option value="">Choose a player...</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-2 d-flex align-items-end justify-content-center">
+                                        <button class="btn btn-primary" onclick="analyzeHeadToHead()" style="width: 100%;">
+                                            <i class="fas fa-chart-line"></i> Compare
+                                        </button>
+                                    </div>
+                                    <div class="col-md-5">
+                                        <label class="form-label"><strong>Select Player 2</strong></label>
+                                        <select id="h2h-player2" class="form-select" style="background: rgba(15, 23, 42, 0.6); border: 1px solid var(--primary);">
+                                            <option value="">Choose a player...</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                
+                                <div id="h2h-comparison" style="display: none;">
+                                    <div class="row">
+                                        <!-- Player 1 Stats -->
+                                        <div class="col-md-4">
+                                            <div class="text-center p-3" style="background: rgba(14, 165, 233, 0.1); border-radius: 12px; border: 2px solid #0ea5e9;">
+                                                <h4 id="h2h-name1" style="color: #0ea5e9; font-weight: 800;"></h4>
+                                                <div id="h2h-stats1"></div>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- VS Badge -->
+                                        <div class="col-md-4 d-flex flex-column justify-content-center align-items-center">
+                                            <div style="font-size: 3rem; font-weight: 900; color: var(--primary); text-shadow: 0 0 20px rgba(14, 165, 233, 0.5);">
+                                                VS
+                                            </div>
+                                            <div id="h2h-winner" class="mt-2" style="display: none;">
+                                                <span class="badge bg-success" style="font-size: 1.1rem;"></span>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Player 2 Stats -->
+                                        <div class="col-md-4">
+                                            <div class="text-center p-3" style="background: rgba(139, 92, 246, 0.1); border-radius: 12px; border: 2px solid #8b5cf6;">
+                                                <h4 id="h2h-name2" style="color: #8b5cf6; font-weight: 800;"></h4>
+                                                <div id="h2h-stats2"></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Detailed Comparison Bars -->
+                                    <div class="mt-4" id="h2h-bars"></div>
+                                    
+                                    <!-- Head-to-Head Match History -->
+                                    <div class="mt-4">
+                                        <h6 style="color: var(--primary); font-weight: 700;">
+                                            <i class="fas fa-history me-2"></i>Previous Encounters
+                                        </h6>
+                                        <div id="h2h-history" class="table-responsive">
+                                            <p class="text-muted text-center">No previous matches between these players</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Top Scorers -->
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header">
+                                <i class="fas fa-futbol me-2"></i> Top Scorers
+                            </div>
+                            <div class="card-body" id="stats-top-scorers">
+                                <div class="text-center">
+                                    <i class="fas fa-spinner fa-spin"></i> Loading...
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Best Defense -->
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header">
+                                <i class="fas fa-shield-alt me-2"></i> Best Defense
+                            </div>
+                            <div class="card-body" id="stats-best-defense">
+                                <div class="text-center">
+                                    <i class="fas fa-spinner fa-spin"></i> Loading...
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Win Rate Leaders -->
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header">
+                                <i class="fas fa-trophy me-2"></i> Win Rate Leaders
+                            </div>
+                            <div class="card-body" id="stats-win-rate">
+                                <div class="text-center">
+                                    <i class="fas fa-spinner fa-spin"></i> Loading...
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Form Guide -->
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header">
+                                <i class="fas fa-chart-line me-2"></i> Recent Form
+                            </div>
+                            <div class="card-body" id="stats-form-guide">
+                                <div class="text-center">
+                                    <i class="fas fa-spinner fa-spin"></i> Loading...
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Goals Statistics -->
+                    <div class="col-md-12">
+                        <div class="card">
+                            <div class="card-header">
+                                <i class="fas fa-chart-bar me-2"></i> Goals Statistics
+                            </div>
+                            <div class="card-body">
+                                <div class="row" id="stats-goals">
+                                    <div class="text-center">
+                                        <i class="fas fa-spinner fa-spin"></i> Loading...
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Match Statistics -->
+                    <div class="col-md-12">
+                        <div class="card">
+                            <div class="card-header">
+                                <i class="fas fa-table me-2"></i> Detailed Player Statistics
+                            </div>
+                            <div class="card-body">
+                                <div class="table-responsive">
+                                    <table class="table table-dark table-hover" id="detailed-stats-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Player</th>
+                                                <th>Team</th>
+                                                <th>Rating</th>
+                                                <th>Matches</th>
+                                                <th>Wins</th>
+                                                <th>Draws</th>
+                                                <th>Losses</th>
+                                                <th>Win %</th>
+                                                <th>Goals For</th>
+                                                <th>Goals Against</th>
+                                                <th>Goal Diff</th>
+                                                <th>Points</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="detailed-stats-tbody">
+                                            <tr>
+                                                <td colspan="12" class="text-center">
+                                                    <i class="fas fa-spinner fa-spin"></i> Loading detailed stats...
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Contact Tab -->
+            <div class="tab-pane fade" id="contact" role="tabpanel">
+                <div class="row">
+                    <!-- Contact Form -->
+                    <div class="col-md-7 mb-4">
+                        <div class="card">
+                            <div class="card-header" style="background: linear-gradient(135deg, #0ea5e9, #10b981);">
+                                <i class="fas fa-paper-plane me-2"></i> Send Us a Message
+                            </div>
+                            <div class="card-body">
+                                <form id="contact-form" onsubmit="submitContactForm(event)">
+                                    <div class="mb-3">
+                                        <label class="form-label"><i class="fas fa-user me-2"></i>Your Name</label>
+                                        <input type="text" id="contact-name" class="form-control" required 
+                                               style="background: rgba(15, 23, 42, 0.6); border: 1px solid var(--primary);" 
+                                               placeholder="Enter your full name">
+                                    </div>
+                                    
+                                    <div class="mb-3">
+                                        <label class="form-label"><i class="fas fa-envelope me-2"></i>Email Address</label>
+                                        <input type="email" id="contact-email" class="form-control" required 
+                                               style="background: rgba(15, 23, 42, 0.6); border: 1px solid var(--primary);" 
+                                               placeholder="your.email@example.com">
+                                    </div>
+                                    
+                                    <div class="mb-3">
+                                        <label class="form-label"><i class="fas fa-tag me-2"></i>Subject</label>
+                                        <select id="contact-subject" class="form-select" required 
+                                                style="background: rgba(15, 23, 42, 0.6); border: 1px solid var(--primary);">
+                                            <option value="">Select a topic...</option>
+                                            <option value="general">General Inquiry</option>
+                                            <option value="support">Technical Support</option>
+                                            <option value="bug">Report a Bug</option>
+                                            <option value="feature">Feature Request</option>
+                                            <option value="feedback">Feedback</option>
+                                            <option value="partnership">Partnership/Collaboration</option>
+                                        </select>
+                                    </div>
+                                    
+                                    <div class="mb-3">
+                                        <label class="form-label"><i class="fas fa-comment-dots me-2"></i>Message</label>
+                                        <textarea id="contact-message" class="form-control" rows="5" required 
+                                                  style="background: rgba(15, 23, 42, 0.6); border: 1px solid var(--primary);" 
+                                                  placeholder="Write your message here..."></textarea>
+                                        <small class="text-muted"><span id="char-count">0</span>/500 characters</small>
+                                    </div>
+                                    
+                                    <div class="mb-3 form-check">
+                                        <input type="checkbox" class="form-check-input" id="contact-copy" 
+                                               style="background: rgba(15, 23, 42, 0.6); border: 1px solid var(--primary);">
+                                        <label class="form-check-label" for="contact-copy">
+                                            Send me a copy of this message
+                                        </label>
+                                    </div>
+                                    
+                                    <button type="submit" class="btn btn-primary w-100" style="padding: 12px; font-weight: 600;">
+                                        <i class="fas fa-paper-plane me-2"></i>Send Message
+                                    </button>
+                                </form>
+                                
+                                <div id="contact-success" class="alert alert-success mt-3" style="display: none;">
+                                    <i class="fas fa-check-circle me-2"></i>Message sent successfully! We'll get back to you soon.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Contact Information -->
+                    <div class="col-md-5 mb-4">
+                        <!-- Quick Contact Cards -->
+                        <div class="row">
+                            <div class="col-12 mb-3">
+                                <div class="card" style="border-left: 4px solid #0ea5e9;">
+                                    <div class="card-body">
+                                        <div class="d-flex align-items-center">
+                                            <div style="width: 50px; height: 50px; background: linear-gradient(135deg, #0ea5e9, #06b6d4); border-radius: 12px; display: flex; align-items: center; justify-content: center; margin-right: 15px;">
+                                                <i class="fas fa-envelope" style="font-size: 1.5rem; color: white;"></i>
+                                            </div>
+                                            <div>
+                                                <h6 class="mb-1" style="font-weight: 700;">Email</h6>
+                                                <p class="mb-0 text-muted">support@efootballleague.com</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="col-12 mb-3">
+                                <div class="card" style="border-left: 4px solid #10b981;">
+                                    <div class="card-body">
+                                        <div class="d-flex align-items-center">
+                                            <div style="width: 50px; height: 50px; background: linear-gradient(135deg, #10b981, #06b6d4); border-radius: 12px; display: flex; align-items: center; justify-content: center; margin-right: 15px;">
+                                                <i class="fab fa-whatsapp" style="font-size: 1.5rem; color: white;"></i>
+                                            </div>
+                                            <div>
+                                                <h6 class="mb-1" style="font-weight: 700;">WhatsApp</h6>
+                                                <p class="mb-0 text-muted">+254 700 123 456</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="col-12 mb-3">
+                                <div class="card" style="border-left: 4px solid #f59e0b;">
+                                    <div class="card-body">
+                                        <div class="d-flex align-items-center">
+                                            <div style="width: 50px; height: 50px; background: linear-gradient(135deg, #f59e0b, #f97316); border-radius: 12px; display: flex; align-items: center; justify-content: center; margin-right: 15px;">
+                                                <i class="fas fa-clock" style="font-size: 1.5rem; color: white;"></i>
+                                            </div>
+                                            <div>
+                                                <h6 class="mb-1" style="font-weight: 700;">Support Hours</h6>
+                                                <p class="mb-0 text-muted">Mon - Sun: 9AM - 10PM EAT</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Social Media -->
+                        <div class="card mt-3">
+                            <div class="card-header">
+                                <i class="fas fa-share-alt me-2"></i> Follow Us
+                            </div>
+                            <div class="card-body">
+                                <div class="d-flex justify-content-around">
+                                    <a href="#" class="text-decoration-none" style="transition: all 0.3s;" 
+                                       onmouseover="this.style.transform='scale(1.2)'" 
+                                       onmouseout="this.style.transform='scale(1)'">
+                                        <div class="text-center">
+                                            <div style="width: 60px; height: 60px; background: linear-gradient(135deg, #1877F2, #42A5F5); border-radius: 12px; display: flex; align-items: center; justify-content: center; margin: 0 auto 8px;">
+                                                <i class="fab fa-facebook-f" style="font-size: 1.8rem; color: white;"></i>
+                                            </div>
+                                            <small style="color: var(--text);">Facebook</small>
+                                        </div>
+                                    </a>
+                                    
+                                    <a href="#" class="text-decoration-none" style="transition: all 0.3s;"
+                                       onmouseover="this.style.transform='scale(1.2)'" 
+                                       onmouseout="this.style.transform='scale(1)'">
+                                        <div class="text-center">
+                                            <div style="width: 60px; height: 60px; background: linear-gradient(135deg, #E4405F, #F77737); border-radius: 12px; display: flex; align-items: center; justify-content: center; margin: 0 auto 8px;">
+                                                <i class="fab fa-instagram" style="font-size: 1.8rem; color: white;"></i>
+                                            </div>
+                                            <small style="color: var(--text);">Instagram</small>
+                                        </div>
+                                    </a>
+                                    
+                                    <a href="#" class="text-decoration-none" style="transition: all 0.3s;"
+                                       onmouseover="this.style.transform='scale(1.2)'" 
+                                       onmouseout="this.style.transform='scale(1)'">
+                                        <div class="text-center">
+                                            <div style="width: 60px; height: 60px; background: linear-gradient(135deg, #1DA1F2, #4FC3F7); border-radius: 12px; display: flex; align-items: center; justify-content: center; margin: 0 auto 8px;">
+                                                <i class="fab fa-twitter" style="font-size: 1.8rem; color: white;"></i>
+                                            </div>
+                                            <small style="color: var(--text);">Twitter</small>
+                                        </div>
+                                    </a>
+                                    
+                                    <a href="#" class="text-decoration-none" style="transition: all 0.3s;"
+                                       onmouseover="this.style.transform='scale(1.2)'" 
+                                       onmouseout="this.style.transform='scale(1)'">
+                                        <div class="text-center">
+                                            <div style="width: 60px; height: 60px; background: linear-gradient(135deg, #FF0000, #FF5252); border-radius: 12px; display: flex; align-items: center; justify-content: center; margin: 0 auto 8px;">
+                                                <i class="fab fa-youtube" style="font-size: 1.8rem; color: white;"></i>
+                                            </div>
+                                            <small style="color: var(--text);">YouTube</small>
+                                        </div>
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- FAQ Quick Links -->
+                        <div class="card mt-3">
+                            <div class="card-header">
+                                <i class="fas fa-question-circle me-2"></i> Quick Help
+                            </div>
+                            <div class="card-body">
+                                <div class="accordion" id="contact-faq">
+                                    <div class="accordion-item" style="background: rgba(15, 23, 42, 0.4); border: 1px solid rgba(14, 165, 233, 0.2); margin-bottom: 10px;">
+                                        <h2 class="accordion-header">
+                                            <button class="accordion-button collapsed" type="button" 
+                                                    data-bs-toggle="collapse" data-bs-target="#faq1" 
+                                                    style="background: transparent; color: var(--text); font-weight: 600;">
+                                                How do I register?
+                                            </button>
+                                        </h2>
+                                        <div id="faq1" class="accordion-collapse collapse" data-bs-parent="#contact-faq">
+                                            <div class="accordion-body" style="color: var(--text-muted);">
+                                                Click the "Register" button in the navbar, fill in your details, and you're ready to play!
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="accordion-item" style="background: rgba(15, 23, 42, 0.4); border: 1px solid rgba(14, 165, 233, 0.2); margin-bottom: 10px;">
+                                        <h2 class="accordion-header">
+                                            <button class="accordion-button collapsed" type="button" 
+                                                    data-bs-toggle="collapse" data-bs-target="#faq2" 
+                                                    style="background: transparent; color: var(--text); font-weight: 600;">
+                                                How are rankings calculated?
+                                            </button>
+                                        </h2>
+                                        <div id="faq2" class="accordion-collapse collapse" data-bs-parent="#contact-faq">
+                                            <div class="accordion-body" style="color: var(--text-muted);">
+                                                Rankings use ELO rating system. Win = +points, Loss = -points, Draw = slight change based on opponent strength.
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="accordion-item" style="background: rgba(15, 23, 42, 0.4); border: 1px solid rgba(14, 165, 233, 0.2);">
+                                        <h2 class="accordion-header">
+                                            <button class="accordion-button collapsed" type="button" 
+                                                    data-bs-toggle="collapse" data-bs-target="#faq3" 
+                                                    style="background: transparent; color: var(--text); font-weight: 600;">
+                                                Can I play tournaments?
+                                            </button>
+                                        </h2>
+                                        <div id="faq3" class="accordion-collapse collapse" data-bs-parent="#contact-faq">
+                                            <div class="accordion-body" style="color: var(--text-muted);">
+                                                Yes! Admins can create tournaments. Check the Admin dashboard for tournament management.
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification Panel -->
+    <div id="notif-panel" aria-hidden="true" style="position:fixed; top:0; right:0; height:100vh; width:360px; max-width:95vw; background:var(--bg-dark); color:var(--text-primary); transform:translateX(110%); transition:transform 320ms ease; z-index:2000; display:flex; flex-direction:column; border-left:1px solid var(--card-border);">
+        <div style="padding:14px 16px; border-bottom:1px solid var(--card-border); display:flex; align-items:center; justify-content:space-between;">
+            <div style="display:flex; align-items:center; gap:12px;">
+                <i class="fas fa-bell" style="font-size:1.15rem; color:var(--primary);"></i>
+                <div>
+                    <div style="font-weight:700;">Notifications</div>
+                    <div id="notif-panel-count" style="font-size:0.8rem; color:var(--text-secondary);">0 unread</div>
+                </div>
+            </div>
+            <button id="close-notif-panel" class="btn btn-sm btn-light">Close</button>
+        </div>
+        <div id="notif-panel-list" style="overflow:auto; padding:12px; flex:1;">
+            <div style="text-align:center; color:var(--text-secondary); padding:28px;">No notifications yet</div>
+        </div>
+    </div>
+
+    <!-- Live Toast -->
+    <div id="live-toast" style="position:fixed; bottom:20px; right:20px; background:var(--card-bg); color:var(--text-primary); padding:14px 18px; border-radius:12px; display:none; z-index:3000; min-width:260px; border:1px solid var(--card-border);">
+        <strong id="toast-title"></strong>
+        <div id="toast-body" style="margin-top:6px; font-size:0.95rem;"></div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="mt-5 py-3" style="background: #0a0f1c; border-top: 1px solid var(--card-border); text-align: center;">
+        <p class="mb-0" style="color: var(--text-secondary);">&copy; 2025 eFootball League. All rights reserved.</p>
+    </footer>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        // Tab Navigation
+        function showTab(tabName) {
+            document.querySelectorAll('.tab-pane').forEach(tab => {
+                tab.classList.remove('show', 'active');
+            });
+            document.querySelectorAll('.nav-link').forEach(link => {
+                link.classList.remove('active');
+            });
+            
+            const targetTab = document.getElementById(tabName);
+            if (targetTab) {
+                targetTab.classList.add('show', 'active');
+            }
+            
+            const activeLink = document.querySelector(`[data-tab="${tabName}"]`);
+            if (activeLink) {
+                activeLink.classList.add('active');
+            }
+        }
+
+        // Tab click handlers
+        document.querySelectorAll('[data-tab]').forEach(link => {
+            link.addEventListener('click', (e) => {
+                e.preventDefault();
+                const tabName = link.getAttribute('data-tab');
+                showTab(tabName);
+            });
+        });
+
+        // Notification Panel
+        let panelOpen = false;
+        function openNotifPanel() {
+            const panel = document.getElementById('notif-panel');
+            if (panel) {
+                panel.style.transform = 'translateX(0)';
+                panel.setAttribute('aria-hidden', 'false');
+                panelOpen = true;
+            }
+        }
+
+        function closeNotifPanel() {
+            const panel = document.getElementById('notif-panel');
+            if (panel) {
+                panel.style.transform = 'translateX(110%)';
+                panel.setAttribute('aria-hidden', 'true');
+                panelOpen = false;
+            }
+        }
+
+        document.getElementById('nav-notifications-link')?.addEventListener('click', (e) => {
+            e.preventDefault();
+            if (!panelOpen) openNotifPanel();
+            else closeNotifPanel();
+        });
+
+        document.getElementById('close-notif-panel')?.addEventListener('click', closeNotifPanel);
+
+        // Load Data from Backend API
+        async function loadUpcomingMatches() {
+            try {
+                const response = await fetch('/api/fixtures?status=pending');
+                const data = await response.json();
+                
+                const container = document.getElementById('upcoming-matches-container');
+                
+                if (data.success && data.data && data.data.length > 0) {
+                    container.innerHTML = data.data.slice(0, 5).map(match => `
+                        <div class="match-teams" style="padding: 1rem; border-bottom: 1px solid var(--card-border);">
+                            <div class="team-info">
+                                <div class="team-logo-placeholder">
+                                    <i class="fas fa-user fa-2x" style="color: var(--text-secondary);"></i>
+                                </div>
+                                <div class="team-name mt-2">${match.player1_name || 'TBD'}</div>
+                            </div>
+                            <div class="vs-badge">VS</div>
+                            <div class="team-info">
+                                <div class="team-logo-placeholder">
+                                    <i class="fas fa-user fa-2x" style="color: var(--text-secondary);"></i>
+                                </div>
+                                <div class="team-name mt-2">${match.player2_name || 'TBD'}</div>
+                            </div>
+                        </div>
+                        <div class="text-center text-muted mb-3">
+                            <i class="fas fa-clock me-1"></i> ${new Date(match.match_date).toLocaleString()}
+                        </div>
+                    `).join('');
+                } else {
+                    container.innerHTML = '<div class="text-center py-4 text-muted">No upcoming matches</div>';
+                }
+            } catch (error) {
+                console.error('Failed to load matches:', error);
+                document.getElementById('upcoming-matches-container').innerHTML = 
+                    '<div class="text-center py-4 text-danger">Failed to load matches</div>';
+            }
+        }
+
+        async function loadStandings() {
+            try {
+                const response = await fetch('/api/standings');
+                const data = await response.json();
+                
+                const tbody = document.getElementById('standings-tbody');
+                
+                if (data.success && data.data) {
+                    tbody.innerHTML = data.data.map(player => `
+                        <tr>
+                            <td>${player.position}</td>
+                            <td><strong>${player.username}</strong></td>
+                            <td>${player.team || 'N/A'}</td>
+                            <td>${player.matches_played}</td>
+                            <td>${player.wins}</td>
+                            <td>${player.draws}</td>
+                            <td>${player.losses}</td>
+                            <td>${player.goals_for}</td>
+                            <td>${player.goals_against}</td>
+                            <td>${player.goal_difference}</td>
+                            <td><strong>${player.points}</strong></td>
+                        </tr>
+                    `).join('');
+                }
+            } catch (error) {
+                console.error('Failed to load standings:', error);
+            }
+        }
+
+        async function loadFixtures() {
+            try {
+                const response = await fetch('/api/fixtures');
+                const data = await response.json();
+                
+                const tbody = document.getElementById('fixtures-tbody');
+                
+                if (data.success && data.data) {
+                    tbody.innerHTML = data.data.map(match => `
+                        <tr>
+                            <td>${new Date(match.match_date).toLocaleDateString()}</td>
+                            <td><strong>${match.player1_name || 'TBD'}</strong></td>
+                            <td><strong>${match.player2_name || 'TBD'}</strong></td>
+                            <td><span class="badge ${match.status === 'completed' ? 'bg-success' : 'bg-warning'}">${match.status}</span></td>
+                        </tr>
+                    `).join('');
+                }
+            } catch (error) {
+                console.error('Failed to load fixtures:', error);
+            }
+        }
+
+        async function loadResults() {
+            try {
+                const response = await fetch('/api/fixtures?status=completed');
+                const data = await response.json();
+                
+                const container = document.getElementById('results-container');
+                
+                if (data.success && data.fixtures && data.fixtures.length > 0) {
+                    container.innerHTML = data.fixtures.map(match => `
+                        <div class="match-teams" style="padding: 1rem; border-bottom: 1px solid var(--card-border);">
+                            <div class="team-info">
+                                <div class="team-name">${match.player1_name}</div>
+                                <h3 style="margin: 0.5rem 0;">${match.player1_score}</h3>
+                            </div>
+                            <div class="vs-badge">VS</div>
+                            <div class="team-info">
+                                <div class="team-name">${match.player2_name}</div>
+                                <h3 style="margin: 0.5rem 0;">${match.player2_score}</h3>
+                            </div>
+                        </div>
+                    `).join('');
+                } else {
+                    container.innerHTML = '<div class="text-center py-4 text-muted">No results yet</div>';
+                }
+            } catch (error) {
+                console.error('Failed to load results:', error);
+            }
+        }
+
+        async function loadPlayers() {
+            try {
+                const response = await fetch('/api/users');
+                const data = await response.json();
+                
+                const tbody = document.getElementById('players-tbody');
+                
+                if (data.success && data.users) {
+                    tbody.innerHTML = data.users.map(user => `
+                        <tr>
+                            <td><strong>${user.username}</strong></td>
+                            <td>${user.team || 'N/A'}</td>
+                            <td>${user.rating || 1000}</td>
+                            <td>${user.wins || 0}</td>
+                            <td>${user.losses || 0}</td>
+                            <td>${user.draws || 0}</td>
+                        </tr>
+                    `).join('');
+                    
+                    // Update top scorers on home page
+                    const topScorers = data.users.sort((a, b) => (b.wins || 0) - (a.wins || 0)).slice(0, 5);
+                    document.getElementById('top-scorers').innerHTML = topScorers.map((user, i) => `
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span><strong>${i + 1}. ${user.username}</strong></span>
+                            <span class="badge bg-success">${user.wins || 0} wins</span>
+                        </div>
+                    `).join('');
+                    
+                    // Update quick stats on home page
+                    const totalMatches = data.users.reduce((sum, u) => sum + (u.wins || 0) + (u.losses || 0) + (u.draws || 0), 0) / 2;
+                    document.getElementById('quick-stats').innerHTML = `
+                        <div class="mb-2"><strong>Total Players:</strong> ${data.users.length}</div>
+                        <div class="mb-2"><strong>Matches Played:</strong> ${Math.round(totalMatches)}</div>
+                        <div><strong>Avg Rating:</strong> ${Math.round(data.users.reduce((sum, u) => sum + (u.rating || 1000), 0) / data.users.length)}</div>
+                    `;
+                    
+                    // Load advanced statistics
+                    loadAdvancedStatistics(data.users);
+                    
+                    // Populate H2H dropdowns
+                    populateH2HDropdowns(data.users);
+                    
+                    // Store users globally for H2H
+                    window.allUsers = data.users;
+                }
+            } catch (error) {
+                console.error('Failed to load players:', error);
+            }
+        }
+
+        function populateH2HDropdowns(users) {
+            const select1 = document.getElementById('h2h-player1');
+            const select2 = document.getElementById('h2h-player2');
+            
+            // Clear existing options except first
+            select1.innerHTML = '<option value="">Choose a player...</option>';
+            select2.innerHTML = '<option value="">Choose a player...</option>';
+            
+            // Add users to both dropdowns
+            users.forEach(user => {
+                const option1 = new Option(`${user.username} (Rating: ${user.rating || 1000})`, user.username);
+                const option2 = new Option(`${user.username} (Rating: ${user.rating || 1000})`, user.username);
+                select1.add(option1);
+                select2.add(option2);
+            });
+        }
+
+        function analyzeHeadToHead() {
+            const player1Name = document.getElementById('h2h-player1').value;
+            const player2Name = document.getElementById('h2h-player2').value;
+            
+            if (!player1Name || !player2Name) {
+                alert('Please select both players to compare');
+                return;
+            }
+            
+            if (player1Name === player2Name) {
+                alert('Please select two different players');
+                return;
+            }
+            
+            const player1 = window.allUsers.find(u => u.username === player1Name);
+            const player2 = window.allUsers.find(u => u.username === player2Name);
+            
+            if (!player1 || !player2) {
+                alert('Players not found');
+                return;
+            }
+            
+            // Show comparison section
+            document.getElementById('h2h-comparison').style.display = 'block';
+            
+            // Set player names
+            document.getElementById('h2h-name1').textContent = player1.username;
+            document.getElementById('h2h-name2').textContent = player2.username;
+            
+            // Calculate stats
+            const p1Matches = (player1.wins || 0) + (player1.draws || 0) + (player1.losses || 0);
+            const p2Matches = (player2.wins || 0) + (player2.draws || 0) + (player2.losses || 0);
+            const p1WinRate = p1Matches > 0 ? ((player1.wins || 0) / p1Matches * 100).toFixed(1) : 0;
+            const p2WinRate = p2Matches > 0 ? ((player2.wins || 0) / p2Matches * 100).toFixed(1) : 0;
+            const p1Points = (player1.wins || 0) * 3 + (player1.draws || 0);
+            const p2Points = (player2.wins || 0) * 3 + (player2.draws || 0);
+            const p1GoalDiff = (player1.goals_for || 0) - (player1.goals_against || 0);
+            const p2GoalDiff = (player2.goals_for || 0) - (player2.goals_against || 0);
+            
+            // Display Player 1 Stats
+            document.getElementById('h2h-stats1').innerHTML = `
+                <div class="mb-2"><small class="text-muted">Rating</small><br><strong style="font-size: 1.5rem; color: #0ea5e9;">${player1.rating || 1000}</strong></div>
+                <div class="mb-2"><small class="text-muted">Matches</small><br><strong style="font-size: 1.2rem;">${p1Matches}</strong></div>
+                <div class="mb-2"><small class="text-muted">Win Rate</small><br><strong style="font-size: 1.2rem; color: #10b981;">${p1WinRate}%</strong></div>
+                <div class="mb-2"><small class="text-muted">Points</small><br><strong style="font-size: 1.2rem; color: #f59e0b;">${p1Points}</strong></div>
+                <div class="mb-2"><small class="text-muted">Goals For</small><br><strong style="font-size: 1.2rem;">${player1.goals_for || 0}</strong></div>
+                <div><small class="text-muted">Goal Diff</small><br><strong style="font-size: 1.2rem; color: ${p1GoalDiff > 0 ? '#10b981' : '#ef4444'};">${p1GoalDiff > 0 ? '+' : ''}${p1GoalDiff}</strong></div>
+            `;
+            
+            // Display Player 2 Stats
+            document.getElementById('h2h-stats2').innerHTML = `
+                <div class="mb-2"><small class="text-muted">Rating</small><br><strong style="font-size: 1.5rem; color: #8b5cf6;">${player2.rating || 1000}</strong></div>
+                <div class="mb-2"><small class="text-muted">Matches</small><br><strong style="font-size: 1.2rem;">${p2Matches}</strong></div>
+                <div class="mb-2"><small class="text-muted">Win Rate</small><br><strong style="font-size: 1.2rem; color: #10b981;">${p2WinRate}%</strong></div>
+                <div class="mb-2"><small class="text-muted">Points</small><br><strong style="font-size: 1.2rem; color: #f59e0b;">${p2Points}</strong></div>
+                <div class="mb-2"><small class="text-muted">Goals For</small><br><strong style="font-size: 1.2rem;">${player2.goals_for || 0}</strong></div>
+                <div><small class="text-muted">Goal Diff</small><br><strong style="font-size: 1.2rem; color: ${p2GoalDiff > 0 ? '#10b981' : '#ef4444'};">${p2GoalDiff > 0 ? '+' : ''}${p2GoalDiff}</strong></div>
+            `;
+            
+            // Determine winner
+            const winnerDiv = document.getElementById('h2h-winner');
+            if (p1Points > p2Points) {
+                winnerDiv.style.display = 'block';
+                winnerDiv.querySelector('span').textContent = `${player1.username} leads!`;
+            } else if (p2Points > p1Points) {
+                winnerDiv.style.display = 'block';
+                winnerDiv.querySelector('span').textContent = `${player2.username} leads!`;
+            } else {
+                winnerDiv.style.display = 'none';
+            }
+            
+            // Create comparison bars
+            const maxRating = Math.max(player1.rating || 1000, player2.rating || 1000, 1500);
+            const maxGoals = Math.max(player1.goals_for || 0, player2.goals_for || 0, 1);
+            const maxWinRate = Math.max(parseFloat(p1WinRate), parseFloat(p2WinRate), 1);
+            
+            document.getElementById('h2h-bars').innerHTML = `
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between mb-1">
+                        <span style="color: #0ea5e9; font-weight: 600;">Rating</span>
+                        <span style="color: #8b5cf6; font-weight: 600;">Rating</span>
+                    </div>
+                    <div class="row">
+                        <div class="col-6">
+                            <div class="progress" style="height: 30px; background: rgba(15, 23, 42, 0.5);">
+                                <div class="progress-bar" style="width: ${(player1.rating || 1000) / maxRating * 100}%; background: linear-gradient(90deg, #0ea5e9, #06b6d4); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.9rem;">
+                                    ${player1.rating || 1000}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="progress" style="height: 30px; background: rgba(15, 23, 42, 0.5);">
+                                <div class="progress-bar" style="width: ${(player2.rating || 1000) / maxRating * 100}%; background: linear-gradient(90deg, #8b5cf6, #a855f7); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.9rem;">
+                                    ${player2.rating || 1000}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between mb-1">
+                        <span style="color: #0ea5e9; font-weight: 600;">Goals</span>
+                        <span style="color: #8b5cf6; font-weight: 600;">Goals</span>
+                    </div>
+                    <div class="row">
+                        <div class="col-6">
+                            <div class="progress" style="height: 30px; background: rgba(15, 23, 42, 0.5);">
+                                <div class="progress-bar" style="width: ${(player1.goals_for || 0) / maxGoals * 100}%; background: linear-gradient(90deg, #10b981, #06b6d4); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.9rem;">
+                                    ${player1.goals_for || 0}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="progress" style="height: 30px; background: rgba(15, 23, 42, 0.5);">
+                                <div class="progress-bar" style="width: ${(player2.goals_for || 0) / maxGoals * 100}%; background: linear-gradient(90deg, #10b981, #8b5cf6); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.9rem;">
+                                    ${player2.goals_for || 0}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between mb-1">
+                        <span style="color: #0ea5e9; font-weight: 600;">Win Rate</span>
+                        <span style="color: #8b5cf6; font-weight: 600;">Win Rate</span>
+                    </div>
+                    <div class="row">
+                        <div class="col-6">
+                            <div class="progress" style="height: 30px; background: rgba(15, 23, 42, 0.5);">
+                                <div class="progress-bar" style="width: ${p1WinRate}%; background: linear-gradient(90deg, #f59e0b, #f97316); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.9rem;">
+                                    ${p1WinRate}%
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="progress" style="height: 30px; background: rgba(15, 23, 42, 0.5);">
+                                <div class="progress-bar" style="width: ${p2WinRate}%; background: linear-gradient(90deg, #f59e0b, #f97316); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.9rem;">
+                                    ${p2WinRate}%
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // Find head-to-head match history
+            loadHeadToHeadHistory(player1.username, player2.username);
+        }
+
+        async function loadHeadToHeadHistory(player1Name, player2Name) {
+            try {
+                const response = await fetch('/api/results');
+                const data = await response.json();
+                
+                if (data.success && data.results) {
+                    // Filter matches between these two players
+                    const h2hMatches = data.results.filter(match => 
+                        (match.home_player === player1Name && match.away_player === player2Name) ||
+                        (match.home_player === player2Name && match.away_player === player1Name)
+                    );
+                    
+                    const historyDiv = document.getElementById('h2h-history');
+                    
+                    if (h2hMatches.length === 0) {
+                        historyDiv.innerHTML = '<p class="text-muted text-center">No previous matches between these players</p>';
+                        return;
+                    }
+                    
+                    // Calculate H2H record
+                    let p1Wins = 0;
+                    let p2Wins = 0;
+                    let draws = 0;
+                    
+                    historyDiv.innerHTML = `
+                        <table class="table table-dark table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Home</th>
+                                    <th>Score</th>
+                                    <th>Away</th>
+                                    <th>Winner</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${h2hMatches.map(match => {
+                                    const homeWon = match.home_goals > match.away_goals;
+                                    const awayWon = match.away_goals > match.home_goals;
+                                    const isDraw = match.home_goals === match.away_goals;
+                                    
+                                    if (match.home_player === player1Name) {
+                                        if (homeWon) p1Wins++;
+                                        else if (awayWon) p2Wins++;
+                                        else draws++;
+                                    } else {
+                                        if (homeWon) p2Wins++;
+                                        else if (awayWon) p1Wins++;
+                                        else draws++;
+                                    }
+                                    
+                                    const winner = homeWon ? match.home_player : awayWon ? match.away_player : 'Draw';
+                                    const winnerBadge = winner === 'Draw' ? '<span class="badge bg-warning">Draw</span>' : 
+                                        `<span class="badge bg-success">${winner}</span>`;
+                                    
+                                    return `
+                                        <tr>
+                                            <td>${new Date(match.match_date).toLocaleDateString()}</td>
+                                            <td><strong>${match.home_player}</strong></td>
+                                            <td><span class="badge bg-info">${match.home_goals} - ${match.away_goals}</span></td>
+                                            <td><strong>${match.away_player}</strong></td>
+                                            <td>${winnerBadge}</td>
+                                        </tr>
+                                    `;
+                                }).join('')}
+                            </tbody>
+                        </table>
+                        <div class="d-flex justify-content-around mt-3 p-3" style="background: rgba(15, 23, 42, 0.5); border-radius: 8px;">
+                            <div class="text-center">
+                                <h5 style="color: #0ea5e9; font-weight: 800;">${p1Wins}</h5>
+                                <small class="text-muted">${player1Name} Wins</small>
+                            </div>
+                            <div class="text-center">
+                                <h5 style="color: #f59e0b; font-weight: 800;">${draws}</h5>
+                                <small class="text-muted">Draws</small>
+                            </div>
+                            <div class="text-center">
+                                <h5 style="color: #8b5cf6; font-weight: 800;">${p2Wins}</h5>
+                                <small class="text-muted">${player2Name} Wins</small>
+                            </div>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                console.error('Failed to load H2H history:', error);
+            }
+        }
+
+        async function loadAdvancedStatistics(users) {
+            if (!users || users.length === 0) return;
+            
+            // Top Scorers (by goals for)
+            const topScorers = [...users].sort((a, b) => (b.goals_for || 0) - (a.goals_for || 0)).slice(0, 10);
+            document.getElementById('stats-top-scorers').innerHTML = topScorers.map((user, i) => `
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span><strong>${i + 1}. ${user.username}</strong></span>
+                    <span class="badge bg-primary">${user.goals_for || 0} goals</span>
+                </div>
+            `).join('');
+            
+            // Best Defense (least goals against)
+            const bestDefense = [...users].sort((a, b) => (a.goals_against || 0) - (b.goals_against || 0)).slice(0, 10);
+            document.getElementById('stats-best-defense').innerHTML = bestDefense.map((user, i) => `
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span><strong>${i + 1}. ${user.username}</strong></span>
+                    <span class="badge bg-success">${user.goals_against || 0} conceded</span>
+                </div>
+            `).join('');
+            
+            // Win Rate Leaders
+            const winRateLeaders = users.map(user => {
+                const matches = (user.wins || 0) + (user.draws || 0) + (user.losses || 0);
+                const winRate = matches > 0 ? ((user.wins || 0) / matches * 100).toFixed(1) : 0;
+                return { ...user, winRate, matches };
+            }).sort((a, b) => b.winRate - a.winRate).slice(0, 10);
+            
+            document.getElementById('stats-win-rate').innerHTML = winRateLeaders.map((user, i) => `
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span><strong>${i + 1}. ${user.username}</strong></span>
+                    <span class="badge bg-warning">${user.winRate}% (${user.matches} matches)</span>
+                </div>
+            `).join('');
+            
+            // Form Guide (last 5 matches simulation)
+            const formGuide = users.slice(0, 10);
+            document.getElementById('stats-form-guide').innerHTML = formGuide.map(user => {
+                const form = [];
+                for (let i = 0; i < 5; i++) {
+                    if (i < (user.wins || 0)) form.push('W');
+                    else if (i < (user.wins || 0) + (user.draws || 0)) form.push('D');
+                    else form.push('L');
+                }
+                return `
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span><strong>${user.username}</strong></span>
+                        <div>
+                            ${form.slice(0, 5).map(result => {
+                                const color = result === 'W' ? 'bg-success' : result === 'D' ? 'bg-warning' : 'bg-danger';
+                                return `<span class="badge ${color} me-1">${result}</span>`;
+                            }).join('')}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            
+            // Goals Statistics
+            const totalGoals = users.reduce((sum, u) => sum + (u.goals_for || 0), 0);
+            const avgGoalsPerMatch = users.length > 0 ? (totalGoals / users.reduce((sum, u) => sum + (u.wins || 0) + (u.draws || 0) + (u.losses || 0), 0)).toFixed(2) : 0;
+            const highestScorer = topScorers[0];
+            const bestDefender = bestDefense[0];
+            
+            document.getElementById('stats-goals').innerHTML = `
+                <div class="col-md-3">
+                    <div class="text-center p-3" style="background: rgba(14, 165, 233, 0.1); border-radius: 8px;">
+                        <h4 style="color: var(--primary); font-weight: 800;">${totalGoals}</h4>
+                        <small class="text-muted">Total Goals</small>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="text-center p-3" style="background: rgba(16, 185, 129, 0.1); border-radius: 8px;">
+                        <h4 style="color: #10b981; font-weight: 800;">${avgGoalsPerMatch}</h4>
+                        <small class="text-muted">Avg Goals/Match</small>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="text-center p-3" style="background: rgba(249, 115, 22, 0.1); border-radius: 8px;">
+                        <h4 style="color: #f97316; font-weight: 800;">${highestScorer ? highestScorer.goals_for : 0}</h4>
+                        <small class="text-muted">Top Scorer (${highestScorer ? highestScorer.username : 'N/A'})</small>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="text-center p-3" style="background: rgba(139, 92, 246, 0.1); border-radius: 8px;">
+                        <h4 style="color: #8b5cf6; font-weight: 800;">${bestDefender ? bestDefender.goals_against : 0}</h4>
+                        <small class="text-muted">Best Defense (${bestDefender ? bestDefender.username : 'N/A'})</small>
+                    </div>
+                </div>
+            `;
+            
+            // Detailed Statistics Table
+            const detailedStats = users.map(user => {
+                const matches = (user.wins || 0) + (user.draws || 0) + (user.losses || 0);
+                const winRate = matches > 0 ? ((user.wins || 0) / matches * 100).toFixed(1) : 0;
+                const points = (user.wins || 0) * 3 + (user.draws || 0);
+                const goalDiff = (user.goals_for || 0) - (user.goals_against || 0);
+                return { ...user, matches, winRate, points, goalDiff };
+            }).sort((a, b) => b.points - a.points);
+            
+            document.getElementById('detailed-stats-tbody').innerHTML = detailedStats.map(user => `
+                <tr>
+                    <td><strong>${user.username}</strong></td>
+                    <td>${user.team || 'N/A'}</td>
+                    <td>${user.rating || 1000}</td>
+                    <td>${user.matches}</td>
+                    <td>${user.wins || 0}</td>
+                    <td>${user.draws || 0}</td>
+                    <td>${user.losses || 0}</td>
+                    <td>${user.winRate}%</td>
+                    <td>${user.goals_for || 0}</td>
+                    <td>${user.goals_against || 0}</td>
+                    <td>${user.goalDiff > 0 ? '+' : ''}${user.goalDiff}</td>
+                    <td><strong>${user.points}</strong></td>
+                </tr>
+            `).join('');
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            loadUpcomingMatches();
+            loadStandings();
+            loadFixtures();
+            loadResults();
+            loadPlayers();
+            
+            // Contact form character counter
+            const messageTextarea = document.getElementById('contact-message');
+            if (messageTextarea) {
+                messageTextarea.addEventListener('input', function() {
+                    const count = this.value.length;
+                    document.getElementById('char-count').textContent = count;
+                    
+                    if (count > 500) {
+                        this.style.borderColor = '#ef4444';
+                        document.getElementById('char-count').style.color = '#ef4444';
+                    } else if (count > 400) {
+                        this.style.borderColor = '#f59e0b';
+                        document.getElementById('char-count').style.color = '#f59e0b';
+                    } else {
+                        this.style.borderColor = 'var(--primary)';
+                        document.getElementById('char-count').style.color = 'var(--text-muted)';
+                    }
+                });
+            }
+            
+            // Refresh every 30 seconds
+            setInterval(() => {
+                loadUpcomingMatches();
+                loadStandings();
+            }, 30000);
+        });
+
+        // Contact Form Submission
+        function submitContactForm(event) {
+            event.preventDefault();
+            
+            const name = document.getElementById('contact-name').value.trim();
+            const email = document.getElementById('contact-email').value.trim();
+            const subject = document.getElementById('contact-subject').value;
+            const message = document.getElementById('contact-message').value.trim();
+            const sendCopy = document.getElementById('contact-copy').checked;
+            
+            // Validation
+            if (!name || !email || !subject || !message) {
+                showToast('Please fill in all required fields', 'error');
+                return;
+            }
+            
+            if (message.length > 500) {
+                showToast('Message must be under 500 characters', 'error');
+                return;
+            }
+            
+            // Email validation
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(email)) {
+                showToast('Please enter a valid email address', 'error');
+                return;
+            }
+            
+            // Show loading state
+            const submitBtn = event.target.querySelector('button[type="submit"]');
+            const originalText = submitBtn.innerHTML;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Sending...';
+            submitBtn.disabled = true;
+            
+            // Simulate sending (in production, this would call your backend API)
+            setTimeout(() => {
+                // Success
+                document.getElementById('contact-success').style.display = 'block';
+                showToast('Message sent successfully!', 'success');
+                
+                // Reset form
+                document.getElementById('contact-form').reset();
+                document.getElementById('char-count').textContent = '0';
+                document.getElementById('char-count').style.color = 'var(--text-muted)';
+                
+                // Restore button
+                submitBtn.innerHTML = originalText;
+                submitBtn.disabled = false;
+                
+                // Hide success message after 5 seconds
+                setTimeout(() => {
+                    document.getElementById('contact-success').style.display = 'none';
+                }, 5000);
+            }, 1500);
+        }
+    </script>
+
+    <!-- Export Functionality -->
+    <script>
+        // Image Export System
+        window.imageExporter = {
+            // Export league table as PNG
+            exportLeagueTable: async () => {
+                try {
+                    const response = await fetch('/api/standings');
+                    const result = await response.json();
+                    const standings = result.data || result.standings || [];
+
+                    if (standings.length === 0) {
+                        alert('No standings data available to export');
+                        return;
+                    }
+
+                    // Create canvas
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+                    
+                    canvas.width = 1200;
+                    canvas.height = 200 + (standings.length * 50);
+
+                    // Background
+                    ctx.fillStyle = '#0f172a';
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                    // Title
+                    ctx.fillStyle = '#0ea5e9';
+                    ctx.font = 'bold 32px Arial';
+                    ctx.fillText('eFootball League 2026 - Standings', 40, 60);
+
+                    // Headers
+                    const headers = ['#', 'Player', 'Team', 'MP', 'W', 'D', 'L', 'GF', 'GA', 'GD', 'Pts'];
+                    const colWidths = [40, 200, 150, 60, 60, 60, 60, 60, 60, 80, 80];
+                    let x = 40;
+                    const headerY = 110;
+
+                    ctx.fillStyle = '#1e293b';
+                    ctx.fillRect(20, 85, canvas.width - 40, 35);
+
+                    ctx.fillStyle = '#f1f5f9';
+                    ctx.font = 'bold 16px Arial';
+                    
+                    headers.forEach((header, i) => {
+                        ctx.fillText(header, x, headerY);
+                        x += colWidths[i];
+                    });
+
+                    // Data rows
+                    ctx.font = '14px Arial';
+                    standings.forEach((player, index) => {
+                        const y = 145 + (index * 50);
+                        x = 40;
+
+                        // Alternate row background
+                        if (index % 2 === 0) {
+                            ctx.fillStyle = 'rgba(30, 41, 59, 0.5)';
+                            ctx.fillRect(20, y - 20, canvas.width - 40, 50);
+                        }
+
+                        const row = [
+                            player.position.toString(),
+                            player.username || player.player,
+                            player.team || 'N/A',
+                            player.matches_played?.toString() || '0',
+                            player.wins?.toString() || '0',
+                            player.draws?.toString() || '0',
+                            player.losses?.toString() || '0',
+                            player.goals_for?.toString() || '0',
+                            player.goals_against?.toString() || '0',
+                            (player.goal_difference > 0 ? '+' : '') + player.goal_difference?.toString() || '0',
+                            player.points?.toString() || '0'
+                        ];
+
+                        row.forEach((value, i) => {
+                            ctx.fillStyle = i === 10 ? '#0ea5e9' : '#94a3b8';
+                            if (i === 0) ctx.fillStyle = '#f1f5f9';
+                            ctx.fillText(value, x, y);
+                            x += colWidths[i];
+                        });
+                    });
+
+                    // Download
+                    const link = document.createElement('a');
+                    link.download = `league-table-${new Date().toISOString().split('T')[0]}.png`;
+                    link.href = canvas.toDataURL('image/png');
+                    link.click();
+
+                    // Show success message
+                    showToast('League table exported successfully!', 'success');
+                } catch (error) {
+                    console.error('Export error:', error);
+                    showToast('Failed to export league table', 'error');
+                }
+            },
+
+            // Export fixtures as PNG
+            exportFixtures: async () => {
+                try {
+                    const response = await fetch('/api/fixtures');
+                    const result = await response.json();
+                    const fixtures = result.data || result.fixtures || [];
+
+                    if (fixtures.length === 0) {
+                        alert('No fixtures data available to export');
+                        return;
+                    }
+
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+                    
+                    canvas.width = 1200;
+                    canvas.height = 200 + (fixtures.length * 60);
+
+                    // Background
+                    ctx.fillStyle = '#0f172a';
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                    // Title
+                    ctx.fillStyle = '#0ea5e9';
+                    ctx.font = 'bold 32px Arial';
+                    ctx.fillText('eFootball League 2026 - Fixtures', 40, 60);
+
+                    // Headers
+                    ctx.fillStyle = '#1e293b';
+                    ctx.fillRect(20, 85, canvas.width - 40, 35);
+
+                    ctx.fillStyle = '#f1f5f9';
+                    ctx.font = 'bold 16px Arial';
+                    ctx.fillText('Date', 40, 110);
+                    ctx.fillText('Home', 250, 110);
+                    ctx.fillText('Score', 600, 110);
+                    ctx.fillText('Away', 750, 110);
+                    ctx.fillText('Status', 1050, 110);
+
+                    // Data
+                    ctx.font = '14px Arial';
+                    fixtures.slice(0, 20).forEach((fixture, index) => {
+                        const y = 145 + (index * 60);
+
+                        if (index % 2 === 0) {
+                            ctx.fillStyle = 'rgba(30, 41, 59, 0.5)';
+                            ctx.fillRect(20, y - 20, canvas.width - 40, 60);
+                        }
+
+                        ctx.fillStyle = '#94a3b8';
+                        const date = fixture.match_date ? new Date(fixture.match_date).toLocaleDateString() : 'TBD';
+                        ctx.fillText(date, 40, y);
+                        ctx.fillText(fixture.player1_name || fixture.home_team || 'TBD', 250, y);
+                        
+                        if (fixture.status === 'completed' && fixture.player1_score !== null) {
+                            ctx.fillStyle = '#10b981';
+                            ctx.fillText(`${fixture.player1_score} - ${fixture.player2_score}`, 600, y);
+                        } else {
+                            ctx.fillStyle = '#f59e0b';
+                            ctx.fillText('vs', 600, y);
+                        }
+                        
+                        ctx.fillStyle = '#94a3b8';
+                        ctx.fillText(fixture.player2_name || fixture.away_team || 'TBD', 750, y);
+                        
+                        ctx.fillStyle = fixture.status === 'completed' ? '#10b981' : '#f59e0b';
+                        ctx.fillText(fixture.status?.toUpperCase() || 'PENDING', 1050, y);
+                    });
+
+                    // Download
+                    const link = document.createElement('a');
+                    link.download = `fixtures-${new Date().toISOString().split('T')[0]}.png`;
+                    link.href = canvas.toDataURL('image/png');
+                    link.click();
+
+                    // Show success message
+                    showToast('Fixtures exported successfully!', 'success');
+                } catch (error) {
+                    console.error('Export error:', error);
+                    showToast('Failed to export fixtures', 'error');
+                }
+            }
+        };
+
+        // Toast notification helper
+        function showToast(message, type = 'info') {
+            const toast = document.createElement('div');
+            toast.style.cssText = `
+                position: fixed;
+                bottom: 20px;
+                right: 20px;
+                background: ${type === 'success' ? '#10b981' : type === 'error' ? '#ef4444' : '#0ea5e9'};
+                color: white;
+                padding: 14px 18px;
+                border-radius: 12px;
+                z-index: 3000;
+                min-width: 260px;
+                font-weight: 500;
+                animation: slideIn 0.3s ease;
+            `;
+            toast.textContent = message;
+            document.body.appendChild(toast);
+            
+            setTimeout(() => {
+                toast.style.animation = 'slideOut 0.3s ease';
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        // Add animation styles
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes slideIn {
+                from { transform: translateX(400px); opacity: 0; }
+                to { transform: translateX(0); opacity: 1; }
+            }
+            @keyframes slideOut {
+                from { transform: translateX(0); opacity: 1; }
+                to { transform: translateX(400px); opacity: 0; }
+            }
+        `;
+        document.head.appendChild(style);
+    </script>
+</body>
+</html>

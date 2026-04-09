@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - eFootball League 2026</title>
+    <link rel="stylesheet" href="/assets/css/theme.css">
+</head>
+<body>
+    <div class="container" style="max-width: 500px; margin-top: 100px;">
+        <div class="card">
+            <h2 style="text-align: center; margin-bottom: 2rem;">⚽ Login</h2>
+            <form id="login-form">
+                <div class="form-group">
+                    <label>Email or Username</label>
+                    <input type="text" id="identifier" required placeholder="Enter email or username">
+                </div>
+                <div class="form-group">
+                    <label>Password</label>
+                    <input type="password" id="password" required placeholder="Enter password">
+                </div>
+                <button type="submit" class="btn btn-primary" style="width: 100%;">Login</button>
+            </form>
+            <p style="text-align: center; margin-top: 1.5rem; color: var(--text-secondary);">
+                Don't have an account? <a href="/register.html" style="color: var(--primary);">Register here</a>
+            </p>
+        </div>
+    </div>
+
+    <script src="/assets/js/api.js"></script>
+    <script src="/assets/js/auth.js"></script>
+    <script src="/assets/js/toast.js"></script>
+    <script>
+        document.getElementById('login-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const identifier = document.getElementById('identifier').value;
+            const password = document.getElementById('password').value;
+
+            try {
+                const response = await auth.login(identifier, password);
+                
+                // Save to localStorage
+                localStorage.setItem('token', response.token);
+                localStorage.setItem('user', JSON.stringify(response.user));
+                
+                toast.success('Login successful!');
+                
+                // Redirect based on role
+                setTimeout(() => {
+                    if (response.user.role === 'admin') {
+                        window.location.href = '/admin.html';
+                    } else {
+                        window.location.href = '/player-dashboard.html';
+                    }
+                }, 1000);
+            } catch (error) {
+                toast.error(error.message || 'Login failed');
+            }
+        });
+    </script>
+</body>
+</html>

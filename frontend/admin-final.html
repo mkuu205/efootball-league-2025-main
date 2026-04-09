@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin - eFootball League 2025</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="/assets/css/theme.css">
+    <style>
+        .navbar {
+            background: #0a0f1c !important;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        .logo-container {
+            display: flex;
+            align-items: center;
+        }
+        .logo {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, #0ea5e9, #0284c7);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            margin-right: 10px;
+        }
+        .ef-profile-image {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 3px solid #0ea5e9;
+        }
+        .admin-section {
+            background: rgba(30, 41, 59, 0.8);
+            border-radius: 10px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+        .nav-pills .nav-link {
+            color: #94a3b8;
+            margin: 0 5px;
+        }
+        .nav-pills .nav-link.active {
+            background: #0ea5e9;
+            color: white;
+        }
+        .tab-content {
+            background: rgba(15, 23, 42, 0.5);
+            border-radius: 10px;
+            padding: 2rem;
+        }
+        .player-card, .fixture-card, .result-card {
+            background: rgba(30, 41, 59, 0.6);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+        .password-strength-container {
+            height: 5px;
+            background: #334155;
+            border-radius: 3px;
+            overflow: hidden;
+        }
+        .password-strength {
+            height: 100%;
+            width: 0;
+            transition: all 0.3s;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark sticky-top">
+        <div class="container">
+            <div class="logo-container">
+                <div class="logo">EFL</div>
+                <span class="navbar-brand mb-0 h1">eFootball League 2025 - Admin</span>
+            </div>
+
+            <div class="navbar-nav ms-auto">
+                <a class="nav-link" href="/index.html">
+                    <i class="fas fa-arrow-left me-1"></i> Back to Site
+                </a>
+                <button class="btn btn-outline-light btn-sm ms-2" id="logout-btn" style="display: none;" onclick="adminLogout()">
+                    <i class="fas fa-sign-out-alt me-1"></i> Logout
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container my-4">
+        <!-- Login Section -->
+        <div id="login-section" class="row justify-content-center">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header text-center">
+                        <h4 class="mb-0">Admin Access</h4>
+                    </div>
+                    <div class="card-body">
+                        <form id="login-form">
+                            <div class="mb-3">
+                                <label for="admin-email" class="form-label">Admin Email</label>
+                                <input type="email" class="form-control" id="admin-email" 
+                                       placeholder="Enter admin email" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="admin-password" class="form-label">Admin Password</label>
+                                <input type="password" class="form-control" id="admin-password" 
+                                       placeholder="Enter admin password" required>
+                                <div class="form-text">
+                                    Contact support if you've forgotten the password
+                                </div>
+                            </div>
+                            <div id="login-error" class="alert alert-danger" style="display: none;"></div>
+                            <button type="submit" class="btn btn-primary w-100">
+                                <i class="fas fa-lock me-2"></i> Access Dashboard
+                            </button>
+                        </form>
+                    </div>
+                </div>
+                
+                <!-- Tournament Info Card -->
+                <div class="card mt-4">
+                    <div class="card-header text-center">
+                        <i class="fas fa-trophy me-2"></i> Tournament Control Center
+                    </div>
+                    <div class="card-body text-center">
+                        <p class="mb-3">Manage players, fixtures, and match results for the eFootball League 2025.</p>
+                        <div class="row text-center">
+                            <div class="col-4">
+                                <div class="fw-bold fs-4 text-warning" id="players-count">0</div>
+                                <small>Players</small>
+                            </div>
+                            <div class="col-4">
+                                <div class="fw-bold fs-4 text-warning" id="fixtures-count">0</div>
+                                <small>Fixtures</small>
+                            </div>
+                            <div class="col-4">
+                                <div class="fw-bold fs-4 text-warning" id="results-count">0</div>
+                                <small>Results</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Admin Dashboard -->
+        <div id="admin-dashboard" class="d-none">
+            <!-- Welcome Header -->
+            <div class="text-center mb-4 p-4 rounded" style="background: rgba(255,255,255,0.1);">
+                <div class="row align-items-center">
+                    <div class="col-md-10">
+                        <h2 class="mb-2 text-warning">Tournament Control Panel</h2>
+                        <p class="mb-0">Welcome back, Administrator! Manage all aspects of the eFootball League 2025.</p>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="fw-bold fs-3 text-warning" id="live-players">0</div>
+                        <small>Active Players</small>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="admin-section">
+                <h4 class="mb-4 text-center text-warning">
+                    <i class="fas fa-user-shield me-2"></i> Admin Dashboard
+                </h4>
+                
+                <ul class="nav nav-pills mb-4 justify-content-center" id="adminTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="players-tab" data-bs-toggle="pill" data-bs-target="#admin-players" type="button">
+                            <i class="fas fa-users me-2"></i> Manage Players
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="fixtures-admin-tab" data-bs-toggle="pill" data-bs-target="#admin-fixtures" type="button">
+                            <i class="fas fa-calendar me-2"></i> Manage Fixtures
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="results-tab" data-bs-toggle="pill" data-bs-target="#admin-results" type="button">
+                            <i class="fas fa-futbol me-2"></i> Input Results
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="tournaments-tab" data-bs-toggle="pill" data-bs-target="#admin-tournaments" type="button">
+                            <i class="fas fa-trophy me-2"></i> Tournaments
+                        </button>
+                    </li>
+                </ul>
+                
+                <div class="tab-content" id="adminTabContent">
+                    <!-- Players Tab -->
+                    <div class="tab-pane fade show active" id="admin-players">
+                        <h5 class="mb-3"><i class="fas fa-users me-2"></i> Registered Players</h5>
+                        <div id="players-list">
+                            <p class="text-center text-muted">Loading players...</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Fixtures Tab -->
+                    <div class="tab-pane fade" id="admin-fixtures">
+                        <h5 class="mb-3"><i class="fas fa-calendar me-2"></i> Manage Fixtures</h5>
+                        <button class="btn btn-primary mb-3" onclick="generateFixtures()">
+                            <i class="fas fa-plus me-2"></i> Generate New Fixtures
+                        </button>
+                        <div id="fixtures-list">
+                            <p class="text-center text-muted">Loading fixtures...</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Results Tab -->
+                    <div class="tab-pane fade" id="admin-results">
+                        <h5 class="mb-3"><i class="fas fa-futbol me-2"></i> Match Results</h5>
+                        <div id="results-list">
+                            <p class="text-center text-muted">Loading results...</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Tournaments Tab -->
+                    <div class="tab-pane fade" id="admin-tournaments">
+                        <h5 class="mb-3"><i class="fas fa-trophy me-2"></i> Create Tournament</h5>
+                        <form id="tournament-form">
+                            <div class="mb-3">
+                                <label class="form-label">Tournament Name</label>
+                                <input type="text" class="form-control" id="t-name" required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Description</label>
+                                <textarea class="form-control" id="t-description" rows="3"></textarea>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Entry Fee (KES)</label>
+                                    <input type="number" class="form-control" id="t-entry-fee" value="0" min="0">
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Max Players (0 = unlimited)</label>
+                                    <input type="number" class="form-control" id="t-max-players" value="0" min="0">
+                                </div>
+                            </div>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-plus me-2"></i> Create Tournament
+                            </button>
+                        </form>
+                        
+                        <hr class="my-4">
+                        
+                        <h5 class="mb-3">Active Tournaments</h5>
+                        <div id="tournaments-list">
+                            <p class="text-center text-muted">Loading tournaments...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Admin Authentication & API
+        const ADMIN_TOKEN_KEY = 'admin_token';
+        const API_BASE = '';
+
+        // Check authentication on load
+        function checkAuth() {
+            const token = localStorage.getItem(ADMIN_TOKEN_KEY);
+            if (token) {
+                showDashboard();
+                loadAllData();
+            } else {
+                showLogin();
+            }
+        }
+
+        function showLogin() {
+            document.getElementById('login-section').classList.remove('d-none');
+            document.getElementById('admin-dashboard').classList.add('d-none');
+            document.getElementById('logout-btn').style.display = 'none';
+        }
+
+        function showDashboard() {
+            document.getElementById('login-section').classList.add('d-none');
+            document.getElementById('admin-dashboard').classList.remove('d-none');
+            document.getElementById('logout-btn').style.display = 'inline-block';
+        }
+
+        // Login
+        document.getElementById('login-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const email = document.getElementById('admin-email').value;
+            const password = document.getElementById('admin-password').value;
+            const errorDiv = document.getElementById('login-error');
+
+            try {
+                const response = await fetch(`${API_BASE}/api/admin/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok || !data.success) {
+                    throw new Error(data.message || 'Login failed');
+                }
+
+                localStorage.setItem(ADMIN_TOKEN_KEY, data.data.token);
+                errorDiv.style.display = 'none';
+                
+                showDashboard();
+                loadAllData();
+                
+            } catch (error) {
+                errorDiv.textContent = error.message;
+                errorDiv.style.display = 'block';
+            }
+        });
+
+        // Logout
+        function adminLogout() {
+            localStorage.removeItem(ADMIN_TOKEN_KEY);
+            showLogin();
+        }
+
+        // Get token
+        function getToken() {
+            return localStorage.getItem(ADMIN_TOKEN_KEY);
+        }
+
+        // API helper
+        async function apiCall(endpoint, options = {}) {
+            const token = getToken();
+            const response = await fetch(`${API_BASE}${endpoint}`, {
+                ...options,
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`,
+                    ...options.headers
+                }
+            });
+            
+            const data = await response.json();
+            
+            if (!response.ok || !data.success) {
+                throw new Error(data.message || 'Request failed');
+            }
+            
+            return data;
+        }
+
+        // Load all dashboard data
+        async function loadAllData() {
+            try {
+                await Promise.all([
+                    loadPlayers(),
+                    loadFixtures(),
+                    loadResults(),
+                    loadTournaments()
+                ]);
+            } catch (error) {
+                console.error('Failed to load data:', error);
+            }
+        }
+
+        // Load players
+        async function loadPlayers() {
+            try {
+                const data = await apiCall('/api/users');
+                const players = data.data || [];
+                
+                document.getElementById('players-count').textContent = players.length;
+                document.getElementById('live-players').textContent = players.length;
+                
+                const container = document.getElementById('players-list');
+                if (players.length === 0) {
+                    container.innerHTML = '<p class="text-center text-muted">No players registered yet</p>';
+                } else {
+                    container.innerHTML = players.map(player => `
+                        <div class="player-card">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <strong>${player.username}</strong>
+                                    <div class="text-muted small">${player.email}</div>
+                                </div>
+                                <div class="text-end">
+                                    <div class="badge bg-primary">Rating: ${player.rating}</div>
+                                </div>
+                            </div>
+                        </div>
+                    `).join('');
+                }
+            } catch (error) {
+                console.error('Failed to load players:', error);
+            }
+        }
+
+        // Load fixtures
+        async function loadFixtures() {
+            try {
+                const data = await apiCall('/api/fixtures');
+                const fixtures = data.data || [];
+                
+                document.getElementById('fixtures-count').textContent = fixtures.length;
+                
+                const container = document.getElementById('fixtures-list');
+                if (fixtures.length === 0) {
+                    container.innerHTML = '<p class="text-center text-muted">No fixtures yet. Generate some!</p>';
+                } else {
+                    container.innerHTML = fixtures.map(fixture => `
+                        <div class="fixture-card">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <strong>${fixture.player1_name}</strong> vs <strong>${fixture.player2_name}</strong>
+                                    <div class="text-muted small">${new Date(fixture.match_date).toLocaleString()}</div>
+                                </div>
+                                <span class="badge ${fixture.status === 'completed' ? 'bg-success' : 'bg-warning'}">${fixture.status}</span>
+                            </div>
+                        </div>
+                    `).join('');
+                }
+            } catch (error) {
+                console.error('Failed to load fixtures:', error);
+            }
+        }
+
+        // Load results
+        async function loadResults() {
+            try {
+                const data = await apiCall('/api/fixtures?status=completed');
+                const results = data.data || [];
+                
+                document.getElementById('results-count').textContent = results.length;
+                
+                const container = document.getElementById('results-list');
+                if (results.length === 0) {
+                    container.innerHTML = '<p class="text-center text-muted">No completed matches yet</p>';
+                } else {
+                    container.innerHTML = results.map(result => `
+                        <div class="result-card">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <strong>${result.player1_name}</strong> ${result.player1_score} - ${result.player2_score} <strong>${result.player2_name}</strong>
+                                    <div class="text-muted small">${new Date(result.match_date).toLocaleString()}</div>
+                                </div>
+                                <span class="badge bg-success">Completed</span>
+                            </div>
+                        </div>
+                    `).join('');
+                }
+            } catch (error) {
+                console.error('Failed to load results:', error);
+            }
+        }
+
+        // Load tournaments
+        async function loadTournaments() {
+            try {
+                const data = await apiCall('/api/tournaments');
+                const tournaments = data.data || [];
+                
+                const container = document.getElementById('tournaments-list');
+                if (tournaments.length === 0) {
+                    container.innerHTML = '<p class="text-center text-muted">No tournaments created yet</p>';
+                } else {
+                    container.innerHTML = tournaments.map(t => `
+                        <div class="player-card">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <strong>${t.name}</strong>
+                                    <div class="text-muted small">${t.description || 'No description'}</div>
+                                </div>
+                                <div class="text-end">
+                                    <div class="badge ${t.status === 'active' ? 'bg-success' : 'bg-warning'}">${t.status}</div>
+                                    <div class="small mt-1">Fee: KES ${t.entry_fee}</div>
+                                </div>
+                            </div>
+                        </div>
+                    `).join('');
+                }
+            } catch (error) {
+                console.error('Failed to load tournaments:', error);
+            }
+        }
+
+        // Generate fixtures
+        async function generateFixtures() {
+            if (!confirm('Generate round-robin fixtures for all players?')) return;
+
+            try {
+                const data = await apiCall('/api/fixtures/generate', { method: 'POST' });
+                alert(`Generated ${data.data.total_fixtures} fixtures!`);
+                loadFixtures();
+            } catch (error) {
+                alert(error.message);
+            }
+        }
+
+        // Create tournament
+        document.getElementById('tournament-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const tournamentData = {
+                name: document.getElementById('t-name').value,
+                description: document.getElementById('t-description').value,
+                entry_fee: parseFloat(document.getElementById('t-entry-fee').value),
+                max_players: parseInt(document.getElementById('t-max-players').value)
+            };
+
+            try {
+                await apiCall('/api/tournaments/create', {
+                    method: 'POST',
+                    body: JSON.stringify(tournamentData)
+                });
+                
+                alert('Tournament created successfully!');
+                e.target.reset();
+                loadTournaments();
+            } catch (error) {
+                alert(error.message);
+            }
+        });
+
+        // Initialize
+        checkAuth();
+    </script>
+</body>
+</html>

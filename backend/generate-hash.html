@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generate Admin Password Hash</title>
+    <script src="https://cdn.jsdelivr.net/npm/bcryptjs@2.4.3/dist/bcrypt.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #0f172a;
+            color: #f1f5f9;
+        }
+        .container {
+            background: #1e293b;
+            padding: 30px;
+            border-radius: 10px;
+        }
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        button {
+            background: #0ea5e9;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            width: 100%;
+        }
+        button:hover {
+            background: #0284c7;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            background: #0a0f1c;
+            border-radius: 5px;
+            word-break: break-all;
+            display: none;
+        }
+        .result.show {
+            display: block;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            color: #94a3b8;
+        }
+        input {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 20px;
+            border: 1px solid #334155;
+            border-radius: 5px;
+            background: #0a0f1c;
+            color: #f1f5f9;
+        }
+        .sql {
+            margin-top: 15px;
+            padding: 15px;
+            background: #0a0f1c;
+            border-radius: 5px;
+            font-family: monospace;
+            font-size: 12px;
+            white-space: pre-wrap;
+            display: none;
+        }
+        .sql.show {
+            display: block;
+        }
+        .copy-btn {
+            margin-top: 10px;
+            background: #10b981;
+        }
+        .copy-btn:hover {
+            background: #059669;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔐 Generate Admin Password Hash</h1>
+        
+        <label for="password">Enter Password:</label>
+        <input type="text" id="password" value="kish24" placeholder="Enter password to hash">
+        
+        <button onclick="generateHash()">Generate Bcrypt Hash</button>
+        
+        <div id="result" class="result">
+            <strong>Bcrypt Hash:</strong>
+            <div id="hash-value" style="margin-top: 10px;"></div>
+            <button class="copy-btn" onclick="copyHash()">Copy Hash</button>
+        </div>
+        
+        <div id="sql" class="sql">
+            <strong>SQL Query:</strong>
+            <div id="sql-query" style="margin-top: 10px;"></div>
+            <button class="copy-btn" onclick="copySQL()">Copy SQL</button>
+        </div>
+        
+        <div style="margin-top: 30px; padding: 15px; background: #0a0f1c; border-radius: 5px;">
+            <strong>Instructions:</strong>
+            <ol style="margin-top: 10px; line-height: 1.8;">
+                <li>Enter the password (default: kish24)</li>
+                <li>Click "Generate Bcrypt Hash"</li>
+                <li>Copy the SQL query</li>
+                <li>Run it in your Neon PostgreSQL database</li>
+                <li>Login at /admin.html with email: admin.kishtech.co.ke</li>
+            </ol>
+        </div>
+    </div>
+
+    <script>
+        let generatedHash = '';
+
+        function generateHash() {
+            const password = document.getElementById('password').value;
+            
+            if (!password) {
+                alert('Please enter a password');
+                return;
+            }
+
+            // Generate bcrypt hash
+            const salt = dcodeIO.bcrypt.genSaltSync(10);
+            const hash = dcodeIO.bcrypt.hashSync(password, salt);
+            generatedHash = hash;
+
+            // Display hash
+            document.getElementById('hash-value').textContent = hash;
+            document.getElementById('result').classList.add('show');
+
+            // Display SQL
+            const sql = `-- Run this in your Neon PostgreSQL database
+INSERT INTO admin_auth (email, password) VALUES
+    ('admin.kishtech.co.ke', '${hash}')
+ON CONFLICT (email) DO UPDATE SET password = EXCLUDED.password;
+
+-- Verify
+SELECT id, email, created_at FROM admin_auth WHERE email = 'admin.kishtech.co.ke';`;
+            
+            document.getElementById('sql-query').textContent = sql;
+            document.getElementById('sql').classList.add('show');
+        }
+
+        function copyHash() {
+            navigator.clipboard.writeText(generatedHash).then(() => {
+                alert('Hash copied to clipboard!');
+            });
+        }
+
+        function copySQL() {
+            const sql = document.getElementById('sql-query').textContent;
+            navigator.clipboard.writeText(sql).then(() => {
+                alert('SQL query copied to clipboard!');
+            });
+        }
+
+        // Auto-generate on load
+        window.onload = generateHash;
+    </script>
+</body>
+</html>

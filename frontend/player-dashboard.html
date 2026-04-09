@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Dashboard - eFootball League 2026</title>
+    <link rel="icon" href="/icons/icon-192x192.png" sizes="192x192" type="image/png">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Orbitron:wght@600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="/css/theme.css">
+    <script>
+        (function() {
+            const theme = localStorage.getItem('efl-theme') || 'dark';
+            document.documentElement.setAttribute('data-theme', theme);
+        })();
+    </script>
+</head>
+<body>
+    <div id="root">
+        <div style="min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1.5rem;">
+            <div class="football-loader">
+                <div class="football">⚽</div>
+                <div class="football-shadow"></div>
+            </div>
+            <div style="color: var(--text-muted); font-size: 0.9rem; font-family: 'Orbitron', sans-serif; letter-spacing: 1px;">Loading eFootball League 2026...</div>
+        </div>
+    </div>
+
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+        
+        // Backend API URL
+        const API_URL = window.location.origin;
+
+        // Helper: Download receipt from backend
+        const downloadReceipt = (paymentId) => {
+            if (!paymentId) return;
+            window.open(`${API_URL}/api/payflow/receipt/${paymentId}`, '_blank');
+        };
+
+        // Spinner Component
+        const Spinner = ({ size = 24 }) => (
+            <div style={{ 
+                width: size, 
+                height: size, 
+                border: '2px solid var(--border-color)', 
+                borderTopColor: 'var(--primary-500)', 
+                borderRadius: '50%', 
+                animation: 'spin 0.8s linear infinite' 
+            }} />
+        );
+
+        // Main App Component
+        const PlayerDashboard = () => {
+            const [player, setPlayer] = useState(null);
+            const [stats, setStats] = useState(null);
+            const [matches, setMatches] = useState([]);
+            const [tournaments, setTournaments] = useState([]);
+            const [receipts, setReceipts] = useState([]);
+            const [loading, setLoading] = useState(true);
+            const [error, setError] = useState(null);
+
+            useEffect(() => {
+                checkAuthAndLoadData();
+            }, []);
+
+            const checkAuthAndLoadData = async () => {
+                const token = localStorage.getItem('efl-token');
+                const userData = localStorage.getItem('efl-user');
+                
+                if (!token || !userData) {
+                    window.location.href = '/login.html';
+                    return;
+                }
+
+                try {
+                    const user = JSON.parse(userData);
+                    setPlayer(user);
+                    await Promise.all([
+                        loadStats(token),
+                        loadMatches(token),
+                        loadTournaments(token),
+                        loadReceipts(token)
+                    ]);
+                } catch (err) {
+                    console.error('Auth error:', err);
+                    window.location.href = '/login.html';
+                } finally {
+                    setLoading(false);
+                }
+            };
+
+            const loadStats = async (token) => {
+                try {
+                    const res = await fetch(`${API_URL}/api/player/stats`, {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+                    const data = await res.json();
+                    if (data.success) setStats(data.data);
+                } catch (err) {
+                    console.error('Failed to load stats:', err);
+                }
+            };
+
+            const loadMatches = async (token) => {
+                try {
+                    const res = await fetch(`${API_URL}/api/player/matches`, {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+                    const data = await res.json();
+                    if (data.success) setMatches(data.data || []);
+                } catch (err) {
+                    console.error('Failed to load matches:', err);
+                }
+            };
+
+            const loadTournaments = async (token) => {
+                try {
+                    const res = await fetch(`${API_URL}/api/player/tournaments`, {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+                    const data = await res.json();
+                    if (data.success) setTournaments(data.data || []);
+                } catch (err) {
+                    console.error('Failed to load tournaments:', err);
+                }
+            };
+
+            const loadReceipts = async (token) => {
+                try {
+                    const res = await fetch(`${API_URL}/api/player/receipts`, {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+                    const data = await res.json();
+                    if (data.success) setReceipts(data.data || []);
+                } catch (err) {
+                    console.error('Failed to load receipts:', err);
+                }
+            };
+
+            const handleLogout = () => {
+                localStorage.removeItem('efl-token');
+                localStorage.removeItem('efl-user');
+                window.location.href = '/login.html';
+            };
+
+            if (loading) {
+                return (
+                    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '1.5rem' }}>
+                        <div className="football-loader">
+                            <div className="football">⚽</div>
+                            <div className="football-shadow"></div>
+                        </div>
+                        <div style={{ color: 'var(--text-muted)', fontSize: '0.9rem', fontFamily: "'Orbitron', sans-serif", letterSpacing: '1px' }}>
+                            Loading eFootball League 2026...
+                        </div>
+                    </div>
+                );
+            }
+
+            if (error) {
+                return (
+                    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <div style={{ textAlign: 'center', color: 'var(--error)' }}>
+                            <i className="fas fa-exclamation-circle" style={{ fontSize: '3rem', marginBottom: '1rem' }}></i>
+                            <h2>{error}</h2>
+                            <button onClick={() => window.location.reload()} className="btn btn-primary">
+                                Try Again
+                            </button>
+                        </div>
+                    </div>
+                );
+            }
+
+            return (
+                <div className="container" style={{ maxWidth: '1400px', margin: '0 auto', padding: '1.5rem' }}>
+                    {/* Header */}
+                    <div className="dashboard-header">
+                        <div className="player-avatar" style={{ 
+                            width: '80px', 
+                            height: '80px', 
+                            borderRadius: '50%', 
+                            border: '3px solid var(--primary-500)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontSize: '2rem',
+                            background: 'var(--gradient-primary)'
+                        }}>
+                            {player?.username?.charAt(0).toUpperCase() || 'P'}
+                        </div>
+                        <div className="player-info">
+                            <h2 style={{ fontFamily: "'Orbitron', sans-serif", fontSize: '1.5rem', marginBottom: '0.25rem' }}>
+                                {player?.username || 'Player'}
+                            </h2>
+                            <div className="player-team" style={{ color: 'var(--primary-400)', fontWeight: 500 }}>
+                                <i className="fas fa-shield-alt"></i>
+                                {player?.team || 'No Team'}
+                            </div>
+                        </div>
+                        <div className="quick-stats">
+                            <div className="quick-stat">
+                                <div className="quick-stat-value" style={{ fontSize: '1.5rem', fontWeight: 700, fontFamily: "'Orbitron', sans-serif" }}>
+                                    {stats?.rating || 1000}
+                                </div>
+                                <div className="quick-stat-label" style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>
+                                    Rating
+                                </div>
+                            </div>
+                            <div className="quick-stat">
+                                <div className="quick-stat-value" style={{ fontSize: '1.5rem', fontWeight: 700, fontFamily: "'Orbitron', sans-serif", color: 'var(--success)' }}>
+                                    {stats?.wins || 0}
+                                </div>
+                                <div className="quick-stat-label" style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>
+                                    Wins
+                                </div>
+                            </div>
+                            <button onClick={handleLogout} className="btn btn-secondary" style={{ marginLeft: '1rem' }}>
+                                <i className="fas fa-sign-out-alt"></i> Logout
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* Stats Grid */}
+                    <div className="dashboard-grid" style={{ 
+                        display: 'grid', 
+                        gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', 
+                        gap: '1rem', 
+                        marginBottom: '1.5rem' 
+                    }}>
+                        <div className="stat-card-enhanced" style={{ textAlign: 'center', padding: '1.25rem', background: 'var(--bg-card)', borderRadius: 'var(--radius-lg)' }}>
+                            <div style={{ fontSize: '1.5rem', marginBottom: '0.5rem' }}>🏆</div>
+                            <div style={{ fontSize: '2rem', fontWeight: 800, fontFamily: "'Orbitron', sans-serif", color: 'var(--primary-500)' }}>
+                                {stats?.wins || 0}
+                            </div>
+                            <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', textTransform: 'uppercase', marginTop: '0.25rem' }}>Wins</div>
+                        </div>
+                        <div className="stat-card-enhanced" style={{ textAlign: 'center', padding: '1.25rem', background: 'var(--bg-card)', borderRadius: 'var(--radius-lg)' }}>
+                            <div style={{ fontSize: '1.5rem', marginBottom: '0.5rem' }}>❌</div>
+                            <div style={{ fontSize: '2rem', fontWeight: 800, fontFamily: "'Orbitron', sans-serif", color: 'var(--error)' }}>
+                                {stats?.losses || 0}
+                            </div>
+                            <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', textTransform: 'uppercase', marginTop: '0.25rem' }}>Losses</div>
+                        </div>
+                        <div className="stat-card-enhanced" style={{ textAlign: 'center', padding: '1.25rem', background: 'var(--bg-card)', borderRadius: 'var(--radius-lg)' }}>
+                            <div style={{ fontSize: '1.5rem', marginBottom: '0.5rem' }}>🤝</div>
+                            <div style={{ fontSize: '2rem', fontWeight: 800, fontFamily: "'Orbitron', sans-serif", color: 'var(--warning)' }}>
+                                {stats?.draws || 0}
+                            </div>
+                            <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', textTransform: 'uppercase', marginTop: '0.25rem' }}>Draws</div>
+                        </div>
+                        <div className="stat-card-enhanced" style={{ textAlign: 'center', padding: '1.25rem', background: 'var(--bg-card)', borderRadius: 'var(--radius-lg)' }}>
+                            <div style={{ fontSize: '1.5rem', marginBottom: '0.5rem' }}>⚽</div>
+                            <div style={{ fontSize: '2rem', fontWeight: 800, fontFamily: "'Orbitron', sans-serif", color: 'var(--success)' }}>
+                                {stats?.total_matches || 0}
+                            </div>
+                            <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', textTransform: 'uppercase', marginTop: '0.25rem' }}>Matches</div>
+                        </div>
+                    </div>
+
+                    {/* Content Grid */}
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: '1.5rem' }}>
+                        {/* My Matches */}
+                        <div className="card" style={{ borderRadius: 'var(--radius-lg)', overflow: 'hidden' }}>
+                            <div style={{ background: 'rgba(6, 182, 212, 0.1)', borderBottom: '1px solid var(--border-color)', padding: '1rem', fontWeight: 600 }}>
+                                <i className="fas fa-futbol"></i> My Matches
+                            </div>
+                            <div style={{ padding: '1rem', maxHeight: '400px', overflowY: 'auto' }}>
+                                {matches.length === 0 ? (
+                                    <p style={{ textAlign: 'center', color: 'var(--text-muted)' }}>No matches yet</p>
+                                ) : (
+                                    matches.slice(0, 10).map(match => (
+                                        <div key={match.id} style={{ padding: '0.75rem', borderBottom: '1px solid var(--border-color)' }}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                <div style={{ flex: 1, textAlign: 'right' }}>
+                                                    <strong>{match.player1_name}</strong>
+                                                </div>
+                                                <div style={{ padding: '0 1rem' }}>
+                                                    {match.status === 'completed' ? (
+                                                        <strong style={{ color: 'var(--success)' }}>{match.player1_score} - {match.player2_score}</strong>
+                                                    ) : (
+                                                        <span className="badge badge-warning">vs</span>
+                                                    )}
+                                                </div>
+                                                <div style={{ flex: 1, textAlign: 'left' }}>
+                                                    <strong>{match.player2_name}</strong>
+                                                </div>
+                                                <span className={`badge badge-${match.result === 'won' ? 'success' : match.result === 'lost' ? 'danger' : 'warning'}`} style={{ marginLeft: '0.5rem' }}>
+                                                    {match.result}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    ))
+                                )}
+                            </div>
+                        </div>
+
+                        {/* My Tournaments */}
+                        <div className="card" style={{ borderRadius: 'var(--radius-lg)', overflow: 'hidden' }}>
+                            <div style={{ background: 'rgba(6, 182, 212, 0.1)', borderBottom: '1px solid var(--border-color)', padding: '1rem', fontWeight: 600 }}>
+                                <i className="fas fa-trophy"></i> My Tournaments
+                            </div>
+                            <div style={{ padding: '1rem', maxHeight: '400px', overflowY: 'auto' }}>
+                                {tournaments.length === 0 ? (
+                                    <p style={{ textAlign: 'center', color: 'var(--text-muted)' }}>No tournaments joined</p>
+                                ) : (
+                                    tournaments.map(t => (
+                                        <div key={t.id} style={{ padding: '0.75rem', borderBottom: '1px solid var(--border-color)' }}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                <div>
+                                                    <h4 style={{ margin: '0 0 0.5rem 0' }}>{t.name}</h4>
+                                                    <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+                                                        Payment: <span className={`badge badge-${t.payment_status === 'completed' ? 'success' : 'warning'}`}>{t.payment_status}</span>
+                                                    </div>
+                                                </div>
+                                                <span className={`badge badge-${t.status === 'pending' ? 'warning' : t.status === 'active' ? 'success' : 'danger'}`}>
+                                                    {t.status}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    ))
+                                )}
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Receipts */}
+                    <div className="card" style={{ marginTop: '1.5rem', borderRadius: 'var(--radius-lg)', overflow: 'hidden' }}>
+                        <div style={{ background: 'rgba(6, 182, 212, 0.1)', borderBottom: '1px solid var(--border-color)', padding: '1rem', fontWeight: 600 }}>
+                            <i className="fas fa-receipt"></i> Payment Receipts
+                        </div>
+                        <div style={{ padding: '1rem' }}>
+                            {receipts.length === 0 ? (
+                                <p style={{ textAlign: 'center', color: 'var(--text-muted)' }}>No receipts</p>
+                            ) : (
+                                <div style={{ overflowX: 'auto' }}>
+                                    <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                                        <thead>
+                                            <tr style={{ borderBottom: '2px solid var(--border-color)' }}>
+                                                <th style={{ padding: '0.75rem', textAlign: 'left' }}>Tournament</th>
+                                                <th style={{ padding: '0.75rem', textAlign: 'left' }}>Amount</th>
+                                                <th style={{ padding: '0.75rem', textAlign: 'left' }}>Transaction Code</th>
+                                                <th style={{ padding: '0.75rem', textAlign: 'left' }}>Date</th>
+                                                <th style={{ padding: '0.75rem', textAlign: 'left' }}>Action</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {receipts.map(receipt => (
+                                                <tr key={receipt.id} style={{ borderBottom: '1px solid var(--border-color)' }}>
+                                                    <td style={{ padding: '0.75rem' }}>{receipt.tournament_name || 'Payment'}</td>
+                                                    <td style={{ padding: '0.75rem', fontWeight: 600 }}>KES {receipt.amount}</td>
+                                                    <td style={{ padding: '0.75rem', fontFamily: 'monospace' }}>{receipt.transaction_code || 'N/A'}</td>
+                                                    <td style={{ padding: '0.75rem' }}>{new Date(receipt.created_at).toLocaleDateString()}</td>
+                                                    <td style={{ padding: '0.75rem' }}>
+                                                        <button 
+                                                            onClick={() => downloadReceipt(receipt.id)}
+                                                            className="receipt-btn"
+                                                            style={{ 
+                                                                background: 'rgba(6, 182, 212, 0.2)',
+                                                                border: '1px solid var(--primary-500)',
+                                                                color: 'var(--primary-400)',
+                                                                borderRadius: 'var(--radius-sm)',
+                                                                padding: '0.35rem 0.85rem',
+                                                                fontSize: '0.75rem',
+                                                                fontWeight: 500,
+                                                                cursor: 'pointer'
+                                                            }}
+                                                        >
+                                                            <i className="fas fa-download"></i> View
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // Render App
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<PlayerDashboard />);
+    </script>
+
+    <style>
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .football-loader {
+            position: relative;
+            width: 60px;
+            height: 80px;
+        }
+        .football {
+            font-size: 3rem;
+            animation: bounce 0.6s ease-in-out infinite;
+            filter: drop-shadow(0 0 10px rgba(6, 182, 212, 0.5));
+        }
+        .football-shadow {
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 40px;
+            height: 10px;
+            background: radial-gradient(ellipse, rgba(0,0,0,0.3) 0%, transparent 70%);
+            border-radius: 50%;
+            animation: shadow 0.6s ease-in-out infinite;
+        }
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-30px); }
+        }
+        @keyframes shadow {
+            0%, 100% { transform: translateX(-50%) scale(1); opacity: 0.4; }
+            50% { transform: translateX(-50%) scale(0.6); opacity: 0.2; }
+        }
+    </style>
+</body>
+</html>

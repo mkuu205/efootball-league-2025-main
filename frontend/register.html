@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register - eFootball League 2026</title>
+    <link rel="stylesheet" href="/assets/css/theme.css">
+</head>
+<body>
+    <div class="container" style="max-width: 500px; margin-top: 50px;">
+        <div class="card">
+            <h2 style="text-align: center; margin-bottom: 2rem;">⚽ Register</h2>
+            <form id="register-form">
+                <div class="form-group">
+                    <label>Username</label>
+                    <input type="text" id="username" required placeholder="Choose a username">
+                </div>
+                <div class="form-group">
+                    <label>Email</label>
+                    <input type="email" id="email" required placeholder="Enter your email">
+                </div>
+                <div class="form-group">
+                    <label>Password</label>
+                    <input type="password" id="password" required placeholder="Create a password (min 6 characters)">
+                </div>
+                <div class="form-group">
+                    <label>Team Name (Optional)</label>
+                    <input type="text" id="team" placeholder="Enter your team name">
+                </div>
+                <button type="submit" class="btn btn-primary" style="width: 100%;">Register</button>
+            </form>
+            <p style="text-align: center; margin-top: 1.5rem; color: var(--text-secondary);">
+                Already have an account? <a href="/login.html" style="color: var(--primary);">Login here</a>
+            </p>
+        </div>
+    </div>
+
+    <script src="/assets/js/api.js"></script>
+    <script src="/assets/js/auth.js"></script>
+    <script src="/assets/js/toast.js"></script>
+    <script>
+        document.getElementById('register-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const username = document.getElementById('username').value;
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const team = document.getElementById('team').value;
+
+            try {
+                const response = await auth.register(username, email, password, team);
+                
+                localStorage.setItem('token', response.token);
+                localStorage.setItem('user', JSON.stringify(response.user));
+                
+                toast.success('Registration successful!');
+                
+                setTimeout(() => {
+                    window.location.href = '/player-dashboard.html';
+                }, 1000);
+            } catch (error) {
+                toast.error(error.message || 'Registration failed');
+            }
+        });
+    </script>
+</body>
+</html>
