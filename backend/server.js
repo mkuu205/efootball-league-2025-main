@@ -39,27 +39,30 @@ app.use(helmet({
       defaultSrc: ["'self'"],
       scriptSrc: [
         "'self'",
-        "'unsafe-inline'", // Allow inline scripts for now
-        'https://cdn.jsdelivr.net', // Bootstrap JS
-        'https://cdnjs.cloudflare.com' // Font Awesome if needed
+        "'unsafe-inline'",
+        'https://cdn.jsdelivr.net',
+        'https://cdnjs.cloudflare.com',
+        'https://unpkg.com'
       ],
       styleSrc: [
         "'self'",
-        "'unsafe-inline'", // Allow inline styles
-        'https://cdn.jsdelivr.net', // Bootstrap CSS
-        'https://cdnjs.cloudflare.com' // Font Awesome CSS
+        "'unsafe-inline'",
+        'https://cdn.jsdelivr.net',
+        'https://cdnjs.cloudflare.com',
+        'https://fonts.googleapis.com'
       ],
-      imgSrc: ["'self'", 'data:', 'https:'],
+      imgSrc: ["'self'", 'data:', 'https:', 'blob:'],
       connectSrc: [
         "'self'",
-        'https://cdn.jsdelivr.net' // Bootstrap source maps
+        'https://cdn.jsdelivr.net'
       ],
       fontSrc: [
         "'self'",
-        'https://cdnjs.cloudflare.com' // Font Awesome fonts
+        'https://cdnjs.cloudflare.com',
+        'https://fonts.gstatic.com'
       ],
       objectSrc: ["'none'"],
-      mediaSrc: ["'self'", 'data:'], // Allow data: URIs for audio/video
+      mediaSrc: ["'self'", 'data:'],
       frameSrc: ["'none'"]
     }
   }
